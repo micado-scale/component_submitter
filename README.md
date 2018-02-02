@@ -1,2 +1,2 @@
 # component-submitter
-Submitter
+Submitter to submit application to MiCADO
