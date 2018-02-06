@@ -10,12 +10,9 @@ class CloudSigma():
         for n in  SELECTION:
           self._set_params(n,capabilities.get_property_value(n))
 
-
-
-
     def _set_params(self, param, value):
         if param is NUM_CPUS:
-            self._set_num_cpus(value) #TODO select correct parameter in node and get its value
+            self._set_num_cpus(value)
         elif param is DISK_SIZE:
             self._set_disk_size(value)
         elif param is MEM_SIZE:
@@ -33,7 +30,7 @@ class CloudSigma():
         elif param is DESCRIPTION:
             self._set_description(value)
         else:
-            print "nothing related to cloudsigma" #TODO add message error
+            raise BaseException("param not related to CloudSigma")
 
     def _set_num_cpus(self, num_cpus):
         self.num_cpus = num_cpus

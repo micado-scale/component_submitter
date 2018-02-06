@@ -18,7 +18,7 @@ class Occopus:
         nodes.append(node)
     return nodes
 
-  def __selection_cloud(self):
+  def __instance_to_launch(self):
     instances = []
     for node in self.__get_compute_node():
       if "CloudSigma" in node.type:
@@ -34,12 +34,5 @@ class Occopus:
   #      return input.default
 
 
-  def occopus_api_call(self, topology_template):
-    template =  topology_template
-    for node in template.nodetemplates:
-      if "Compute" in node.type:
-        print "This node is to define the Resource"
-        compute_node = node
-        print node
-      else:
-        print "This node is not belonging to the Resource definition"
+  def occopus_api_call(self):
+    instances = self.__instance_to_launch()
