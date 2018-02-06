@@ -1,13 +1,17 @@
 #!/usr/bin/python
-SELECTION = (NUM_CPUS, DISK_SIZE, MEM_SIZE, LIBDRIVE_ID, VCN_PASSWORD,
+CAPABILITIES = (NUM_CPUS, DISK_SIZE, MEM_SIZE, LIBDRIVE_ID, VCN_PASSWORD,
              HOST_NAME, PUBLISH_KEY_ID, FIREWALL_POLICY, DESCRIPTION) = \
     ('num_cpus', 'disk_size', 'mem_size', 'libdrive_id', 'vcn_password',
      'host_name', 'publish_key_id', 'firewall_policy', 'description')
+ENDPOINT = 'endpoint_cloud'
+import yaml
 class CloudSigma():
 
     def __init__(self, node):
         capabilities = node.get_capability("host")
-        for n in  SELECTION:
+
+        self._set_endpoint(node.get_property_value("cloud")[ENDPOINT])
+        for n in  CAPABILITIES:
           self._set_params(n,capabilities.get_property_value(n))
 
     def _set_params(self, param, value):
@@ -50,6 +54,8 @@ class CloudSigma():
         self.firewall_policy = firewall_policy
     def _set_description(self, description):
         self.description = description
+    def _set_endpoint(self, endpoint):
+        self.endpoint = endpoint
 
     def get_num_cpu(self):
         return self.num_cpus
@@ -69,3 +75,16 @@ class CloudSigma():
         return self.firewall_policy
     def get_description(self):
         return self.description
+    def get_endpoint(self):
+        return self.get_endpoint()
+
+    def file(self):
+        file = dict()
+        resource = dict()
+        description = dict()
+
+        description.update(cpu=self.num_cpus, mem=self.mem_size)
+        resource.update(type="cloudsigma",endpoint=self.endpoint, libdrive_id=self.libdrive_id, description=description)
+        file.update(resource=resource)
+        return file
+
