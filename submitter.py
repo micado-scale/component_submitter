@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/usr/bin/python
 #from toscaparser.shell import ToscaTemplate
 import toscaparser
 from toscaparser.tosca_template import ToscaTemplate
@@ -6,7 +6,7 @@ import os
 import sys
 import toscaparser.utils.urlutils
 from system_prompt import Prompt
-from occopus import Occopus
+from occopus.occopus import Occopus
 
 
 class Submitter:
@@ -37,7 +37,7 @@ class Submitter:
 
   def launch_application(self):
     occopus = Occopus(self.template)
-
+    return occopus
   
   def update_all_default(self):
     print "entering of update value of inputs. Press enter if you want to keep default"
