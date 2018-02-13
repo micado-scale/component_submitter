@@ -1,0 +1,53 @@
+tosca_definitions_version: tosca_simple_yaml_1_0
+
+description: >
+  TOSCA simple profile describing a redis container.
+
+repositories:
+  docker_hub: https://registry.hub.docker.com/
+
+imports:
+  - micado_types: ../nodes/custom_types.yaml
+
+topology_template:
+  inputs:
+    port_exposed:
+      type: list
+      description: port to expose
+      default:
+        - "6666:6666"
+
+  node_templates:
+    # define the service(s)
+    redis_container:
+      type: tosca.nodes.MiCADO.Container.Application.Docker
+      properties:
+        image: redis
+        privileged: true
+        ports: { get_input: port_exposed }
+        command: --requirepass topsecretpass
+        environment:
+          USELESS_REDIS_VAR: foobars
+        deploy:
+          replicas: 2
+          resources:
+            reservations:
+              cpus: '0.5'
+
+    # define the network(s)
+    #redis_network:
+    #  type: tosca.nodes.MiCADO.network.Network.Docker
+    #  properties:
+    #    driver: overlay
+
+    # define the volume(s)
+    #redis_storage_volume:
+    #  type: tosca.nodes.MiCADO.ObjectStorage.Docker
+
+    # and then the vm................................
+    my_vm:
+      type: tosca.nodes.MiCADO.Occopus.CloudSigma.Compute
+      properties:
+        cloud:
+          interface_cloud: cloudsigma
+          endpoint_cloud: https://zrh.cloudsigma.com/api/2.0
