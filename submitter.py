@@ -1,18 +1,15 @@
 #!/usr/bin/python
-#from toscaparser.shell import ToscaTemplate
 import toscaparser
 from toscaparser.tosca_template import ToscaTemplate
 import os
-import sys
 import toscaparser.utils.urlutils
 from system_prompt import Prompt
-from occopus.occopus import Occopus
+from mapper import Mapper
+import sys
 
 
 class Submitter:
-  """Submitter class that is 
-
-
+  """Submitter class that is
   going to take care of launching the application from TOSCA descriptor"""
 
   def __init__(self, path):
@@ -23,22 +20,19 @@ class Submitter:
       template = ToscaTemplate(self.path, None, False)
     self.template = template
 
-
   def inputs_prompt(self):
     if Prompt("keep all the default value?").query_yes_no():
       print "proceeding to the launch of the application\n"
-      self.launch_application()
+      Mapper(self.template)
     elif Prompt("change all the default value?").query_yes_no():
       print "proceeding to update of default value\n"
       self.update_all_default()
+      Mapper(self.template)
     elif Prompt("input the value you want to modify"):
       print "updating the wanted input\n"
       self.update_inputs_value()
+      Mapper(self.template)
 
-  def launch_application(self):
-    occopus = Occopus(self.template)
-    return occopus
-  
   def update_all_default(self):
     print "entering of update value of inputs. Press enter if you want to keep default"
     for item in self.template.inputs:
@@ -66,7 +60,6 @@ class Submitter:
       if wanted_input == item.name:
         self.template.tpl["topology_template"]["inputs"][item.name]["default"] = Prompt("%s :"% wanted_input).query_input()
 
-
-
-
-
+if __name__ == '__main__':
+    print sys.argv
+    print Submitter(sys.argv[1]).inputs_prompt()

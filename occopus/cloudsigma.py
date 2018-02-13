@@ -3,6 +3,7 @@ CAPABILITIES = (NUM_CPUS, DISK_SIZE, MEM_SIZE, LIBDRIVE_ID, VCN_PASSWORD,
              HOST_NAME, PUBLISH_KEY_ID, FIREWALL_POLICY, DESCRIPTION) = \
     ('num_cpus', 'disk_size', 'mem_size', 'libdrive_id', 'vcn_password',
      'host_name', 'publish_key_id', 'firewall_policy', 'description')
+
 ENDPOINT = 'endpoint_cloud'
 import yaml
 class CloudSigma():
@@ -84,7 +85,7 @@ class CloudSigma():
         description = dict()
 
         description.update(cpu=self.num_cpus, mem=self.mem_size)
-        resource.update(type="cloudsigma",endpoint=self.endpoint, libdrive_id=self.libdrive_id, description=description)
+        resource.update(type="cloudsigma",endpoint=self.endpoint, libdrive_id=[self.libdrive_id], description=description)
         file.update(resource=resource)
         return file
 
