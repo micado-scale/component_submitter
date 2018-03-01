@@ -1,1 +1,1 @@
-import occopus.__init__
+from submitter import Submitter

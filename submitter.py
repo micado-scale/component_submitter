@@ -17,7 +17,7 @@ class Submitter:
     if os.path.isfile(self.path):
       template = ToscaTemplate(self.path, None, True)
     elif toscaparser.utils.urlutils.UrlUtils.validate_url(self.path):
-      template = ToscaTemplate(self.path, None, False)
+      template = ToscaTemplate(self.path, dict(), False)
     self.template = template
 
   def inputs_prompt(self):
@@ -34,13 +34,17 @@ class Submitter:
       Mapper(self.template)
 
   def update_all_default(self):
+    self.template.parsed_params = dict()
     print "entering of update value of inputs. Press enter if you want to keep default"
     for item in self.template.inputs:
       print "\n%s should be from %s" % (item.name, item.type)
       value = Prompt("update %s: " % item.name).query_input()
 
       if value is not None:
-        self.template.tpl["topology_template"]["inputs"][item.name]["default"] = value      
+        self.template.parsed_params[item.name]=value
+      #  self.template.tpl["topology_template"]["inputs"][item.name]["default"] = value
+    self.template=ToscaTemplate(self.path, self.template.parsed_params, False)
+
 
   def list_inputs(self):
     for item in self.template.inputs:
@@ -55,10 +59,13 @@ class Submitter:
       self.update_wanted_input_value()
         
   def update_wanted_input_value(self):
+    self.template.parsed_params=dict()
     wanted_input = Prompt("which one would you like to modify? ").query_input()
     for item in self.template.inputs:
       if wanted_input == item.name:
-        self.template.tpl["topology_template"]["inputs"][item.name]["default"] = Prompt("%s :"% wanted_input).query_input()
+        self.template.parsed_params[wanted_input]=Prompt("%s :"% wanted_input).query_input()
+        #self.template.tpl["topology_template"]["inputs"][item.name]["default"] = Prompt("%s :"% wanted_input).query_input()
+    self.template=ToscaTemplate(self.path, self.template.parsed_params, False)
 
 if __name__ == '__main__':
     print sys.argv
