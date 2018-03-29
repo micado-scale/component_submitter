@@ -1,12 +1,16 @@
 key_config:
-  cloud_orchestrator:
-    - "tosca.nodes.MiCADO.Occopus.CloudSigma.Compute"
-    - "tosca.nodes.MiCADO.Occopus.Nova.Compute"
-    - "tosca.nodes.MiCADO.Occopus.CloudBroker.Compute"
-    - "tosca.nodes.MiCADO.Occopus.EC2.Compute"
-  container_orchestrator:
+  DockerAdaptor:
+    #DockerAdaptor
     - "tosca.nodes.MiCADO.Container.Application.Docker"
-  policies_engine:
-    - "some policy types"
-  security_enforcer:
-    - "some security Enforcer"
+#  cloud_orchestrator:
+#    - "tosca.nodes.MiCADO.*"
+#    - "tosca.nodes.MiCADO.Occopus.CloudSigma.Compute"
+#    - "tosca.nodes.MiCADO.Occopus.Nova.Compute"
+#    - "tosca.nodes.MiCADO.Occopus.CloudBroker.Compute"
+#    - "tosca.nodes.MiCADO.Occopus.EC2.Compute"
+
+#  policies_engine:
+#    - "tosca.nodes.MiCADO.*"
+#    - "tosca.nodes.MiCADO.Container.Application.Docker"
+#  security_enforcer:
+#    - "some security Enforcer"
