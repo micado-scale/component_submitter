@@ -1,19 +1,22 @@
 from abstracts import container_orchestrator as abco
 import ruamel.yaml as yaml
-
+import logging
 DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_IMAGE, DOCKER_REPO,
                  DOCKER_NETWORK, DOCKER_VOLUME) = \
                 ("tosca.nodes.MiCADO.Container.Application.Docker",
                 "tosca.artifacts.Deployment.Image.Container.Docker",
                 "docker_hub","tosca.nodes.MiCADO.network.Network.Docker",
                 "tosca.nodes.MiCADO.Volume.Docker")
+logger = logging.getLogger("adaptors."+__name__)
 
 class DockerAdaptor(abco.ContainerAdaptor):
 
     def __init__(self):
+        logger.debug("initialize the Docker Adaptor")
         super(DockerAdaptor, self).__init__()
         self.compose_data = {"version":"3.4"}
-
+        logger.info("Adaptor ready to be used")
+        
     def translate(self, parsed):
         """ Translate the parsed subset to the Compose format """
 
@@ -53,8 +56,11 @@ class DockerAdaptor(abco.ContainerAdaptor):
         entry = {node.name: {}}
 
         for property in properties:
-            entry[node.name][property] = node.get_property_value(property)
-
+            try:
+                entry[node.name][property] = node.get_property_value(property).result()
+            except AttributeError as a:
+                logger.debug("error caught {}, then not getting the result".format(a))
+                entry[node.name][property] = node.get_property_value(property)
         # Write the compose data
         self._create_compose_properties(key, entry)
 
