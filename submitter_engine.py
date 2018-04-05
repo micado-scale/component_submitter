@@ -55,7 +55,6 @@ class SubmitterEngine(object):
             self.adaptors.append(adaptor)
         logger.debug("list of adaptors instantiated: {}".format(self.adaptors))
 
-
     def _translate(self):
         """launch the translate engine"""
         logger.debug("launch of translate method")
