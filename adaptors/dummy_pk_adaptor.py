@@ -14,6 +14,6 @@ class DummyPkAdaptor(abco.PolicyKeeperAdaptor):
 
         logger.info("Starting PKtranslation")
 
-    def execute(self):
+    #def execute(self):
 
-        logger.info("Starting PKexecution")
+    #    logger.info("Starting PKexecution")
