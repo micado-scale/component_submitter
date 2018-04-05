@@ -10,12 +10,16 @@ logger=logging.getLogger("submitter."+__name__)
 
 class SubmitterEngine(object):
     """docstring for SubmitterEngine."""
-    def __init__(self, arg):
+    def __init__(self, **kwargs):
         super(SubmitterEngine, self).__init__()
         logger.debug("init of submitter engine class")
-        self.path = arg["path_to_file"]
         try:
-          self.parsed_params = arg["parsed_params"]
+            self.path = kwargs["path_to_file"]
+        except KeyError as e:
+            logger.error("\"path_to_file\" arg not found.")
+            raise
+        try:
+          self.parsed_params = kwargs["parsed_params"]
         except KeyError as e:
           logger.warning("KeyError, no {} key detected, will be set to None".format(e))
         self.adaptors = []
