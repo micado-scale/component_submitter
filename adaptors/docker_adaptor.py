@@ -10,7 +10,7 @@ DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_IMAGE, DOCKER_REPO,
                 "tosca.nodes.MiCADO.Volume.Docker")
 logger = logging.getLogger("adaptors."+__name__)
 
-class DockerAdaptor(container_orchestrator.ContainerAdaptor):
+class DockerAdaptor(abco.ContainerAdaptor):
 
     def __init__(self):
         logger.debug("initialize the Docker Adaptor")
