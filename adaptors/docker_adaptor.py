@@ -1,4 +1,5 @@
 from abstracts import container_orchestrator as abco
+from abstracts.exceptions import InvalidTosca, NoRelevantData
 import ruamel.yaml as yaml
 import logging
 DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_IMAGE, DOCKER_REPO,
@@ -13,10 +14,10 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
     def __init__(self):
         logger.debug("initialize the Docker Adaptor")
-        super(DockerAdaptor, self).__init__()
+        super().__init__()
         self.compose_data = {"version":"3.4"}
         logger.info("Adaptor ready to be used")
-        
+
     def translate(self, parsed):
         """ Translate the parsed subset to the Compose format """
 
@@ -24,14 +25,18 @@ class DockerAdaptor(abco.ContainerAdaptor):
             if DOCKER_CONTAINER in tpl.type:
                 self._get_properties(tpl, "services")
                 self._get_artifacts(tpl, parsed.repositories)
-            elif DOCKER_NETWORK in tpl.type:
-                self._get_properties(tpl, "networks")
-            elif DOCKER_VOLUME in tpl.type:
-                self._get_properties(tpl, "volumes")
+
+        if not self.compose_data.get("services"):
+            logger.warning("No TOSCA nodes of Docker type!")
+            raise NoRelevantData("No TOSCA nodes of Docker type!")
 
         for tpl in parsed.nodetemplates:
             if DOCKER_CONTAINER in tpl.type:
                 self._get_requirements(tpl)
+            elif DOCKER_NETWORK in tpl.type:
+                self._get_properties(tpl, "networks")
+            elif DOCKER_VOLUME in tpl.type:
+                self._get_properties(tpl, "volumes")
 
     def execute(self):
         """ Execute the Compose file """
@@ -76,6 +81,8 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 if repository == repo.name:
                     repository = repo.reposit
                     break
+            else:
+                raise InvalidTosca("No repository: {}".format(repository))
         else:
             repository = ""
 
