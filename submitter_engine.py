@@ -2,6 +2,7 @@ from micado_parser import MiCADOParser
 from mapper import Mapper
 from plugins_gestion import PluginsGestion
 import sys
+from step import Step
 
 import logging
 
@@ -27,7 +28,8 @@ class SubmitterEngine(object):
         self._micado_parser_upload()
         self._mapper_instantiation()
         self._instantiate_adaptors()
-        self._execution()
+        self._translate()
+        self._execute()
 
 
     def _micado_parser_upload(self):
@@ -54,10 +56,17 @@ class SubmitterEngine(object):
         logger.debug("list of adaptors instantiated: {}".format(self.adaptors))
 
 
-    def _execution(self):
-        """launch the execution engine"""
-        logger.debug("launch of execution method")
-        logger.debug("translate method called in all the adaptors")
+    def _translate(self):
+        """launch the translate engine"""
+        logger.debug("launch of translate method")
+        logger.info("translate method called in all the adaptors")
         for adaptor in self.adaptors:
             logger.info("translating method call from {}".format(adaptor))
             adaptor.translate(self.template)
+
+    def _execute(self):
+        """launch the execution engine"""
+        logger.info("launch of the execute methods in each adaptors in a serial way")
+        for adaptor in self.adaptors:
+            logger.debug("\t execute adaptor: {}".format(adaptor))
+            Step(adaptor)
