@@ -21,6 +21,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
     def translate(self, parsed):
         """ Translate the parsed subset to the Compose format """
 
+        logger.info("Starting translation...")
         for tpl in parsed.nodetemplates:
             if DOCKER_CONTAINER in tpl.type:
                 self._get_properties(tpl, "services")
@@ -40,6 +41,8 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
     def execute(self):
         """ Execute the Compose file """
+        logger.info("Starting execution...")
+        self.dump_compose("docker-compose.yaml")
 
     def dump_compose(self, path):
         """ Dump to Docker-Compose file """
