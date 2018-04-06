@@ -35,10 +35,8 @@ class Validator():
         if isinstance(tpl, ToscaTemplate):
             self.tpl = tpl
         else:
-            self.tpl = ToscaTemplate("tosca.yaml")
-        #else:
-        #    logger.error("Got a non-ToscaTemplate object!")
-        #    raise TypeError("Not a ToscaTemplate object")
+            logger.error("Got a non-ToscaTemplate object!")
+            raise TypeError("Not a ToscaTemplate object")
 
         errors = set()
         for node in self.tpl.nodetemplates:
@@ -63,7 +61,7 @@ class Validator():
             }
 
     def _validate_repositories(self, node):
-        """ Validate repository links """
+        """ Validate repository names """
 
         repo_names = [repo.name for repo in self.tpl.repositories]
         if not repo_names:
