@@ -1,4 +1,5 @@
 import logging
+from abstracts.exceptions import AdaptorError, AdaptorWarning, AdaptorCritical
 logger=logging.getLogger("submitter."+__name__)
 
 
@@ -8,6 +9,11 @@ class Step():
         #super(Step, self).__init__()
         try:
             object.execute()
-        except AttributeError as e:
-            logger.error("{}".format(e))
-            raise
+        except (AttributeError, AdaptorError, AdaptorCritical, AdaptorWarning) as e:
+            if e is AttributeError:
+                logger.error("{}".format(e))
+                raise
+            if  e is AdaptorCritical:
+                logger.critical("{}".format(e.message))
+                logger.message("nothing to be deployed")
+                raise

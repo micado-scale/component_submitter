@@ -1,8 +1,8 @@
 class AdaptorError(Exception):
     """Base exception for adaptors"""
 
-class NoRelevantData(AdaptorError):
+class AdaptorCritical(Exception):
     """When no data for the adaptor exists"""
 
-class InvalidTosca(AdaptorError):
+class AdaptorWarning(Exception):
     """When the TOSCA template produces an error"""
