@@ -1,5 +1,5 @@
 from abstracts import container_orchestrator as abco
-from abstracts.exceptions import InvalidTosca, NoRelevantData
+from abstracts.exceptions import AdaptorError, AdaptorCritical, AdaptorWarning
 import ruamel.yaml as yaml
 import logging
 DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_IMAGE, DOCKER_REPO,
@@ -29,7 +29,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
         if not self.compose_data.get("services"):
             logger.warning("No TOSCA nodes of Docker type!")
-            raise NoRelevantData("No TOSCA nodes of Docker type!")
+            raise AdaptorCritical("No TOSCA nodes of Docker type!")
 
         for tpl in parsed.nodetemplates:
             if DOCKER_CONTAINER in tpl.type:
@@ -85,7 +85,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
                     repository = repo.reposit
                     break
             else:
-                raise InvalidTosca("No repository: {}".format(repository))
+                raise AdaptorCritical("No repository: {}".format(repository))
         else:
             repository = ""
 
