@@ -6,7 +6,7 @@ MiCADOTYPES = ("tosca.relationships.AttachesTo","tosca.relationships.ConnectsTo"
         "tosca.nodes.MiCADO.Occopus.CloudSigma.Compute",
         "tosca.nodes.MiCADO.network.Network.Docker",
         "tosca.artifacts.Deployment.Image.Container.Docker",
-        "tosca.nodes.MiCADO.Container.Application.Docker")
+        "tosca.nodes.MiCADO.Container.Application.Docker", "volume", "host", "service")
 
 logger = logging.getLogger("submitter."+__name__)
 
@@ -28,20 +28,24 @@ class MultiError(ValidationError):
         print("----{}".format("-"*len(msg)))
 
 class Validator():
-
     """The validator class"""
 
-    def __init__(self, tpl):
+    def __init__(self, tpl=None):
         """ init """
         if isinstance(tpl, ToscaTemplate):
             self.tpl = tpl
         else:
-            raise TypeError("Not a ToscaTemplate object")
+            self.tpl = ToscaTemplate("tosca.yaml")
+        #else:
+        #    logger.error("Got a non-ToscaTemplate object!")
+        #    raise TypeError("Not a ToscaTemplate object")
 
         errors = set()
         for node in self.tpl.nodetemplates:
             errors.update(self._validate_repositories(node))
             errors.update(self._validate_types(node))
+            errors.update(self._validate_requirements(node))
+            errors.update(self._validate_relationships(node))
         if errors:
             logger.error("Incompatible TOSCA")
             raise MultiError("Validation Errors", sorted(errors))
@@ -70,6 +74,40 @@ class Validator():
             "[NODE: {}] Repository <{}> not defined!".format(node.name, repo)
             for repo in repositories if repo not in repo_names
             }
+
+    def _validate_requirements(self, node):
+        """ Validate requirements"""
+
+        return {
+            "[NODE: {}] Requirement <{}> not compatible".format(node.name, name)
+            for require in node.requirements
+            for name in require.keys() if name not in MiCADOTYPES
+            }
+
+    def _validate_relationships(self, node):
+        """ Validate relationships"""
+
+        try:
+            return {
+            "[NODE: {}] "
+            "Relationship <{}> missing 'target' property".format(node.name, name)
+            for require in node.requirements
+            for name in require.keys()
+            if name in ("volume", "service")
+            if not require[name]["relationship"].get("properties").get("target")
+            }
+
+        except AttributeError:
+            return {
+            "[NODE: {}] "
+            "Relationship does not define 'target' property".format(node.name)
+             }
+
+        except KeyError:
+            return {
+            "[NODE: {}] "
+            "Requirement missing relationship details".format(node.name)
+             }
 
     def _key_search(self, query, node):
         """ Search through the node for a key """
