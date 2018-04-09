@@ -17,3 +17,7 @@ class DummyPkAdaptor(abco.PolicyKeeperAdaptor):
     def execute(self):
 
         logger.info("Starting PKexecution")
+
+    def undeploy(self):
+
+        logger.info("Undeploy/remove the policy in pk service")

@@ -12,3 +12,7 @@ class Adaptor(ABC):
     @abstractmethod
     def execute(self):
         pass
+
+    @abstractmethod
+    def undeploy(self):
+        pass

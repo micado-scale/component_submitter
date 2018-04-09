@@ -17,3 +17,7 @@ class DummySeAdaptor(abco.SecurityEnforcerAdaptor):
     def execute(self):
 
         logger.info("Starting Seexecution")
+
+    def undeploy(self):
+
+        logger.info("Undeploy the Security in Security Enforcer")

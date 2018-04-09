@@ -17,3 +17,7 @@ class DummyOccopusAdaptor(abco.CloudAdaptor):
     def execute(self):
 
         logger.info("Starting Occoexecution")
+
+    def undeploy(self):
+
+        logger.info("undeploy infrastructure")

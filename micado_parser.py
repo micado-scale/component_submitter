@@ -4,6 +4,7 @@ import os
 import toscaparser.utils.urlutils
 import sys
 import logging
+from micado_validator import Validator
 logger=logging.getLogger("submitter."+__name__)
 
 
@@ -30,5 +31,6 @@ class MiCADOParser(object):
       except Exception as e:
         logger.error("the input file doesn't exist or cannot be reached")
         raise Exception("Cannot find input file {}".format(e))
-
-    return ToscaTemplate(self.path, parsed_params, isfile)
+    template = ToscaTemplate(self.path, parsed_params, isfile)
+    Validator(template)
+    return template

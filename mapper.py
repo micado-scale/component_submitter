@@ -48,7 +48,7 @@ class Mapper(object):
                     if self.topology.parsed_params[key]:
                         return self.topology.parsed_params
             except KeyError as j:
-                logger.error("{} no {} in parsed_params".foramt(j,key))
+                logger.error("{} no {} in parsed_params".format(j,key))
 
             try:
                 logger.debug("ready to get the result")
