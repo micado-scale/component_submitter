@@ -61,8 +61,10 @@ class SubmitterEngine(object):
         try:
             self.template= parser.set_template(path=self.path, parsed_params=self.parsed_params)
         except MultiError as e:
-            logger.error(e.msg)
+            logger.error(e)
             exit(1)
+        else:
+            logger.info("Valid & Compatible TOSCA template")
 
     def _mapper_instantiation(self):
         """ Retrieve the keylist from mapper """

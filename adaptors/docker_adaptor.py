@@ -105,25 +105,21 @@ class DockerAdaptor(abco.ContainerAdaptor):
         """ Get TOSCA requirements """
 
         for requirement in tpl.requirements:
-
+            req_name = list(requirement.keys())[0]
+            related_node = requirement[req_name]["node"]
+            
             # Fulfill the HostedOn relationship
-            if "host" in requirement.keys():
-                host = requirement["host"]["node"]
-                self._create_compose_constraint(tpl.name, host)
+            if "host" in req_name:
+                self._create_compose_constraint(tpl.name, related_node)
 
-            # Fulfill the ConnectsTo relationship
-            elif "service" in requirement.keys():
-                target = requirement["service"]["node"]
-                network = requirement["service"]["relationship"] \
+            # Fulfill the ConnectsTo and AttachesTo relationships
+            elif "service" in req_name or "volume" in req_name:
+                connector = requirement[req_name]["relationship"] \
                                      ["properties"]["target"]
-                self._create_compose_connection(tpl.name, target, network)
-
-            # Fulfill the AttachesTo relationship
-            elif "volume" in requirement.keys():
-                volume = requirement["volume"]["node"]
-                location = requirement["volume"]["relationship"] \
-                                      ["properties"]["target"]
-                self._create_compose_volume(tpl.name, volume, location)
+                if "service" in req_name:
+                    self._create_compose_connection(tpl.name, related_node, connector)
+                elif "volume" in req_name:
+                    self._create_compose_volume(tpl.name, related_node, connector)
 
     def _create_compose_image(self, node, image):
         """ Create an image entry in the compose data """
