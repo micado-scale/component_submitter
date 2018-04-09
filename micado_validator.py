@@ -2,7 +2,7 @@ from toscaparser.tosca_template import ToscaTemplate
 import logging
 
 MiCADOTYPES = ("tosca.relationships.AttachesTo","tosca.relationships.ConnectsTo",
-        "tosca.relationships.HostedOn", "tosca.nodes.MiCADO.ObjectStorage.Docker",
+        "tosca.relationships.HostedOn", "tosca.nodes.MiCADO.Volume.Docker",
         "tosca.nodes.MiCADO.Occopus.CloudSigma.Compute",
         "tosca.nodes.MiCADO.network.Network.Docker",
         "tosca.artifacts.Deployment.Image.Container.Docker",
