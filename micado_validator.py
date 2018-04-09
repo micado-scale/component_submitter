@@ -16,16 +16,19 @@ class ValidationError(Exception):
 class MultiError(ValidationError):
     """For catching multiple errors"""
     def __init__(self, msg, error_set):
+        """ init """
         super().__init__()
 
-        self.msg = "--{}--".format(msg)
-        print(self.msg)
-
+        self.msg = "Validation Error!\n--{}--".format(msg)
         for error in error_set:
             self.msg += "\n  {}".format(error)
-            print("  {}".format(error))
+        self.msg += "\n----{}".format("-"*len(msg))
 
-        print("----{}".format("-"*len(msg)))
+        print (self.msg)
+
+    def __str__(self):
+        """Overload __str__ to return msg when printing/logging"""
+        return self.msg
 
 class Validator():
     """The validator class"""
@@ -37,7 +40,7 @@ class Validator():
         else:
             logger.error("Got a non-ToscaTemplate object!")
             raise TypeError("Not a ToscaTemplate object")
-
+            
         errors = set()
         for node in self.tpl.nodetemplates:
             errors.update(self._validate_repositories(node))
@@ -45,10 +48,10 @@ class Validator():
             errors.update(self._validate_requirements(node))
             errors.update(self._validate_relationships(node))
         if errors:
-            logger.error("Incompatible TOSCA")
-            raise MultiError("Validation Errors", sorted(errors))
+            logger.debug("Incompatible TOSCA")
+            raise MultiError("Error List", sorted(errors))
         else:
-            logger.info("Compatible TOSCA")
+            logger.debug("Compatible TOSCA")
 
 
     def _validate_types(self, node):
@@ -76,11 +79,22 @@ class Validator():
     def _validate_requirements(self, node):
         """ Validate requirements"""
 
-        return {
-            "[NODE: {}] Requirement <{}> not compatible".format(node.name, name)
-            for require in node.requirements
-            for name in require.keys() if name not in MiCADOTYPES
-            }
+        errors = set()
+        for require in node.requirements:
+            name = list(require.keys())
+            if len(name) == 1:
+                if name[0] not in MiCADOTYPES:
+                    errors.update({
+                        "[NODE: {}] "
+                        "Requirement <{}> not valid".format(node.name, name[0])
+                        })
+            else:
+                errors.update({
+                    "[NODE: {}] "
+                    "Bad requirement definition: <{}> ".format(node.name, name)
+                    })
+
+        return errors
 
     def _validate_relationships(self, node):
         """ Validate relationships"""

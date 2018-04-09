@@ -22,7 +22,7 @@ class MiCADOParser(object):
     if os.path.isfile(self.path):
       logger.debug("check if the input file is local")
       isfile = True
-      return ToscaTemplate(self.path, parsed_params, isfile)
+      #return ToscaTemplate(self.path, parsed_params, isfile)
     else:
       try:
         toscaparser.utils.urlutils.UrlUtils.validate_url(self.path)
@@ -31,6 +31,7 @@ class MiCADOParser(object):
       except Exception as e:
         logger.error("the input file doesn't exist or cannot be reached")
         raise Exception("Cannot find input file {}".format(e))
+
     template = ToscaTemplate(self.path, parsed_params, isfile)
     Validator(template)
     return template
