@@ -16,7 +16,7 @@ class SubmitterEngine(object):
         super(SubmitterEngine, self).__init__()
         logger.debug("init of submitter engine class")
         self.adaptors = []
-        self.reverse = []
+        self.executed_adaptors = []
         self.parsed_params = None
         try:
             self.path = kwargs["path_to_file"]
@@ -50,8 +50,8 @@ class SubmitterEngine(object):
         try:
             self._execute()
         except AdaptorCritical as e:
-            for adaptor in self.reverse:
-                self._unbuild(adaptor)
+            for adaptor in reversed(self.executed_adaptors):
+                self._undeploy(adaptor)
             self._inform_user(e)
 
     def _micado_parser_upload(self):
@@ -93,13 +93,15 @@ class SubmitterEngine(object):
         """ Launch the execution engine """
         logger.info("launch of the execute methods in each adaptors in a serial way")
         for adaptor in self.adaptors:
-            self.reverse.append(adaptor)
             logger.debug("\t execute adaptor: {}".format(adaptor))
-            Step(adaptor)
+            Step(adaptor).execute()
+            self.executed_adaptors.append(adaptor)
 
-    def _unbuild(self, adaptor):
-        """ Unbuild component """
-        Step(adaptor).unbuild()
+
+    def _undeploy(self, adaptor):
+        """ Undeploy component """
+        logger.info("undeploying component")
+        Step(adaptor).undeploy()
 
     def _inform_user(self, message):
         """ Give the User the infromation on what happened """

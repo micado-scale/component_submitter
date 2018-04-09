@@ -14,31 +14,29 @@ class Step():
     def translate(self, params):
         try:
             self.object.translate(params)
-        except(AdaptorError, AdaptorCritical, AdaptorWarning) as e:
-            if e is AdaptorCritical:
-                logger.critical("critical error catched {}".format(e))
-                raise
-            if e is AdaptorError:
-                logger.error("error catched {}, retry".format(e))
-                raise
-            if e is AdaptorWarning:
-                logger.warning("warning: {}, keep going with process".format(e))
+        except AdaptorCritical as e:
+            logger.critical("critical error catched {}".format(e))
+            raise
+        except AdaptorError as e:
+            logger.error("error catched {}, retry".format(e))
+            raise
+        except AdaptorWarning as e:
+            logger.warning("warning: {}, keep going with process".format(e))
 
 
     def execute(self):
         try:
-            object.execute()
-        except (AttributeError, AdaptorError, AdaptorCritical, AdaptorWarning) as e:
-            if e is AttributeError:
-                logger.error("{}".format(e))
-                raise
-            if  e is AdaptorCritical:
-                logger.critical("{}".format(e.message))
-                logger.message("nothing to be deployed")
-                raise
+            self.object.execute()
+        except AttributeError as e:
+            logger.error("{}".format(e))
+            raise
+        except AdaptorCritical as e:
+            logger.critical("{}".format(e))
+            logger.info("nothing to be deployed")
+            raise
 
     def undeploy(self):
         try:
-            object.undeploy()
+            self.object.undeploy()
         except Exception as e:
             logger.error(e)

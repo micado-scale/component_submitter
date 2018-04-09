@@ -42,8 +42,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
     def execute(self):
         """ Execute the Compose file """
         logger.info("Starting execution...")
-        raise AdaptorCritical("ERROR")
-        
+
         self.dump_compose("docker-compose.yaml")
 
     def undeploy(self):
