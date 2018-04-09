@@ -109,14 +109,14 @@ class DockerAdaptor(abco.ContainerAdaptor):
             elif "service" in requirement.keys():
                 target = requirement["service"]["node"]
                 network = requirement["service"]["relationship"] \
-                                     ["properties"]["target"]
+                                     ["properties"]["network_name"]
                 self._create_compose_connection(tpl.name, target, network)
 
             # Fulfill the AttachesTo relationship
             elif "volume" in requirement.keys():
                 volume = requirement["volume"]["node"]
                 location = requirement["volume"]["relationship"] \
-                                      ["properties"]["target"]
+                                      ["properties"]["location"]
                 self._create_compose_volume(tpl.name, volume, location)
 
     def _create_compose_image(self, node, image):
