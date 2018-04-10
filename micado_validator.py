@@ -40,7 +40,7 @@ class Validator():
         else:
             logger.error("Got a non-ToscaTemplate object!")
             raise TypeError("Not a ToscaTemplate object")
-            
+
         errors = set()
         for node in self.tpl.nodetemplates:
             errors.update(self._validate_repositories(node))
