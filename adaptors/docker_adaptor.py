@@ -1,5 +1,5 @@
 from abstracts import container_orchestrator as abco
-from abstracts.exceptions import AdaptorError, AdaptorCritical, AdaptorWarning
+from abstracts.exceptions import AdaptorError, AdaptorCritical
 import ruamel.yaml as yaml
 import logging
 DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_IMAGE, DOCKER_REPO,
@@ -28,7 +28,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 self._get_artifacts(tpl, parsed.repositories)
 
         if not self.compose_data.get("services"):
-            logger.warning("No TOSCA nodes of Docker type!")
+            logger.error("No TOSCA nodes of Docker type!")
             raise AdaptorCritical("No TOSCA nodes of Docker type!")
 
         for tpl in parsed.nodetemplates:
@@ -38,11 +38,11 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 self._get_properties(tpl, "networks")
             elif DOCKER_VOLUME in tpl.type:
                 self._get_properties(tpl, "volumes")
+            raise AdaptorError("try error")
 
     def execute(self):
         """ Execute the Compose file """
         logger.info("Starting execution...")
-
         self.dump_compose("docker-compose.yaml")
 
     def undeploy(self):
@@ -107,7 +107,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         for requirement in tpl.requirements:
             req_name = list(requirement.keys())[0]
             related_node = requirement[req_name]["node"]
-            
+
             # Fulfill the HostedOn relationship
             if "host" in req_name:
                 self._create_compose_constraint(tpl.name, related_node)

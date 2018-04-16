@@ -1,5 +1,5 @@
 import logging
-from abstracts.exceptions import AdaptorError, AdaptorWarning, AdaptorCritical
+from abstracts.exceptions import AdaptorError, AdaptorCritical
 logger=logging.getLogger("submitter."+__name__)
 
 
@@ -20,9 +20,6 @@ class Step():
         except AdaptorError as e:
             logger.error("error catched {}, retry".format(e))
             raise
-        except AdaptorWarning as e:
-            logger.warning("warning: {}, keep going with process".format(e))
-
 
     def execute(self):
         try:
