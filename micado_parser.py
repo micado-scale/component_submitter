@@ -4,7 +4,7 @@ import os
 import toscaparser.utils.urlutils
 import sys
 import logging
-from micado_validator import Validator
+from micado_validator import Validator, MultiError
 logger=logging.getLogger("submitter."+__name__)
 
 
@@ -34,4 +34,5 @@ class MiCADOParser(object):
 
     template = ToscaTemplate(self.path, parsed_params, isfile)
     Validator(template)
+
     return template

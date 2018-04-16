@@ -4,8 +4,9 @@ from plugins_gestion import PluginsGestion
 import sys
 from step import Step
 from micado_validator import MultiError
-from abstracts.exceptions import AdaptorCritical
+from abstracts.exceptions import AdaptorCritical, AdaptorError
 import logging
+
 
 logging.basicConfig(filename="submitter.log", level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger=logging.getLogger("submitter."+__name__)
@@ -18,6 +19,7 @@ class SubmitterEngine(object):
         self.adaptors = []
         self.executed_adaptors = []
         self.parsed_params = None
+        self.e = None
         try:
             self.path = kwargs["path_to_file"]
         except KeyError as e:
@@ -34,37 +36,31 @@ class SubmitterEngine(object):
 
     def _engine(self):
         """ Engine itself """
-        self._micado_parser_upload()
-        self._mapper_instantiation()
         try:
+            self._micado_parser_upload()
+            self._mapper_instantiation()
             self._instantiate_adaptors()
-        except AdaptorCritical as e:
-            if e is AdaptorCritical:
-                self._inform_user(e)
-
-        try:
             self._translate()
+
+        except MultiError as e:
+            print("I'm here!")
+            self._inform_user(e)
+            raise
         except AdaptorCritical as e:
-            if e is AdaptorCritical:
-                self._inform_user(e)
-        try:
-            self._execute()
+            self._inform_user(e)
+            raise
         except AdaptorCritical as e:
             for adaptor in reversed(self.executed_adaptors):
                 self._undeploy(adaptor)
             self._inform_user(e)
+            raise
 
     def _micado_parser_upload(self):
         """ Parse the file and retrieve the object """
         logger.debug("instantiation of submitter and retrieve template")
         parser = MiCADOParser()
-        try:
-            self.template= parser.set_template(path=self.path, parsed_params=self.parsed_params)
-        except MultiError as e:
-            logger.error(e)
-            exit(1)
-        else:
-            logger.info("Valid & Compatible TOSCA template")
+        self.template= parser.set_template(path=self.path, parsed_params=self.parsed_params)
+        logger.info("Valid & Compatible TOSCA template")
 
     def _mapper_instantiation(self):
         """ Retrieve the keylist from mapper """
@@ -89,7 +85,12 @@ class SubmitterEngine(object):
         logger.info("translate method called in all the adaptors")
         for adaptor in self.adaptors:
             logger.info("translating method call from {}".format(adaptor))
-            Step(adaptor).translate(self.template)
+            while True:
+                try:
+                    Step(adaptor).translate(self.template)
+                except AdaptorError as e:
+                    continue
+                break
         #    adaptor.translate(self.template)
     def _execute(self):
         """ Launch the execution engine """
@@ -108,6 +109,9 @@ class SubmitterEngine(object):
     def _inform_user(self, message):
         """ Give the User the infromation on what happened """
         # TODO: store the message for after run is stopped.
+        logger.info("message should be delivered if requested through API")
+        logger.info(message)
+        logger.info("should exist")
         print("message should be delivered if requested through API")
         print(message)
         print("should exit")
