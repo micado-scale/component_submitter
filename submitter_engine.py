@@ -41,6 +41,7 @@ class SubmitterEngine(object):
             self._mapper_instantiation()
             self._instantiate_adaptors()
             self._translate()
+            self._execute()
 
         except MultiError as e:
             print("I'm here!")
