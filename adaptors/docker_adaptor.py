@@ -1,5 +1,5 @@
 from abstracts import container_orchestrator as abco
-from abstracts.exceptions import AdaptorError, AdaptorCritical
+from abstracts.exceptions import AdaptorError, AdaptorCritical, AdaptorWarning
 import ruamel.yaml as yaml
 import logging
 DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_IMAGE, DOCKER_REPO,
@@ -28,7 +28,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 self._get_artifacts(tpl, parsed.repositories)
 
         if not self.compose_data.get("services"):
-            logger.error("No TOSCA nodes of Docker type!")
+            logger.warning("No TOSCA nodes of Docker type!")
             raise AdaptorCritical("No TOSCA nodes of Docker type!")
 
         for tpl in parsed.nodetemplates:
@@ -38,11 +38,11 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 self._get_properties(tpl, "networks")
             elif DOCKER_VOLUME in tpl.type:
                 self._get_properties(tpl, "volumes")
-            raise AdaptorError("try error")
 
     def execute(self):
         """ Execute the Compose file """
         logger.info("Starting execution...")
+
         self.dump_compose("docker-compose.yaml")
 
     def undeploy(self):
@@ -105,20 +105,19 @@ class DockerAdaptor(abco.ContainerAdaptor):
         """ Get TOSCA requirements """
 
         for requirement in tpl.requirements:
-            req_name = list(requirement.keys())[0]
-            related_node = requirement[req_name]["node"]
+            req_vals = list(requirement.values())[0]
+            related_node = req_vals["node"]
 
             # Fulfill the HostedOn relationship
-            if "host" in req_name:
+            if "HostedOn" in str(req_vals):
                 self._create_compose_constraint(tpl.name, related_node)
 
             # Fulfill the ConnectsTo and AttachesTo relationships
-            elif "service" in req_name or "volume" in req_name:
-                connector = requirement[req_name]["relationship"] \
-                                     ["properties"]["target"]
-                if "service" in req_name:
+            elif "ConnectsTo" in str(req_vals) or "AttachesTo" in str(req_vals):
+                connector = req_vals["relationship"]["properties"]["target"]
+                if "ConnectsTo" in str(req_vals):
                     self._create_compose_connection(tpl.name, related_node, connector)
-                elif "volume" in req_name:
+                elif "AttachesTo" in str(req_vals):
                     self._create_compose_volume(tpl.name, related_node, connector)
 
     def _create_compose_image(self, node, image):
