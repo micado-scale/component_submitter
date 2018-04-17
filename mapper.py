@@ -6,35 +6,34 @@ import logging
 from toscaparser.functions import GetInput
 logger=logging.getLogger("submitter."+__name__)
 class Mapper(object):
-    """Mapper class that is creating a KeyList dictionnary"""
+    """Mapper class that is creating a KeyList dictionary"""
     def __init__(self, topology):
         logger.debug("in init of Mapper")
         self.topology = topology
-        self._look_for_get_input()
+        logger.debug("look for get_input in the template")
+        self._find_get_input(self.topology.tpl)
         #self._orchestrator_selection()
         self.keylists = KeyLists(topology)
 
 
-    def _look_for_get_input(self):
-        logger.debug("look for get_input in the template")
-        self._find_get_input_in_dict(self.topology.tpl["topology_template"]["node_templates"])
-
-    def _find_get_input_in_dict(self,template):
+    def _find_get_input(self,template):
         for key, value in template.items():
             if isinstance(value,dict):
-                logger.debug("sub dictionnary found, look through this to find \"get_iput\"")
-                result = self._find_get_input_in_dict(value)
+                logger.debug("sub dictionary found, look through this to find \"get_iput\"")
+                result = self._find_get_input(value)
                 if result is not None:
                     logger.debug("\"get_input\" found replace it with value")
                     template[key] = self._get_input_value(result)
             elif isinstance(value, list):
-                logger.debug("list found, look through this to find \"get_iput\"")
+                logger.debug("list found {}, look through this to find \"get_iput\"".format(value))
                 for i in value:
-                    result = self._find_get_input_in_dict(i)
-                    if result is not None:
-                        logger.debug("\"get_input\" found replace it with value")
-                        template[key][i] = self._get_input_value(result)
-
+                    if isinstance(i, dict):
+                        result = self._find_get_input(i)
+                        if result is not None:
+                            logger.debug("\"get_input\" found replace it with value")
+                            template[key][i] = self._get_input_value(result)
+                    else:
+                        logger.debug("this list doesn't contain any dictionary")
             elif isinstance(value, GetInput):
                 logger.debug("GetInput object found, replace it with value")
                 template[key] = self._get_input_value(value.input_name)
