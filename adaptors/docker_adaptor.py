@@ -3,11 +3,9 @@ from abstracts.exceptions import AdaptorError, AdaptorCritical
 import subprocess
 import ruamel.yaml as yaml
 import logging
-DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_IMAGE, DOCKER_REPO,
-                 DOCKER_NETWORK, DOCKER_VOLUME) = \
+DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_NETWORK, DOCKER_VOLUME) = \
                 ("tosca.nodes.MiCADO.Container.Application.Docker",
-                "tosca.artifacts.Deployment.Image.Container.Docker",
-                "docker_hub","tosca.nodes.MiCADO.network.Network.Docker",
+                "tosca.nodes.MiCADO.network.Network.Docker",
                 "tosca.nodes.MiCADO.Volume.Docker")
 logger = logging.getLogger("adaptors."+__name__)
 
@@ -45,17 +43,23 @@ class DockerAdaptor(abco.ContainerAdaptor):
         logger.info("Starting Docker execution...")
         self.dump_compose("docker-compose.yaml")
         try:
-            subprocess.run(["docker","stack","deploy",
-                    "--compose-file","docker-compose.yaml","test"],check=True)
+            subprocess.run(["docker", "stack", "deploy", "--compose-file",
+                            "docker-compose.yaml", "test"], check=True)
         except subprocess.CalledProcessError:
             logger.error("Cannot execute Docker")
-            raise AdaptorCritical("Could not execute Docker")
+            raise AdaptorCritical("Cannot execute Docker")
+        logger.info("Docker running...")
 
 
     def undeploy(self):
         """ Undeploy this application """
         logger.info("Undeploying the application")
-        # TODO: create the mechanism of undeploy
+        try:
+            subprocess.run(["docker", "stack", "down", "test"], check=True)
+        except subprocess.CalledProcessError:
+            logger.error("Cannot undeploy the stack")
+            raise AdaptorCritical("Cannot undeploy the stack")
+        logger.info("Stack is down...")
 
     def dump_compose(self, path):
         """ Dump to Docker-Compose file """
@@ -80,7 +84,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
             try:
                 entry[node.name][property] = node.get_property_value(property).result()
             except AttributeError as a:
-                logger.debug("error caught {}, then not getting the result".format(a))
+                logger.debug("Error caught {}, trying without .result()".format(a))
                 entry[node.name][property] = node.get_property_value(property)
         # Write the compose data
         self._create_compose_properties(key, entry)
@@ -88,10 +92,8 @@ class DockerAdaptor(abco.ContainerAdaptor):
     def _get_artifacts(self, tpl, repositories):
         """ Get TOSCA artifacts """
 
-        artifacts = tpl.entity_tpl.get("artifacts")
-
         # Get the repository, include in image name if not Docker Hub
-        repository = artifacts["image"].get("repository")
+        repository = tpl.entity_tpl.get("artifacts").get("repository")
         if repository and "docker_hub" not in repository:
             for repo in repositories:
                 if repository == repo.name:
