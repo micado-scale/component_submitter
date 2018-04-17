@@ -1,5 +1,6 @@
 from abstracts import container_orchestrator as abco
 from abstracts.exceptions import AdaptorError, AdaptorCritical
+import subprocess
 import ruamel.yaml as yaml
 import logging
 DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_IMAGE, DOCKER_REPO,
@@ -41,9 +42,15 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
     def execute(self):
         """ Execute the Compose file """
-        logger.info("Starting execution...")
-
+        logger.info("Starting Docker execution...")
         self.dump_compose("docker-compose.yaml")
+        try:
+            subprocess.run(["docker","stack","deploy",
+                    "--compose-file","docker-compose.yaml","test"],check=True)
+        except subprocess.CalledProcessError:
+            logger.error("Cannot execute Docker")
+            raise AdaptorCritical("Could not execute Docker")
+
 
     def undeploy(self):
         """ Undeploy this application """
