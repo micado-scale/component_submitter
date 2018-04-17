@@ -113,12 +113,12 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 self._create_compose_constraint(tpl.name, related_node)
 
             # Fulfill the ConnectsTo and AttachesTo relationships
-            elif "ConnectsTo" in str(req_vals) or "AttachesTo" in str(req_vals):
-                connector = req_vals["relationship"]["properties"]["target"]
-                if "ConnectsTo" in str(req_vals):
-                    self._create_compose_connection(tpl.name, related_node, connector)
-                elif "AttachesTo" in str(req_vals):
-                    self._create_compose_volume(tpl.name, related_node, connector)
+            elif "ConnectsTo" in str(req_vals):
+                connector = req_vals["relationship"]["properties"]["network"]
+                self._create_compose_connection(tpl.name, related_node, connector)
+            elif "AttachesTo" in str(req_vals):
+                connector = req_vals["relationship"]["properties"]["location"]
+                self._create_compose_volume(tpl.name, related_node, connector)
 
     def _create_compose_image(self, node, image):
         """ Create an image entry in the compose data """
