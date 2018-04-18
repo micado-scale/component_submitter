@@ -5,22 +5,33 @@ import collections
 import logging
 logger=logging.getLogger("submitter."+__name__)
 
+CONFIG_FILE = "key_config.yml"
 
 class KeyLists():
-  def __init__(self, template):
+  def __init__(self):
       logger.debug("initialisation of KeyLists class")
       self.keys = dict()
-      self.template = template
-      self._set_dictionary()
-      self._update_dictionary()
+      #self.template = template
+      #self._set_dictionary()
+      #self._update_dictionary()
+
+  def get_list_adaptors(self):
+      """return list of adaptors to use"""
+      logger.debug("get the list of adaptors")
+      adaptor_list=[]
+      for key, value in self._reading_config()["key_config"].items():
+          adaptor_list.append(key)
+
+      logger.debug("adaptors:  {}".format(adaptor_list))
+      return adaptor_list
 
 
-  def _retrieve_custom_type(self):
+  def _retrieve_custom_type(self, template):
       """list all the custom types"""
 
       logger.debug("retrieving custom type from tosca")
       list_custom_type=[]
-      for key in self.template._get_all_custom_defs():
+      for key in template._get_all_custom_defs():
           list_custom_type.append(key)
       logger.debug("creation of list with custom type in it")
       return list_custom_type
@@ -29,7 +40,7 @@ class KeyLists():
       """reading the config file and creating a dictionary related to it"""
       logger.debug("reading config file")
       dic_types=dict()
-      with open("key_config.yml", 'r') as stream:
+      with open(CONFIG_FILE, 'r') as stream:
           try:
                dic_types=yaml.load(stream)
           except yaml.YAMLError as exc:
@@ -37,10 +48,10 @@ class KeyLists():
       logger.debug("return dictionary of types from config file")
       return dic_types
 
-  def _check_re(self, key):
+  def _check_re(self, key, template):
       """check the if the regular expression '*' return True or False"""
       logger.debug("check regular expression wild card")
-      _list_custom = self._retrieve_custom_type()
+      _list_custom = self._retrieve_custom_type(template)
       output = []
       if '*' in key:
           logger.debug("return True as * in key ")
@@ -49,10 +60,10 @@ class KeyLists():
           logger.debug("return False as no * in key")
           return False
 
-  def _list_for_re(self, key):
+  def _list_for_re(self, key, template):
       """return list of the correspondant types"""
       logger.debug("creation of list with correct type")
-      _list_custom = self._retrieve_custom_type()
+      _list_custom = self._retrieve_custom_type(template)
       output = []
       pattern = re.compile(key)
       for type in _list_custom:
@@ -65,7 +76,7 @@ class KeyLists():
 
 
 
-  def _set_dictionary(self):
+  def set_dictionary(self, template):
       """setting the dictionary, first going to call method to read config
         and implement the dictionary related to it."""
       logger.debug("set dictionary")
@@ -75,7 +86,7 @@ class KeyLists():
               self.keys.setdefault(key)
               _interm_dict=dict()
               for type in value:
-                  if self._check_re(type):
+                  if self._check_re(type, template):
                       for t in self._list_for_re(type):
                           _interm_dict.setdefault(t)
                   else:
@@ -87,12 +98,13 @@ class KeyLists():
                       self.keys.setdefault(type)
               else:
                   self.keys.setdefault(key)
+      self._update_dictionary(template)
 
-  def _update_dictionary(self):
+  def _update_dictionary(self, template):
       """updating the dictionary with value related to the template"""
       logger.debug("update dictionary")
       for inbeded_dict in self.keys:
-          for node in self.template.nodetemplates:
+          for node in template.nodetemplates:
               if self._key_exist(inbeded_dict, node.type):
                   self._update_embeded(node.type, node, inbeded_dict)
 

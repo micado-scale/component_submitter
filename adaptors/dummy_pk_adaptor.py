@@ -1,4 +1,5 @@
 import logging
+import generator
 
 from abstracts import policykeeper as abco
 
@@ -17,7 +18,8 @@ class DummyPkAdaptor(abco.PolicyKeeperAdaptor):
     def execute(self):
 
         logger.info("Starting PKexecution")
+        return generator.id_generator()
 
-    def undeploy(self):
+    def undeploy(self, id_adaptor):
 
         logger.info("Undeploy/remove the policy in pk service")

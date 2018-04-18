@@ -1,8 +1,6 @@
 from flask import request, url_for, Flask, jsonify
-from flask_api import status, exceptions
 from submitter_engine import SubmitterEngine
-from flask_api import FlaskAPI
-from abstracts.exceptions import AdaptorError, AdaptorWarning, AdaptorCritical
+from abstracts.exceptions import AdaptorCritical
 app = Flask(__name__)
 
 import logging

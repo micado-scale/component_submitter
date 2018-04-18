@@ -5,6 +5,7 @@ from key_lists import KeyLists
 import logging
 from toscaparser.functions import GetInput
 logger=logging.getLogger("submitter."+__name__)
+
 class Mapper(object):
     """Mapper class that is creating a KeyList dictionary"""
     def __init__(self, topology):
@@ -13,19 +14,19 @@ class Mapper(object):
         logger.debug("look for get_input in the template")
         self._find_get_input(self.topology.tpl)
         #self._orchestrator_selection()
-        self.keylists = KeyLists(topology)
+        self.keylists = KeyLists().set_dictionary(topology)
 
 
     def _find_get_input(self,template):
         for key, value in template.items():
             if isinstance(value,dict):
-                logger.debug("sub dictionary found, look through this to find \"get_iput\"")
+                logger.debug("sub dictionary found, look through this to find \"get_input\"")
                 result = self._find_get_input(value)
                 if result is not None:
                     logger.debug("\"get_input\" found replace it with value")
                     template[key] = self._get_input_value(result)
             elif isinstance(value, list):
-                logger.debug("list found {}, look through this to find \"get_iput\"".format(value))
+                logger.debug("list found {}, look through this to find \"get_input\"".format(value))
                 for i in value:
                     if isinstance(i, dict):
                         result = self._find_get_input(i)

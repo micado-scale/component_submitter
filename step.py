@@ -23,7 +23,8 @@ class Step():
 
     def execute(self):
         try:
-            self.object.execute()
+            return self.object.execute()
+
         except AttributeError as e:
             logger.error("{}".format(e))
             raise
@@ -32,8 +33,8 @@ class Step():
             logger.info("nothing to be deployed")
             raise
 
-    def undeploy(self):
+    def undeploy(self, id):
         try:
-            self.object.undeploy()
+            self.object.undeploy(id)
         except Exception as e:
             logger.error(e)
