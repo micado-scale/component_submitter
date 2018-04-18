@@ -1,4 +1,5 @@
 import logging
+import generator
 
 from abstracts import cloudorchestrator as abco
 
@@ -17,7 +18,7 @@ class DummyOccopusAdaptor(abco.CloudAdaptor):
     def execute(self):
 
         logger.info("Starting Occoexecution")
-
-    def undeploy(self):
+        return generator.id_generator()
+    def undeploy(self, id_adaptor):
 
         logger.info("undeploy infrastructure")

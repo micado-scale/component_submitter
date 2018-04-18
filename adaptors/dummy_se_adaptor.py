@@ -1,5 +1,5 @@
 import logging
-
+import generator
 from abstracts import securityenforcer as abco
 
 logger=logging.getLogger("adaptor."+__name__)
@@ -17,7 +17,8 @@ class DummySeAdaptor(abco.SecurityEnforcerAdaptor):
     def execute(self):
 
         logger.info("Starting Seexecution")
+        return generator.id_generator()
 
-    def undeploy(self):
+    def undeploy(self, id_adaptor):
 
         logger.info("Undeploy the Security in Security Enforcer")

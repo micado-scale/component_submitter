@@ -6,8 +6,8 @@ from step import Step
 from micado_validator import MultiError
 from abstracts.exceptions import AdaptorCritical, AdaptorError
 import logging
-
-
+import generator
+from key_lists import KeyLists
 logging.basicConfig(filename="submitter.log", level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger=logging.getLogger("submitter."+__name__)
 
@@ -20,6 +20,7 @@ class SubmitterEngine(object):
         self.executed_adaptors = []
         self.parsed_params = None
         self.e = None
+        self.id_dict = dict()
         try:
             self.path = kwargs["path_to_file"]
         except KeyError as e:
@@ -29,19 +30,28 @@ class SubmitterEngine(object):
           self.parsed_params = kwargs["parsed_params"]
         except KeyError as e:
           logger.warning("KeyError, no {} key detected, will be set to None".format(e))
-
+        self._instantiate_adaptors()
+        logger.debug("{}".format(self.adaptors))
         self._engine()
         #self._translate()
         #self._execute()
 
+    def undeploy(self):
+        #TODO do undeploy method
+        pass
+
     def _engine(self):
         """ Engine itself """
         try:
+            id_app=generator.id_generator()
+
             self._micado_parser_upload()
             self._mapper_instantiation()
-            self._instantiate_adaptors()
             self._translate()
-            self._execute()
+            id_list=self._execute()
+            self.id_dict.update({id_app: id_list})
+            logger.info("dictionnaty of id is: {}".format(self.id_dict))
+
 
         except MultiError as e:
             print("I'm here!")
@@ -72,9 +82,9 @@ class SubmitterEngine(object):
     def _instantiate_adaptors(self):
         """ Instantiate the differrent adaptors """
         logger.debug("instantiate the adaptors")
-        Keys=self.keylists.get_KeyLists()
+        Keys=KeyLists().get_list_adaptors()
         PG=PluginsGestion()
-        for k, v in Keys.items():
+        for k in Keys:
             adaptor = PG.get_plugin(k)
             logger.debug("adaptor found {}".format(adaptor))
             self.adaptors.append(adaptor)
@@ -95,11 +105,15 @@ class SubmitterEngine(object):
         #    adaptor.translate(self.template)
     def _execute(self):
         """ Launch the execution engine """
+        ids=[]
         logger.info("launch of the execute methods in each adaptors in a serial way")
         for adaptor in self.adaptors:
             logger.debug("\t execute adaptor: {}".format(adaptor))
-            Step(adaptor).execute()
+            test=Step(adaptor).execute()
+            ids.append("{}_{}".format(adaptor.__class__.__name__,Step(adaptor).execute()))
             self.executed_adaptors.append(adaptor)
+
+        return ids
 
 
     def _undeploy(self, adaptor):
