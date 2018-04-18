@@ -104,7 +104,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         else:
             repository = ""
 
-        image = artifacts["image"]["file"]
+        image = tpl.entity_tpl.get("artifacts")["image"]["file"]
         image = "{}{}".format(repository, image)
 
         # Write the compose data
