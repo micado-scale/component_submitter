@@ -95,9 +95,9 @@ class DockerAdaptor(abco.ContainerAdaptor):
     def _get_artifacts(self, tpl, repositories):
         """ Get TOSCA artifacts """
 
+        image = tpl.entity_tpl.get("artifacts").get("image")
         # Get the repository, include in image name if not Docker Hub
-        repository = tpl.entity_tpl.get("artifacts").get("image").get("repository")
-        print(repository)
+        repository = image.get("repository")
         if repository and "docker_hub" not in repository:
             for repo in repositories:
                 if repository == repo.name:
@@ -108,7 +108,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         else:
             repository = ""
 
-        image = tpl.entity_tpl.get("artifacts")["image"]["file"]
+        image = image["file"]
         image = "{}{}".format(repository, image)
 
         # Write the compose data
@@ -122,11 +122,12 @@ class DockerAdaptor(abco.ContainerAdaptor):
             related_node = req_vals["node"]
 
             # Fulfill the HostedOn relationship
-            if "HostedOn" in str(req_vals):
-                self._create_compose_constraint(tpl.name, related_node)
+            #DISABLE until fully implemented
+            #if "HostedOn" in str(req_vals):
+            #    self._create_compose_constraint(tpl.name, related_node)
 
             # Fulfill the ConnectsTo and AttachesTo relationships
-            elif "ConnectsTo" in str(req_vals):
+            if "ConnectsTo" in str(req_vals):
                 connector = req_vals["relationship"]["properties"]["network"]
                 self._create_compose_connection(tpl.name, related_node, connector)
             elif "AttachesTo" in str(req_vals):
@@ -187,6 +188,5 @@ class DockerAdaptor(abco.ContainerAdaptor):
                                                   .setdefault("placement",{}) \
                                                   .setdefault("constraints",[])
         entry = "node.labels.host == {}".format(host)
-        # Disable labeling until full implemented
-        #if entry not in node:
-        #    node.append(entry)
+        if entry not in node:
+            node.append(entry)
