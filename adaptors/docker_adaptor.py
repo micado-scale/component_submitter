@@ -96,7 +96,8 @@ class DockerAdaptor(abco.ContainerAdaptor):
         """ Get TOSCA artifacts """
 
         # Get the repository, include in image name if not Docker Hub
-        repository = tpl.entity_tpl.get("artifacts").get("repository")
+        repository = tpl.entity_tpl.get("artifacts").get("image").get("repository")
+        print(repository)
         if repository and "docker_hub" not in repository:
             for repo in repositories:
                 if repository == repo.name:
@@ -186,5 +187,6 @@ class DockerAdaptor(abco.ContainerAdaptor):
                                                   .setdefault("placement",{}) \
                                                   .setdefault("constraints",[])
         entry = "node.labels.host == {}".format(host)
-        if entry not in node:
-            node.append(entry)
+        # Disable labeling until full implemented
+        #if entry not in node:
+        #    node.append(entry)
