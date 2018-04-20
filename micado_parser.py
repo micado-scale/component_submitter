@@ -21,12 +21,12 @@ class MiCADOParser(object):
   def set_template(self,path, parsed_params=None):
     """
     set template that will parse the tosca template and return a template.
-    :param path: path of the template
-    :type path: string
-    :param parsed_params: dictionary containing the input to change
-    :type parsed_params: dictionary
-    :return: template
-    :raises: Exception
+        :param path: path of the template
+        :type path: string
+        :param parsed_params: dictionary containing the input to change
+        :type parsed_params: dictionary
+        :return: template
+        :raises: Exception
     """
     self.path = path
     isfile = False

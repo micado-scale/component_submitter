@@ -4,7 +4,7 @@
 # You can set these variables from the command line.
 SPHINXOPTS    =
 SPHINXBUILD   = sphinx-build
-SPHINXPROJ    = micado_submitter
+SPHINXPROJ    = MiCADOSubmitter
 SOURCEDIR     = .
 BUILDDIR      = _build
 
