@@ -49,23 +49,29 @@
 
 <div class="viewcode-block" id="MiCADOParser"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.micado_parser.MiCADOParser">[docs]</a><span class="k">class</span> <span class="nc">MiCADOParser</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">  Submitter class that is</span>
-<span class="sd">  going to take care of launching the application from TOSCA descriptor</span>
-
+<span class="sd">  MiCADO class that is going to take care of parsing the topology template, check if the</span>
+<span class="sd">  file is correct and Readable by MiCADO submitter. The set_template method is returning</span>
+<span class="sd">  the topology template object.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    constructor, instantiate the class but doesn&#39;t do anything else.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Initialisation of the MiCADO Parser&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MiCADOParser.set_template"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.micado_parser.MiCADOParser.set_template">[docs]</a>  <span class="k">def</span> <span class="nf">set_template</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">path</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    set template that will parse the tosca template and return a template.</span>
-<span class="sd">        :param path: path of the template</span>
-<span class="sd">        :type path: string</span>
-<span class="sd">        :param parsed_params: dictionary containing the input to change</span>
-<span class="sd">        :type parsed_params: dictionary</span>
-<span class="sd">        :return: template</span>
-<span class="sd">        :raises: Exception</span>
+<span class="sd">    set_template is the method that will parse the tosca template and return the</span>
+<span class="sd">    object topology object.</span>
+
+<span class="sd">    :params: path, parsed_params</span>
+<span class="sd">    :type: string, dictionary</span>
+<span class="sd">    :return: template</span>
+<span class="sd">    :raises: Exception</span>
+
+<span class="sd">    | parsed_params: dictionary containing the input to change</span>
+<span class="sd">    | path: local or remote path to the file to parse (it needs to be reachable.)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">path</span>
     <span class="n">isfile</span> <span class="o">=</span> <span class="kc">False</span>

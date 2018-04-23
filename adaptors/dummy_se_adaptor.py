@@ -13,11 +13,11 @@ class DummySeAdaptor(abco.SecurityEnforcerAdaptor):
     def translate(self, object):
 
         logger.info("Starting Setranslation")
+        return generator.id_generator()
 
-    def execute(self):
+    def execute(self, id_adaptor):
 
         logger.info("Starting Seexecution")
-        return generator.id_generator()
 
     def undeploy(self, id_adaptor):
 

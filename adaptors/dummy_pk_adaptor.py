@@ -14,11 +14,11 @@ class DummyPkAdaptor(abco.PolicyKeeperAdaptor):
     def translate(self, object):
 
         logger.info("Starting PKtranslation")
+        return generator.id_generator()
 
-    def execute(self):
+    def execute(self, id_adaptor):
 
         logger.info("Starting PKexecution")
-        return generator.id_generator()
 
     def undeploy(self, id_adaptor):
 
