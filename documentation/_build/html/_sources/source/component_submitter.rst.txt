@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
 
     component_submitter.abstracts
+    component_submitter.adaptors
 
 Submodules
 ----------

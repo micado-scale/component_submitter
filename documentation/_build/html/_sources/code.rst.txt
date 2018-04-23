@@ -1,9 +1,10 @@
 MiCADO Submitter Code
 =====================
 
-ToDo: write this page.
+On the following we have the different links to the code.
+
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 4
 
-    source/modules
+    source/component_submitter

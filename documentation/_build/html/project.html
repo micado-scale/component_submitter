@@ -45,8 +45,22 @@
             
   <div class="section" id="micado-project">
 <h1>MiCADO Project<a class="headerlink" href="#micado-project" title="Permalink to this headline">¶</a></h1>
+<a class="reference internal image-reference" href="_images/Cola_colored_kl.jpg"><img alt="alternate text" class="align-right" src="_images/Cola_colored_kl.jpg" style="width: 249.0px; height: 93.5px;" /></a>
 <p>Here you can find all the useful information on the MiCADO and COLA project:</p>
 <p><a class="reference external" href="http://project-cola.eu/">http://project-cola.eu/</a></p>
+<dl class="docutils">
+<dt>Here you can find the github accounts:</dt>
+<dd><ul class="first last simple">
+<li>for the whole project:
+<a class="reference external" href="https://github.com/micado-scale">https://github.com/micado-scale</a></li>
+<li>for TOSCA topologies and custom types:
+<a class="reference external" href="https://github.com/COLAProject/COLARepo">https://github.com/COLAProject/COLARepo</a>
+(This is the current repository but might change in the future)</li>
+<li>for the submitter:
+<a class="reference external" href="https://github.com/micado-scale/component_submitter">https://github.com/micado-scale/component_submitter</a></li>
+</ul>
+</dd>
+</dl>
 </div>
 <div class="section" id="how-to-create-your-adaptor">
 <h1>How to create your Adaptor:<a class="headerlink" href="#how-to-create-your-adaptor" title="Permalink to this headline">¶</a></h1>
@@ -61,23 +75,27 @@ sub methods:</p>
 </div></blockquote>
 <div class="section" id="translate">
 <h2>Translate<a class="headerlink" href="#translate" title="Permalink to this headline">¶</a></h2>
-<p>this method should create a configuration file for your external component,
-and store it in a temporary directory where all the configuration file from the
-different other Adaptors. It also create and return an ID that will be link to
-this particular component.</p>
+<p>This method should create a configuration file for your external component,
+and store it in the output_configs directory located in the package where all the configuration file from the
+different other Adaptors are. This configuration file should be named after an ID that can be generated with the
+generator we provide, or another one you’d like. This method return this ID.</p>
 </div>
 <div class="section" id="execute">
 <h2>Execute<a class="headerlink" href="#execute" title="Permalink to this headline">¶</a></h2>
-<p>this method should execute the wanted commands from the wanted Adaptor. It takes as
+<p>This method should execute the wanted commands from the wanted Adaptor. It takes as
 parameter the ID link to the wanted component to be executed.</p>
 </div>
 <div class="section" id="unbuild">
 <h2>Unbuild<a class="headerlink" href="#unbuild" title="Permalink to this headline">¶</a></h2>
-<p>this method takes as parameter the Id of the wanted component and unbuild it.</p>
+<p>This method takes as parameter the ID of the wanted component and unbuild it.</p>
 </div>
 <div class="section" id="generator">
-<h2>generator<a class="headerlink" href="#generator" title="Permalink to this headline">¶</a></h2>
-<p>we do give access to a method that creates the random ID.</p>
+<h2>Generator<a class="headerlink" href="#generator" title="Permalink to this headline">¶</a></h2>
+<p>We do give access to a method that creates the random ID.</p>
+</div>
+<div class="section" id="tosca-parser-object">
+<h2>Tosca-parser object<a class="headerlink" href="#tosca-parser-object" title="Permalink to this headline">¶</a></h2>
+<p>See the Docker Adaptor. For any help contact: <a class="reference external" href="mailto:g&#46;gesmier&#37;&#52;&#48;westminster&#46;ac&#46;uk">g<span>&#46;</span>gesmier<span>&#64;</span>westminster<span>&#46;</span>ac<span>&#46;</span>uk</a></p>
 </div>
 </div>
 
@@ -94,7 +112,8 @@ parameter the ID link to the wanted component to be executed.</p>
 <li><a class="reference internal" href="#translate">Translate</a></li>
 <li><a class="reference internal" href="#execute">Execute</a></li>
 <li><a class="reference internal" href="#unbuild">Unbuild</a></li>
-<li><a class="reference internal" href="#generator">generator</a></li>
+<li><a class="reference internal" href="#generator">Generator</a></li>
+<li><a class="reference internal" href="#tosca-parser-object">Tosca-parser object</a></li>
 </ul>
 </li>
 </ul>
