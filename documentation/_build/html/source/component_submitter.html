@@ -185,35 +185,32 @@ and implement the dictionary related to it.</p>
 <dt id="component_submitter.micado_parser.MiCADOParser">
 <em class="property">class </em><code class="descclassname">component_submitter.micado_parser.</code><code class="descname">MiCADOParser</code><a class="reference internal" href="../_modules/component_submitter/micado_parser.html#MiCADOParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_parser.MiCADOParser" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Submitter class that is
-going to take care of launching the application from TOSCA descriptor</p>
+<p>MiCADO class that is going to take care of parsing the topology template, check if the
+file is correct and Readable by MiCADO submitter. The set_template method is returning
+the topology template object.</p>
 <dl class="method">
 <dt id="component_submitter.micado_parser.MiCADOParser.set_template">
 <code class="descname">set_template</code><span class="sig-paren">(</span><em>path</em>, <em>parsed_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_parser.html#MiCADOParser.set_template"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_parser.MiCADOParser.set_template" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="docutils">
-<dt>set template that will parse the tosca template and return a template.</dt>
-<dd><table class="first last docutils field-list" frame="void" rules="none">
+<dd><p>set_template is the method that will parse the tosca template and return the
+object topology object.</p>
+<table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">param path:</th><td class="field-body">path of the template</td>
+<tr class="field-odd field"><th class="field-name">Params:</th><td class="field-body">path, parsed_params</td>
 </tr>
-<tr class="field-even field"><th class="field-name">type path:</th><td class="field-body">string</td>
+<tr class="field-even field"><th class="field-name">Type:</th><td class="field-body">string, dictionary</td>
 </tr>
-<tr class="field-odd field"><th class="field-name" colspan="2">param parsed_params:</th></tr>
-<tr class="field-odd field"><td>&#160;</td><td class="field-body">dictionary containing the input to change</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">template</td>
 </tr>
-<tr class="field-even field"><th class="field-name" colspan="2">type parsed_params:</th></tr>
-<tr class="field-even field"><td>&#160;</td><td class="field-body">dictionary</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">return:</th><td class="field-body">template</td>
-</tr>
-<tr class="field-even field"><th class="field-name">raises:</th><td class="field-body">Exception</td>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body">Exception</td>
 </tr>
 </tbody>
 </table>
-</dd>
-</dl>
+<div class="line-block">
+<div class="line">parsed_params: dictionary containing the input to change</div>
+<div class="line">path: local or remote path to the file to parse (it needs to be reachable.)</div>
+</div>
 </dd></dl>
 
 </dd></dl>

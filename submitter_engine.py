@@ -12,8 +12,12 @@ logging.basicConfig(filename="submitter.log", level=logging.DEBUG, format="%(asc
 logger=logging.getLogger("submitter."+__name__)
 
 class SubmitterEngine(object):
-    """ Docstring for SubmitterEngine. """
+    """ SubmitterEngine class that is the main one that is used to treat with the application. """
     def __init__(self, **kwargs):
+        """
+        instantiate the SubmitterEngine class. Creating empty list for the whole class
+        adaptor and executed adaptor. launching the execute method.
+        """
         super(SubmitterEngine, self).__init__()
         logger.debug("init of submitter engine class")
         self.adaptors = []
@@ -36,7 +40,14 @@ class SubmitterEngine(object):
         #self._translate()
         #self._execute()
 
-    def undeploy(self):
+    def undeploy(self, id):
+        """
+        undeploy method will remove the application from the infrastructure.
+        :params: id
+        :type: string
+
+        this method needs to be implemented
+        """
         #TODO do undeploy method
         pass
 
@@ -47,8 +58,8 @@ class SubmitterEngine(object):
 
             self._micado_parser_upload()
             self._mapper_instantiation()
-            self._translate()
-            id_list=self._execute()
+            id_list=self._translate()
+            self._execute(id_list)
             self.id_dict.update({id_app: id_list})
             logger.info("dictionnaty of id is: {}".format(self.id_dict))
 
@@ -93,33 +104,34 @@ class SubmitterEngine(object):
     def _translate(self):
         """ Launch the translate engine """
         logger.debug("launch of translate method")
+        ids=[]
         logger.info("translate method called in all the adaptors")
         for adaptor in self.adaptors:
             logger.info("translating method call from {}".format(adaptor))
             while True:
                 try:
-                    Step(adaptor).translate(self.template)
+                    ids.append("{}_{}".format(adaptor.__class__.__name__,Step(adaptor).translate(self.template)))
                 except AdaptorError as e:
                     continue
                 break
+        return ids
         #    adaptor.translate(self.template)
-    def _execute(self):
-        """ Launch the execution engine """
-        ids=[]
+    def _execute(self, ids):
+        """ method called by the engine to launch the adaptors execute methods """
         logger.info("launch of the execute methods in each adaptors in a serial way")
         for adaptor in self.adaptors:
-            logger.debug("\t execute adaptor: {}".format(adaptor))
-            test=Step(adaptor).execute()
-            ids.append("{}_{}".format(adaptor.__class__.__name__,Step(adaptor).execute()))
+            for i in ids:
+                if adaptor.__class__.__name__ in i:
+                    logger.debug("\t execute adaptor: {}".format(adaptor))
+                    Step(adaptor).execute(i.split("_",1)[1])
             self.executed_adaptors.append(adaptor)
 
-        return ids
 
 
-    def _undeploy(self, adaptor):
-        """ Undeploy component """
+    def _undeploy(self, adaptor, id):
+        """ method called by the engine to launch the adaptor undeploy method of a specific component identified by its ID"""
         logger.info("undeploying component")
-        Step(adaptor).undeploy()
+        Step(adaptor).undeploy(id)
 
     def _inform_user(self, message):
         """ Give the User the infromation on what happened """

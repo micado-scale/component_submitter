@@ -14,11 +14,11 @@ class DummyOccopusAdaptor(abco.CloudAdaptor):
     def translate(self, object):
 
         logger.info("Starting Occotranslation")
+        return generator.id_generator()
 
-    def execute(self):
+    def execute(self, id_adaptor):
 
         logger.info("Starting Occoexecution")
-        return generator.id_generator()
     def undeploy(self, id_adaptor):
 
         logger.info("undeploy infrastructure")

@@ -39,20 +39,20 @@ class DockerAdaptor(abco.ContainerAdaptor):
             elif DOCKER_VOLUME in tpl.type:
                 self._get_properties(tpl, "volumes")
 
-    def execute(self):
+        id_stack=generator.id_generator()
+        self.dump_compose("output_configs/{}.yaml".format(id_stack))
+        return id_stack
+    def execute(self, id_stack):
         """ Execute the Compose file """
         logger.info("Starting Docker execution...")
-        id_stack=generator.id_generator()
-        self.dump_compose("docker-compose.yaml")
         try:
             subprocess.run(["docker", "stack", "deploy", "--compose-file",
-                            "docker-compose.yaml", id_stack], check=True)
+                            "output_configs/{}.yaml".format(id_stack), id_stack], check=True)
             #logger.info("subprocess.run([\"docker\", \"stack\", \"deploy\", \"--compose-file\", \"docker-compose.yaml\", id_stack], check=True)")
         except subprocess.CalledProcessError:
             logger.error("Cannot execute Docker")
             raise AdaptorCritical("Cannot execute Docker")
         logger.info("Docker running...")
-        return id_stack
 
     def undeploy(self, id_stack):
         """ Undeploy this application """

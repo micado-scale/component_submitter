@@ -13,7 +13,7 @@ class Step():
     #        self.object()
     def translate(self, params):
         try:
-            self.object.translate(params)
+            return self.object.translate(params)
         except AdaptorCritical as e:
             logger.critical("critical error catched {}".format(e))
             raise
@@ -21,9 +21,10 @@ class Step():
             logger.error("error catched {}, retry".format(e))
             raise
 
-    def execute(self):
+
+    def execute(self, id_element):
         try:
-            return self.object.execute()
+            self.object.execute(id_element)
 
         except AttributeError as e:
             logger.error("{}".format(e))

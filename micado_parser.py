@@ -10,23 +10,29 @@ logger=logging.getLogger("submitter."+__name__)
 
 class MiCADOParser(object):
   """
-  Submitter class that is
-  going to take care of launching the application from TOSCA descriptor
-
+  MiCADO class that is going to take care of parsing the topology template, check if the
+  file is correct and Readable by MiCADO submitter. The set_template method is returning
+  the topology template object.
   """
 
   def __init__(self):
+    """
+    constructor, instantiate the class but doesn't do anything else.
+    """
     logger.debug("Initialisation of the MiCADO Parser")
 
   def set_template(self,path, parsed_params=None):
     """
-    set template that will parse the tosca template and return a template.
-        :param path: path of the template
-        :type path: string
-        :param parsed_params: dictionary containing the input to change
-        :type parsed_params: dictionary
-        :return: template
-        :raises: Exception
+    set_template is the method that will parse the tosca template and return the
+    object topology object.
+
+    :params: path, parsed_params
+    :type: string, dictionary
+    :return: template
+    :raises: Exception
+
+    | parsed_params: dictionary containing the input to change
+    | path: local or remote path to the file to parse (it needs to be reachable.)
     """
     self.path = path
     isfile = False
