@@ -1,8 +1,9 @@
-from flask import request, url_for, Flask, jsonify
+from flask import request, url_for, Flask, jsonify, render_template
 from submitter_engine import SubmitterEngine
 from abstracts.exceptions import AdaptorCritical
-app = Flask(__name__)
-
+import os
+template_folder = os.path.realpath('./documentation/_build/html')
+app = Flask(__name__,static_url_path=template_folder)
 import logging
 logger = logging.getLogger("submitter."+__name__)
 
@@ -72,6 +73,9 @@ def engine():
         return "<h1>{}</1>".format(e)
 
 
+@app.route('/')
+def render_static():
+    return app.send_static_file('index.html')
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

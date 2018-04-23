@@ -9,14 +9,25 @@ logger=logging.getLogger("submitter."+__name__)
 
 
 class MiCADOParser(object):
-  """Submitter class that is
-  going to take care of launching the application from TOSCA descriptor"""
+  """
+  Submitter class that is
+  going to take care of launching the application from TOSCA descriptor
+
+  """
 
   def __init__(self):
     logger.debug("Initialisation of the MiCADO Parser")
 
   def set_template(self,path, parsed_params=None):
-    """set template that will parse the tosca template and return a template."""
+    """
+    set template that will parse the tosca template and return a template.
+        :param path: path of the template
+        :type path: string
+        :param parsed_params: dictionary containing the input to change
+        :type parsed_params: dictionary
+        :return: template
+        :raises: Exception
+    """
     self.path = path
     isfile = False
     if os.path.isfile(self.path):

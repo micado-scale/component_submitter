@@ -4,7 +4,11 @@
    contain the root `toctree` directive.
 
 Welcome to micado_submitter's documentation!
-============================================
+=============================================
+.. image:: _static/Cola_colored_kl.jpg
+   :scale: 50 %
+   :alt: alternate text
+   :align: right
 
 The MiCADO submitter is used to launch application described by TOSCA Template description. You can find templates in
 the repo at this address: https://github.com/colaproject/COLARepo

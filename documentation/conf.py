@@ -12,16 +12,17 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('..'))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'micado_submitter'
-copyright = '2018, Jay Deslauriers, Gregoire Gesmier'
-author = 'Jay Deslauriers, Gregoire Gesmier'
+project = 'MiCADO Submitter'
+copyright = '2018, James Deslauriers, Gregoire Gesmier'
+author = 'James Deslauriers, Gregoire Gesmier'
 
 # The short X.Y version
 version = ''
@@ -40,6 +41,11 @@ release = '0.1'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx.ext.doctest',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
 ]
 
@@ -76,16 +82,13 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-#html_theme = 'alabaster'
 html_theme = 'classic'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-html_theme_options = {
-	"rightsidebar": False,
-        "stickysidebar": True}
+# html_theme_options = {}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -106,7 +109,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'micado_submitterdoc'
+htmlhelp_basename = 'MiCADOSubmitterdoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -133,8 +136,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'micado_submitter.tex', 'micado\\_submitter Documentation',
-     'Jay Deslauriers, Gregoire Gesmier', 'manual'),
+    (master_doc, 'MiCADOSubmitter.tex', 'MiCADO Submitter Documentation',
+     'James Deslauriers, Gregoire Gesmier', 'manual'),
 ]
 
 
@@ -143,7 +146,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'micado_submitter', 'micado_submitter Documentation',
+    (master_doc, 'micadosubmitter', 'MiCADO Submitter Documentation',
      [author], 1)
 ]
 
@@ -154,31 +157,23 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'micado_submitter', 'micado_submitter Documentation',
-     author, 'micado_submitter', 'One line description of project.',
+    (master_doc, 'MiCADOSubmitter', 'MiCADO Submitter Documentation',
+     author, 'MiCADOSubmitter', 'One line description of project.',
      'Miscellaneous'),
 ]
 
 
-# -- Options for Epub output -------------------------------------------------
-
-# Bibliographic Dublin Core info.
-epub_title = project
-epub_author = author
-epub_publisher = author
-epub_copyright = copyright
-
-# The unique identifier of the text. This can be a ISBN number
-# or the project homepage.
-#
-# epub_identifier = ''
-
-# A unique identification for the text.
-#
-# epub_uid = ''
-
-# A list of files that should not be packed into the epub file.
-epub_exclude_files = ['search.html']
-
-
 # -- Extension configuration -------------------------------------------------
+
+# -- Options for intersphinx extension ---------------------------------------
+
+# Example configuration for intersphinx: refer to the Python standard library.
+intersphinx_mapping = {'https://docs.python.org/': None}
+
+# -- Options for todo extension ----------------------------------------------
+
+# If true, `todo` and `todoList` produce output, else they produce nothing.
+todo_include_todos = True
+
+def setup(app):
+  app.add_stylesheet('_static/basic.css')
