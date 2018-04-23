@@ -264,7 +264,7 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="method">
 <dt id="component_submitter.step.Step.execute">
-<code class="descname">execute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.execute" title="Permalink to this definition">¶</a></dt>
+<code class="descname">execute</code><span class="sig-paren">(</span><em>id_element</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.execute" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -286,11 +286,15 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
 <dt id="component_submitter.submitter_engine.SubmitterEngine">
 <em class="property">class </em><code class="descclassname">component_submitter.submitter_engine.</code><code class="descname">SubmitterEngine</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Docstring for SubmitterEngine.</p>
+<p>SubmitterEngine class that is the main one that is used to treat with the application.</p>
 <dl class="method">
 <dt id="component_submitter.submitter_engine.SubmitterEngine.undeploy">
-<code class="descname">undeploy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.undeploy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descname">undeploy</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.undeploy" title="Permalink to this definition">¶</a></dt>
+<dd><p>undeploy method will remove the application from the infrastructure.
+:params: id
+:type: string</p>
+<p>this method needs to be implemented</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -416,7 +420,7 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
     </div>
   </body>
 </html>

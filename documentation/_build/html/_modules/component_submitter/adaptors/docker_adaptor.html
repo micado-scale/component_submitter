@@ -76,22 +76,22 @@
             <span class="k">elif</span> <span class="n">DOCKER_NETWORK</span> <span class="ow">in</span> <span class="n">tpl</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_get_properties</span><span class="p">(</span><span class="n">tpl</span><span class="p">,</span> <span class="s2">&quot;networks&quot;</span><span class="p">)</span>
             <span class="k">elif</span> <span class="n">DOCKER_VOLUME</span> <span class="ow">in</span> <span class="n">tpl</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_get_properties</span><span class="p">(</span><span class="n">tpl</span><span class="p">,</span> <span class="s2">&quot;volumes&quot;</span><span class="p">)</span></div>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_properties</span><span class="p">(</span><span class="n">tpl</span><span class="p">,</span> <span class="s2">&quot;volumes&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DockerAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">id_stack</span><span class="o">=</span><span class="n">generator</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dump_compose</span><span class="p">(</span><span class="s2">&quot;output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">id_stack</span></div>
+<div class="viewcode-block" id="DockerAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_stack</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Execute the Compose file &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Docker execution...&quot;</span><span class="p">)</span>
-        <span class="n">id_stack</span><span class="o">=</span><span class="n">generator</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dump_compose</span><span class="p">(</span><span class="s2">&quot;docker-compose.yaml&quot;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;stack&quot;</span><span class="p">,</span> <span class="s2">&quot;deploy&quot;</span><span class="p">,</span> <span class="s2">&quot;--compose-file&quot;</span><span class="p">,</span>
-                            <span class="s2">&quot;docker-compose.yaml&quot;</span><span class="p">,</span> <span class="n">id_stack</span><span class="p">],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                            <span class="s2">&quot;output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">),</span> <span class="n">id_stack</span><span class="p">],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="c1">#logger.info(&quot;subprocess.run([\&quot;docker\&quot;, \&quot;stack\&quot;, \&quot;deploy\&quot;, \&quot;--compose-file\&quot;, \&quot;docker-compose.yaml\&quot;, id_stack], check=True)&quot;)</span>
         <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
             <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Docker running...&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">id_stack</span></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Docker running...&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DockerAdaptor.undeploy"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_stack</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Undeploy this application &quot;&quot;&quot;</span>
@@ -267,7 +267,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
     </div>
   </body>
 </html>
