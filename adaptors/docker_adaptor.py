@@ -4,6 +4,7 @@ import subprocess
 import ruamel.yaml as yaml
 import logging
 import generator
+import os
 DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_NETWORK, DOCKER_VOLUME) = \
                 ("tosca.nodes.MiCADO.Container.Application.Docker",
                 "tosca.nodes.MiCADO.network.Network.Docker",
@@ -59,10 +60,17 @@ class DockerAdaptor(abco.ContainerAdaptor):
         logger.info("Undeploying the application")
         try:
             subprocess.run(["docker", "stack", "down", id_stack], check=True)
+            #logger.debug("undeploy application with id: {}".format(id_stack))
         except subprocess.CalledProcessError:
             logger.error("Cannot undeploy the stack")
             raise AdaptorCritical("Cannot undeploy the stack")
         logger.info("Stack is down...")
+        logger.info("clean up config for id {}".format(id_stack))
+        try:
+            os.remove("output_configs/{}.yaml".format(id_stack))
+        except OSError as e:
+            logger.warning(e)
+
 
     def dump_compose(self, path):
         """ Dump to Docker-Compose file """

@@ -7,7 +7,6 @@ app = Flask(__name__,static_url_path=template_folder)
 import logging
 logger = logging.getLogger("submitter."+__name__)
 
-
 class RequestError(Exception):
     status_code = 400
 
@@ -46,32 +45,26 @@ def handle_request_error(error):
 
 
 
-# TODO: for each error that can happen create a funciton
-#    - AdaptorError
-#    - AdaptorWarning
-#    - AdaptorCritical
 @app.route('/engine/', methods=['POST'])
 def engine():
     """ API functions to launch a application """
-    #logger.debug("serving request {}".format(request.method))
-    #path_to_file = str(request.data.get('input',''))
+    logger.debug("serving request {}".format(request.method))
+    logger.info("jfwksndjsknlnsknjkwdnfjk")
+    logger.info("jfwksndjsknlnsknjkwdnfjk")
+    logger.info("wdnfjkdnsjkdnjknskdn")
     path_to_file = request.form["input"]
-    #logger.debug("the path_to_file is {}".format(path_to_file))
-    #try:
-    #    e=SubmitterEngine(path_to_file=path_to_file)
-    #except AdaptorError as e:
-    #    raise RequestError( e.message)
-    #except AdaptorCritical as e:
-    #    print("I'm here")
-    #    raise RequestError(e.message)
-    #except AdaptorWarning as e:
-    #    raise RequestError(e.message)
+    logger.debug("the path_to_file is {}".format(path_to_file))
     e = SubmitterEngine(path_to_file=path_to_file)
     if e is None:
         return "<h1> correctly launched</h1>"
     else:
         return "<h1>{}</1>".format(e)
 
+@app.route('/undeploy/', methods=['POST'])
+def undeploy():
+    """ API function to undeploy the application with a specific id """
+    id_app = request.form["id_app"]
+    e.undeploy("id_app")
 
 @app.route('/')
 def render_static():

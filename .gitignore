@@ -63,7 +63,6 @@ instance/
 
 # Sphinx documentation
 documentation/_build/doctrees
-documentation/_static
 documentation/_templates
 
 
@@ -103,4 +102,8 @@ ENV/
 # mypy
 .mypy_cache/
 
+# configurations
 output_configs/*.yaml
+
+# DS store
+.DS_Store

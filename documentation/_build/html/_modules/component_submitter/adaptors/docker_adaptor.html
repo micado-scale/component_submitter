@@ -43,6 +43,7 @@
 <span class="kn">import</span> <span class="nn">ruamel.yaml</span> <span class="k">as</span> <span class="nn">yaml</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">generator</span>
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="n">DOCKER_THINGS</span> <span class="o">=</span> <span class="p">(</span><span class="n">DOCKER_CONTAINER</span><span class="p">,</span> <span class="n">DOCKER_NETWORK</span><span class="p">,</span> <span class="n">DOCKER_VOLUME</span><span class="p">)</span> <span class="o">=</span> \
                 <span class="p">(</span><span class="s2">&quot;tosca.nodes.MiCADO.Container.Application.Docker&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;tosca.nodes.MiCADO.network.Network.Docker&quot;</span><span class="p">,</span>
@@ -85,9 +86,9 @@
         <span class="sd">&quot;&quot;&quot; Execute the Compose file &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Docker execution...&quot;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;stack&quot;</span><span class="p">,</span> <span class="s2">&quot;deploy&quot;</span><span class="p">,</span> <span class="s2">&quot;--compose-file&quot;</span><span class="p">,</span>
-                            <span class="s2">&quot;output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">),</span> <span class="n">id_stack</span><span class="p">],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="c1">#logger.info(&quot;subprocess.run([\&quot;docker\&quot;, \&quot;stack\&quot;, \&quot;deploy\&quot;, \&quot;--compose-file\&quot;, \&quot;docker-compose.yaml\&quot;, id_stack], check=True)&quot;)</span>
+            <span class="c1">#subprocess.run([&quot;docker&quot;, &quot;stack&quot;, &quot;deploy&quot;, &quot;--compose-file&quot;,</span>
+            <span class="c1">#                &quot;output_configs/{}.yaml&quot;.format(id_stack), id_stack], check=True)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;subprocess.run([</span><span class="se">\&quot;</span><span class="s2">docker</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">stack</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">deploy</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">--compose-file</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">docker-compose.yaml</span><span class="se">\&quot;</span><span class="s2">, id_stack], check=True)&quot;</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
             <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
@@ -97,11 +98,18 @@
         <span class="sd">&quot;&quot;&quot; Undeploy this application &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Undeploying the application&quot;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;stack&quot;</span><span class="p">,</span> <span class="s2">&quot;down&quot;</span><span class="p">,</span> <span class="n">id_stack</span><span class="p">],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1">#subprocess.run([&quot;docker&quot;, &quot;stack&quot;, &quot;down&quot;, id_stack], check=True)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;undeploy application with id: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">))</span>
         <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot undeploy the stack&quot;</span><span class="p">)</span>
             <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Cannot undeploy the stack&quot;</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Stack is down...&quot;</span><span class="p">)</span></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Stack is down...&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;clean up config for id </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="DockerAdaptor.dump_compose"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.dump_compose">[docs]</a>    <span class="k">def</span> <span class="nf">dump_compose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Dump to Docker-Compose file &quot;&quot;&quot;</span>
@@ -267,7 +275,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>
