@@ -39,3 +39,9 @@ class Step():
             self.object.undeploy(id)
         except Exception as e:
             logger.error(e)
+
+    def cleanup(self, id):
+        try:
+            self.object.cleanup(id)
+        except Exception as e:
+            logger.error(e)

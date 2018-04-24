@@ -10,12 +10,26 @@ import generator
 from key_lists import KeyLists
 import json
 
-
 JSON_FILE = "system/ids.json"
-LEVEL = "INFO"
+
+""" set up of Logging """
+LEVEL = logging.INFO
 logging.basicConfig(filename="submitter.log", level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger=logging.getLogger("submitter."+__name__)
+
 logger.setLevel(LEVEL)
+"""define the Handler which write message to sys.stderr"""
+console = logging.StreamHandler()
+console.setLevel(LEVEL)
+""" set format which is simpler for console use"""
+formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+
+""" tell the handler to use this format """
+console.setFormatter(formatter)
+
+""" add the handler to the root logger"""
+logging.getLogger('').addHandler(console)
+
 class SubmitterEngine(object):
     """ SubmitterEngine class that is the main one that is used to treat with the application. """
     def __init__(self, **kwargs):
@@ -71,8 +85,11 @@ class SubmitterEngine(object):
         except KeyError as e:
             logger.error("no {} found in list of id".format(id_app))
             return
+        self._cleanup(id_app)
         self.id_dict.pop(id_app, None)
         self._update_json()
+
+
 
 
     def _engine(self):
@@ -160,16 +177,13 @@ class SubmitterEngine(object):
         logger.info("undeploying component")
         Step(adaptor).undeploy(id)
 
-    #def _inform_user(self, message, level):
-    #    """ Give the User the infromation on what happened """
-    #    if "CRITICAL" in level:
-    #        logger.critical(message)
-    #    elif "INFO" in level:
-    #        logger.info(message)
-    #    elif "DEBUG" in level:
-    #        logger.debug(message)
-    #    elif "ERROR" in level:
-    #        logger.error(message)
+    def _cleanup(self, id):
+        logger.info("cleaning up the file after undeployment")
+        for adaptor in reversed(self.executed_adaptors):
+            for item in self.id_dict[id]:
+                if adaptor.__class__.__name__ in item:
+                    Step(adaptor).cleanup(item.split("_",1)[1])
+
 
     def _update_json(self):
         try:

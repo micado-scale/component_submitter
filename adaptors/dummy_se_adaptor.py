@@ -22,3 +22,7 @@ class DummySeAdaptor(abco.SecurityEnforcerAdaptor):
     def undeploy(self, id_adaptor):
 
         logger.info("Undeploy the Security in Security Enforcer with id {}".format(id_adaptor))
+
+    def cleanup(self, id_adaptor):
+
+        logger.info("cleaning up for Security Enforcer id {}".format(id_adaptor))  
