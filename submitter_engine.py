@@ -8,6 +8,10 @@ from abstracts.exceptions import AdaptorCritical, AdaptorError
 import logging
 import generator
 from key_lists import KeyLists
+import json
+
+
+JSON_FILE = "system/ids.json"
 logging.basicConfig(filename="submitter.log", level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger=logging.getLogger("submitter."+__name__)
 
@@ -24,7 +28,12 @@ class SubmitterEngine(object):
         self.executed_adaptors = []
         self.parsed_params = None
         self.e = None
-        self.id_dict = dict()
+        try:
+            with open(JSON_FILE, 'r') as json_data:
+                self.id_dict = json.load(json_data)
+        except FileNotFoundError:
+            self.id_dict = dict()
+
         try:
             self.path = kwargs["path_to_file"]
         except KeyError as e:
@@ -34,6 +43,7 @@ class SubmitterEngine(object):
           self.parsed_params = kwargs["parsed_params"]
         except KeyError as e:
           logger.warning("KeyError, no {} key detected, will be set to None".format(e))
+
         self._instantiate_adaptors()
         logger.debug("{}".format(self.adaptors))
         self._engine()
@@ -48,8 +58,18 @@ class SubmitterEngine(object):
 
         this method needs to be implemented
         """
-        #TODO do undeploy method
-        pass
+        logger.info("proceding to the undeployment of the application")
+        try:
+            for adaptor in reversed(self.executed_adaptors):
+                for item in self.id_dict[id]:
+                    if adaptor.__class__.__name__ in item:
+                        self._undeploy(adaptor, item.split("_",1)[1])
+        except KeyError as e:
+            logger.error("no {} found in list of id".format(id))
+            return
+        self.id_dict.pop(id, None)
+        self._update_json()
+
 
     def _engine(self):
         """ Engine itself """
@@ -61,6 +81,7 @@ class SubmitterEngine(object):
             id_list=self._translate()
             self._execute(id_list)
             self.id_dict.update({id_app: id_list})
+            self._update_json()
             logger.info("dictionnaty of id is: {}".format(self.id_dict))
 
 
@@ -142,3 +163,10 @@ class SubmitterEngine(object):
         print("message should be delivered if requested through API")
         print(message)
         print("should exit")
+
+    def _update_json(self):
+        try:
+            with open(JSON_FILE, 'w') as outfile:
+                json.dump(self.id_dict, outfile)
+        except Exception as e:
+            logger.warning("{}".format(e))

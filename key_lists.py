@@ -5,7 +5,7 @@ import collections
 import logging
 logger=logging.getLogger("submitter."+__name__)
 
-CONFIG_FILE = "key_config.yml"
+CONFIG_FILE = "system/key_config.yml"
 
 class KeyLists():
   def __init__(self):
