@@ -59,4 +59,8 @@ We do give access to a method that creates the random ID.
 Tosca-parser object
 -------------------
 
+.. toctree::
+
+    toscaparser
+
 See the Docker Adaptor. For any help contact: g.gesmier@westminster.ac.uk

@@ -51,8 +51,12 @@
 <span class="n">logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;submitter.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SubmitterEngine"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine">[docs]</a><span class="k">class</span> <span class="nc">SubmitterEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Docstring for SubmitterEngine. &quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot; SubmitterEngine class that is the main one that is used to treat with the application. &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        instantiate the SubmitterEngine class. Creating empty list for the whole class</span>
+<span class="sd">        adaptor and executed adaptor. launching the execute method.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">SubmitterEngine</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;init of submitter engine class&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">adaptors</span> <span class="o">=</span> <span class="p">[]</span>
@@ -75,7 +79,14 @@
         <span class="c1">#self._translate()</span>
         <span class="c1">#self._execute()</span>
 
-<div class="viewcode-block" id="SubmitterEngine.undeploy"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SubmitterEngine.undeploy"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        undeploy method will remove the application from the infrastructure.</span>
+<span class="sd">        :params: id</span>
+<span class="sd">        :type: string</span>
+
+<span class="sd">        this method needs to be implemented</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1">#TODO do undeploy method</span>
         <span class="k">pass</span></div>
 
@@ -86,8 +97,8 @@
 
             <span class="bp">self</span><span class="o">.</span><span class="n">_micado_parser_upload</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_mapper_instantiation</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_translate</span><span class="p">()</span>
-            <span class="n">id_list</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">()</span>
+            <span class="n">id_list</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_translate</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">id_list</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">id_dict</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">id_app</span><span class="p">:</span> <span class="n">id_list</span><span class="p">})</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;dictionnaty of id is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id_dict</span><span class="p">))</span>
 
@@ -132,33 +143,34 @@
     <span class="k">def</span> <span class="nf">_translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Launch the translate engine &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;launch of translate method&quot;</span><span class="p">)</span>
+        <span class="n">ids</span><span class="o">=</span><span class="p">[]</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;translate method called in all the adaptors&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">adaptors</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;translating method call from </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="p">))</span>
             <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="n">Step</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">)</span>
+                    <span class="n">ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span><span class="n">Step</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">)))</span>
                 <span class="k">except</span> <span class="n">AdaptorError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                     <span class="k">continue</span>
                 <span class="k">break</span>
+        <span class="k">return</span> <span class="n">ids</span>
         <span class="c1">#    adaptor.translate(self.template)</span>
-    <span class="k">def</span> <span class="nf">_execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Launch the execution engine &quot;&quot;&quot;</span>
-        <span class="n">ids</span><span class="o">=</span><span class="p">[]</span>
+    <span class="k">def</span> <span class="nf">_execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; method called by the engine to launch the adaptors execute methods &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;launch of the execute methods in each adaptors in a serial way&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">adaptors</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2"> execute adaptor: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="p">))</span>
-            <span class="n">test</span><span class="o">=</span><span class="n">Step</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
-            <span class="n">ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span><span class="n">Step</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">()))</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">adaptor</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2"> execute adaptor: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="p">))</span>
+                    <span class="n">Step</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span><span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">executed_adaptors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">ids</span>
 
 
-    <span class="k">def</span> <span class="nf">_undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adaptor</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Undeploy component &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">_undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adaptor</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; method called by the engine to launch the adaptor undeploy method of a specific component identified by its ID&quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;undeploying component&quot;</span><span class="p">)</span>
-        <span class="n">Step</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span><span class="o">.</span><span class="n">undeploy</span><span class="p">()</span>
+        <span class="n">Step</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span><span class="o">.</span><span class="n">undeploy</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_inform_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Give the User the infromation on what happened &quot;&quot;&quot;</span>
@@ -207,7 +219,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
     </div>
   </body>
 </html>

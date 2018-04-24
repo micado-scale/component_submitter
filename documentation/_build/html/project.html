@@ -16,7 +16,7 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="MiCADO Submitter Tutorial" href="tutorial.html" />
+    <link rel="next" title="Working with OpenStack’s TOSCA-Parser" href="toscaparser.html" />
     <link rel="prev" title="Welcome to micado_submitter’s documentation!" href="index.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
@@ -29,7 +29,7 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="tutorial.html" title="MiCADO Submitter Tutorial"
+          <a href="toscaparser.html" title="Working with OpenStack’s TOSCA-Parser"
              accesskey="N">next</a> |</li>
         <li class="right" >
           <a href="index.html" title="Welcome to micado_submitter’s documentation!"
@@ -45,7 +45,7 @@
             
   <div class="section" id="micado-project">
 <h1>MiCADO Project<a class="headerlink" href="#micado-project" title="Permalink to this headline">¶</a></h1>
-<a class="reference internal image-reference" href="_images/Cola_colored_kl.jpg"><img alt="alternate text" class="align-right" src="_images/Cola_colored_kl.jpg" style="width: 249.0px; height: 93.5px;" /></a>
+<a class="reference internal image-reference" href="_static/Cola_colored_kl.jpg"><img alt="alternate text" class="align-right" src="_static/Cola_colored_kl.jpg" /></a>
 <p>Here you can find all the useful information on the MiCADO and COLA project:</p>
 <p><a class="reference external" href="http://project-cola.eu/">http://project-cola.eu/</a></p>
 <dl class="docutils">
@@ -95,6 +95,35 @@ parameter the ID link to the wanted component to be executed.</p>
 </div>
 <div class="section" id="tosca-parser-object">
 <h2>Tosca-parser object<a class="headerlink" href="#tosca-parser-object" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="toscaparser.html">Working with OpenStack’s TOSCA-Parser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="toscaparser.html#toscatemplate-objects">ToscaTemplate Objects</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="toscaparser.html#toscatemplate-nodetemplates">ToscaTemplate.<strong>nodetemplates</strong></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="toscaparser.html#nodetemplate-entity-tpl">NodeTemplate.<strong>entity_tpl</strong></a></li>
+<li class="toctree-l3"><a class="reference internal" href="toscaparser.html#nodetemplate-get-properties">NodeTemplate.<strong>get_properties()</strong></a></li>
+<li class="toctree-l3"><a class="reference internal" href="toscaparser.html#nodetemplate-get-property-value-name">NodeTemplate.<strong>get_property_value(</strong><em>name</em><strong>)</strong></a></li>
+<li class="toctree-l3"><a class="reference internal" href="toscaparser.html#nodetemplate-name">NodeTemplate.<strong>name</strong></a></li>
+<li class="toctree-l3"><a class="reference internal" href="toscaparser.html#nodetemplate-related">NodeTemplate.<strong>related</strong></a></li>
+<li class="toctree-l3"><a class="reference internal" href="toscaparser.html#nodetemplate-requirements">NodeTemplate.<strong>requirements</strong></a></li>
+<li class="toctree-l3"><a class="reference internal" href="toscaparser.html#nodetemplate-type">NodeTemplate.<strong>type</strong></a></li>
+<li class="toctree-l3"><a class="reference internal" href="toscaparser.html#nodetemplate-type-definition">NodeTemplate.<strong>type_definition</strong></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="toscaparser.html#toscatemplate-repositories">ToscaTemplate.<strong>repositories</strong></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="toscaparser.html#repository-name">Repository.<strong>name</strong></a></li>
+<li class="toctree-l3"><a class="reference internal" href="toscaparser.html#repository-reposit">Repository.<strong>reposit</strong></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="toscaparser.html#toscatemplate-topology-template">ToscaTemplate.<strong>topology_template</strong></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="toscaparser.html#topologytemplate-custom-defs">TopologyTemplate.<strong>custom_defs</strong></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="toscaparser.html#toscatemplate-tpl">ToscaTemplate.<strong>tpl</strong></a></li>
+</ul>
+</li>
+</ul>
+</div>
 <p>See the Docker Adaptor. For any help contact: <a class="reference external" href="mailto:g&#46;gesmier&#37;&#52;&#48;westminster&#46;ac&#46;uk">g<span>&#46;</span>gesmier<span>&#64;</span>westminster<span>&#46;</span>ac<span>&#46;</span>uk</a></p>
 </div>
 </div>
@@ -122,8 +151,8 @@ parameter the ID link to the wanted component to be executed.</p>
   <p class="topless"><a href="index.html"
                         title="previous chapter">Welcome to micado_submitter’s documentation!</a></p>
   <h4>Next topic</h4>
-  <p class="topless"><a href="tutorial.html"
-                        title="next chapter">MiCADO Submitter Tutorial</a></p>
+  <p class="topless"><a href="toscaparser.html"
+                        title="next chapter">Working with OpenStack’s TOSCA-Parser</a></p>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
     <ul class="this-page-menu">
@@ -157,7 +186,7 @@ parameter the ID link to the wanted component to be executed.</p>
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="tutorial.html" title="MiCADO Submitter Tutorial"
+          <a href="toscaparser.html" title="Working with OpenStack’s TOSCA-Parser"
              >next</a> |</li>
         <li class="right" >
           <a href="index.html" title="Welcome to micado_submitter’s documentation!"
@@ -167,7 +196,7 @@ parameter the ID link to the wanted component to be executed.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
     </div>
   </body>
 </html>
