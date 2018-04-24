@@ -37,31 +37,88 @@
           <div class="body" role="main">
             
   <h1>Source code for component_submitter.adaptors.docker_adaptor</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">container_orchestrator</span> <span class="k">as</span> <span class="n">abco</span>
-<span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorError</span><span class="p">,</span> <span class="n">AdaptorCritical</span>
-<span class="kn">import</span> <span class="nn">subprocess</span>
-<span class="kn">import</span> <span class="nn">ruamel.yaml</span> <span class="k">as</span> <span class="nn">yaml</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">component_submitter.docker_adaptor</span>
+<span class="sd">----------------------------------</span>
+
+<span class="sd">A TOSCA to Docker (Swarm) adaptor.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">generator</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">ruamel.yaml</span> <span class="k">as</span> <span class="nn">yaml</span>
+
+<span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">container_orchestrator</span> <span class="k">as</span> <span class="n">abco</span>
+<span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorError</span>
+<span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorCritical</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;adaptors.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
+
 <span class="n">DOCKER_THINGS</span> <span class="o">=</span> <span class="p">(</span><span class="n">DOCKER_CONTAINER</span><span class="p">,</span> <span class="n">DOCKER_NETWORK</span><span class="p">,</span> <span class="n">DOCKER_VOLUME</span><span class="p">)</span> <span class="o">=</span> \
                 <span class="p">(</span><span class="s2">&quot;tosca.nodes.MiCADO.Container.Application.Docker&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;tosca.nodes.MiCADO.network.Network.Docker&quot;</span><span class="p">,</span>
                 <span class="s2">&quot;tosca.nodes.MiCADO.Volume.Docker&quot;</span><span class="p">)</span>
-<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;adaptors.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DockerAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor">[docs]</a><span class="k">class</span> <span class="nc">DockerAdaptor</span><span class="p">(</span><span class="n">abco</span><span class="o">.</span><span class="n">ContainerAdaptor</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot; The Docker adaptor class</span>
+
+<span class="sd">    Carries out the deployment of a Dockerised application or application stack</span>
+<span class="sd">    based on a description of an application provided by a YAML file which</span>
+<span class="sd">    follows the OpenStack TOSCA language specification.</span>
+
+<span class="sd">    Implements abstract methods ``translate``, ``execute`` and ``undeploy``.</span>
+
+<span class="sd">    Usage:</span>
+<span class="sd">        &gt;&gt;&gt; from docker_adaptor import DockerAdaptor</span>
+<span class="sd">        &gt;&gt;&gt; container_adapt = DockerAdaptor()</span>
+<span class="sd">        &gt;&gt;&gt; container_adapt.translate(&lt;path_to_tosca_yaml&gt;)</span>
+<span class="sd">        &lt;UNIQUE_ID&gt;</span>
+<span class="sd">        &gt;&gt;&gt; container_adapt.execute(&lt;UNIQUE_ID&gt;)</span>
+<span class="sd">        (Stack deployed)</span>
+<span class="sd">        &gt;&gt;&gt; container_adapt.undeploy(&lt;UNIQUE_ID&gt;)</span>
+<span class="sd">        (Stack undeployed)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;initialize the Docker Adaptor&quot;</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;version&quot;</span><span class="p">:</span><span class="s2">&quot;3.4&quot;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Adaptor ready to be used&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DockerAdaptor.translate"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsed</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Translate the parsed subset to the Compose format &quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot; Translate the parsed subset to the Compose format</span>
+
+<span class="sd">        Does the work of mapping the Docker relevant sections of TOSCA into a</span>
+<span class="sd">        dictionary following the Docker-Compose format, then dumping output to</span>
+<span class="sd">        a .yaml file in output_configs/</span>
+
+<span class="sd">        :param parsed: The tosca template to be translated into Docker compose</span>
+<span class="sd">        :type parsed: `ToscaTemplate &lt;toscaparser.tosca_template.ToscaTemplate&gt;`</span>
+<span class="sd">        :returns: The unique ID for this stack</span>
+<span class="sd">        :rtype: string</span>
+<span class="sd">        :raises: AdaptorCritical</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">_dump_compose</span><span class="p">(</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; Dump the dictionary to a Docker-Compose file &quot;&quot;&quot;</span>
+
+            <span class="k">class</span> <span class="nc">NoAliasRTDumper</span><span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripDumper</span><span class="p">):</span>
+                <span class="sd">&quot;&quot;&quot; Turn off aliases, preserve order &quot;&quot;&quot;</span>
+                <span class="k">def</span> <span class="nf">ignore_aliases</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+                <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span>
+                          <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">NoAliasRTDumper</span><span class="p">)</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting translation...&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;version&quot;</span><span class="p">:</span><span class="s2">&quot;3.4&quot;</span><span class="p">}</span>
+
         <span class="k">for</span> <span class="n">tpl</span> <span class="ow">in</span> <span class="n">parsed</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">DOCKER_CONTAINER</span> <span class="ow">in</span> <span class="n">tpl</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_get_properties</span><span class="p">(</span><span class="n">tpl</span><span class="p">,</span> <span class="s2">&quot;services&quot;</span><span class="p">)</span>
@@ -80,26 +137,44 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_get_properties</span><span class="p">(</span><span class="n">tpl</span><span class="p">,</span> <span class="s2">&quot;volumes&quot;</span><span class="p">)</span>
 
         <span class="n">id_stack</span><span class="o">=</span><span class="n">generator</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dump_compose</span><span class="p">(</span><span class="s2">&quot;output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">))</span>
+        <span class="n">_dump_compose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="s2">&quot;output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">id_stack</span></div>
+
 <div class="viewcode-block" id="DockerAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_stack</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Execute the Compose file &quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot; Deploy the stack onto the Swarm</span>
+
+<span class="sd">        Executes the `docker stack deploy` command on the Docker-Compose file</span>
+<span class="sd">        created in `translate()`</span>
+
+<span class="sd">        :param id_stack: The unique identifier of the stack/compose-file to deploy</span>
+<span class="sd">        :raises: AdaptorCritical</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Docker execution...&quot;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="c1">#subprocess.run([&quot;docker&quot;, &quot;stack&quot;, &quot;deploy&quot;, &quot;--compose-file&quot;,</span>
-            <span class="c1">#                &quot;output_configs/{}.yaml&quot;.format(id_stack), id_stack], check=True)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;subprocess.run([</span><span class="se">\&quot;</span><span class="s2">docker</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">stack</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">deploy</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">--compose-file</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">docker-compose.yaml</span><span class="se">\&quot;</span><span class="s2">, id_stack], check=True)&quot;</span><span class="p">)</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;stack&quot;</span><span class="p">,</span> <span class="s2">&quot;deploy&quot;</span><span class="p">,</span> <span class="s2">&quot;--compose-file&quot;</span><span class="p">,</span>
+                            <span class="s2">&quot;output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">),</span> <span class="n">id_stack</span><span class="p">],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1">#logger.info(&quot;subprocess.run([\&quot;docker\&quot;, \&quot;stack\&quot;, \&quot;deploy\&quot;, \&quot;--compose-file\&quot;, \&quot;docker-compose.yaml\&quot;, id_stack], check=True)&quot;)</span>
         <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
             <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Docker running...&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DockerAdaptor.undeploy"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_stack</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Undeploy this application &quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot; Undeploy the stack from Docker and cleanup</span>
+
+<span class="sd">        Runs `docker stack down` on the specified stack, removes the associated</span>
+<span class="sd">        Docker-Compose file from output_configs/</span>
+
+<span class="sd">        :param id_stack: The unique identifier of the stack to bring down</span>
+<span class="sd">        :raises: AdaptorCritical</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">           A warning will be logged if the Compose file cannot be removed</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Undeploying the application&quot;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="c1">#subprocess.run([&quot;docker&quot;, &quot;stack&quot;, &quot;down&quot;, id_stack], check=True)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;undeploy application with id: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">))</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;stack&quot;</span><span class="p">,</span> <span class="s2">&quot;down&quot;</span><span class="p">,</span> <span class="n">id_stack</span><span class="p">],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1">#logger.debug(&quot;undeploy application with id: {}&quot;.format(id_stack))</span>
         <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot undeploy the stack&quot;</span><span class="p">)</span>
             <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Cannot undeploy the stack&quot;</span><span class="p">)</span>
@@ -109,20 +184,6 @@
             <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">))</span>
         <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="DockerAdaptor.dump_compose"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.dump_compose">[docs]</a>    <span class="k">def</span> <span class="nf">dump_compose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Dump to Docker-Compose file &quot;&quot;&quot;</span>
-
-        <span class="k">class</span> <span class="nc">NoAliasRTDumper</span><span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripDumper</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot; Turn off aliases, preserve order &quot;&quot;&quot;</span>
-
-            <span class="k">def</span> <span class="nf">ignore_aliases</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-                <span class="k">return</span> <span class="kc">True</span>
-
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
-            <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span>
-                      <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">NoAliasRTDumper</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_get_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Get TOSCA properties &quot;&quot;&quot;</span>
@@ -275,7 +336,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
     </div>
   </body>
 </html>
