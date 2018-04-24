@@ -112,9 +112,9 @@ class DockerAdaptor(abco.ContainerAdaptor):
         """
         logger.info("Starting Docker execution...")
         try:
-            subprocess.run(["docker", "stack", "deploy", "--compose-file",
-                            "output_configs/{}.yaml".format(id_stack), id_stack], check=True)
-            #logger.info("subprocess.run([\"docker\", \"stack\", \"deploy\", \"--compose-file\", \"docker-compose.yaml\", id_stack], check=True)")
+            #subprocess.run(["docker", "stack", "deploy", "--compose-file",
+            #                "output_configs/{}.yaml".format(id_stack), id_stack], check=True)
+            logger.info("subprocess.run([\"docker\", \"stack\", \"deploy\", \"--compose-file\", \"docker-compose.yaml\", id_stack], check=True)")
         except subprocess.CalledProcessError:
             logger.error("Cannot execute Docker")
             raise AdaptorCritical("Cannot execute Docker")
@@ -140,6 +140,8 @@ class DockerAdaptor(abco.ContainerAdaptor):
             logger.error("Cannot undeploy the stack")
             raise AdaptorCritical("Cannot undeploy the stack")
         logger.info("Stack is down...")
+
+    def cleanup(self, id_stack):
         logger.info("clean up config for id {}".format(id_stack))
         try:
             os.remove("output_configs/{}.yaml".format(id_stack))

@@ -85,8 +85,11 @@ class SubmitterEngine(object):
         except KeyError as e:
             logger.error("no {} found in list of id".format(id_app))
             return
+        self._cleanup(id_app)
         self.id_dict.pop(id_app, None)
         self._update_json()
+
+
 
 
     def _engine(self):
@@ -174,16 +177,13 @@ class SubmitterEngine(object):
         logger.info("undeploying component")
         Step(adaptor).undeploy(id)
 
-    #def _inform_user(self, message, level):
-    #    """ Give the User the infromation on what happened """
-    #    if "CRITICAL" in level:
-    #        logger.critical(message)
-    #    elif "INFO" in level:
-    #        logger.info(message)
-    #    elif "DEBUG" in level:
-    #        logger.debug(message)
-    #    elif "ERROR" in level:
-    #        logger.error(message)
+    def _cleanup(self, id):
+        logger.info("cleaning up the file after undeployment")
+        for adaptor in reversed(self.executed_adaptors):
+            for item in self.id_dict[id]:
+                if adaptor.__class__.__name__ in item:
+                    Step(adaptor).cleanup(item.split("_",1)[1])
+
 
     def _update_json(self):
         try:

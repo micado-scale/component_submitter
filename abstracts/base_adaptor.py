@@ -16,3 +16,7 @@ class Adaptor(ABC):
     @abstractmethod
     def undeploy(self):
         pass
+
+    @abstractmethod
+    def cleanup(self):
+        pass

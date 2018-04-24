@@ -22,3 +22,7 @@ class DummyOccopusAdaptor(abco.CloudAdaptor):
     def undeploy(self, id_adaptor):
 
         logger.info("undeploy {} infrastructure".format(id_adaptor))
+
+    def cleanup(self, id_adaptor):
+
+        logger.info("cleaning up for infrastructure id {}".format(id_adaptor))

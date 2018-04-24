@@ -23,3 +23,7 @@ class DummyPkAdaptor(abco.PolicyKeeperAdaptor):
     def undeploy(self, id_adaptor):
 
         logger.info("Undeploy/remove the policy in pk service with id {}".format(id_adaptor))
+
+    def cleanup(self, id_adaptor):
+
+        logger.info("cleaning up pk id {}".format(id_adaptor))
