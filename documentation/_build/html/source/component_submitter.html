@@ -63,7 +63,10 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="component_submitter.adaptors.html">component_submitter.adaptors package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.docker_adaptor">component_submitter.adaptors.docker_adaptor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.docker_adaptor">component_submitter.adaptors.docker_adaptor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="component_submitter.adaptors.html#component-submitter-docker-adaptor">component_submitter.docker_adaptor</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_occopus_adaptor">component_submitter.adaptors.dummy_occopus_adaptor module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_pk_adaptor">component_submitter.adaptors.dummy_pk_adaptor module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_se_adaptor">component_submitter.adaptors.dummy_se_adaptor module</a></li>
@@ -114,6 +117,12 @@
 <dt id="component_submitter.api.render_static">
 <code class="descclassname">component_submitter.api.</code><code class="descname">render_static</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#render_static"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.render_static" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.api.undeploy">
+<code class="descclassname">component_submitter.api.</code><code class="descname">undeploy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.undeploy" title="Permalink to this definition">¶</a></dt>
+<dd><p>API function to undeploy the application with a specific id</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="component_submitter.api.unhandle_request_error">
@@ -222,7 +231,7 @@ object topology object.</p>
 <dt id="component_submitter.micado_validator.MultiError">
 <em class="property">exception </em><code class="descclassname">component_submitter.micado_validator.</code><code class="descname">MultiError</code><span class="sig-paren">(</span><em>msg</em>, <em>error_set</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#MultiError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.MultiError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#component_submitter.micado_validator.ValidationError" title="component_submitter.micado_validator.ValidationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">component_submitter.micado_validator.ValidationError</span></code></a></p>
-<p>For catching multiple errors</p>
+<p>Errors occured during validation…</p>
 </dd></dl>
 
 <dl class="exception">
@@ -236,7 +245,40 @@ object topology object.</p>
 <dt id="component_submitter.micado_validator.Validator">
 <em class="property">class </em><code class="descclassname">component_submitter.micado_validator.</code><code class="descname">Validator</code><span class="sig-paren">(</span><em>tpl=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>The validator class</p>
+<p>The MiCADO Validator class</p>
+<p>Further validates a ToscaTemplate which has already passed validation steps
+set out by the OpenStack ToscaParser. Currently validation checks exist for
+repositories and the requirements and relationships of custom defined types.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tpl</strong> (<em>ToscaTemplate &lt;toscaparser.tosca_template.ToscaTemplate&gt;</em>) – The ToscaTemplate to validate</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body">TypeError, MultiError</td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt>Usage:</dt>
+<dd><div class="first highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">micado_validator</span> <span class="k">import</span> <span class="n">Validator</span>
+</pre></div>
+</div>
+<blockquote>
+<div>Successful validation:</div></blockquote>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Validator</span><span class="p">(</span><span class="o">&lt;</span><span class="n">toscaparser</span><span class="o">.</span><span class="n">tosca_template</span><span class="o">.</span><span class="n">ToscaTemplate</span><span class="o">&gt;</span><span class="p">)</span>
+<span class="go">&lt;micado_validator.Validator object&gt;</span>
+</pre></div>
+</div>
+<blockquote>
+<div>Errors during validation:</div></blockquote>
+<div class="last highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Validator</span><span class="p">(</span><span class="o">&lt;</span><span class="n">toscaparser</span><span class="o">.</span><span class="n">tosca_template</span><span class="o">.</span><span class="n">ToscaTemplate</span><span class="o">&gt;</span><span class="p">)</span>
+<span class="go">----Error List----</span>
+<span class="go">(...list of errors...)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
 </dd></dl>
 
 </div>
@@ -289,7 +331,7 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
 <p>SubmitterEngine class that is the main one that is used to treat with the application.</p>
 <dl class="method">
 <dt id="component_submitter.submitter_engine.SubmitterEngine.undeploy">
-<code class="descname">undeploy</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.undeploy" title="Permalink to this definition">¶</a></dt>
+<code class="descname">undeploy</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.undeploy" title="Permalink to this definition">¶</a></dt>
 <dd><p>undeploy method will remove the application from the infrastructure.
 :params: id
 :type: string</p>
@@ -420,7 +462,7 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
     </div>
   </body>
 </html>

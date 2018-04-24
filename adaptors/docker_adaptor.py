@@ -1,28 +1,85 @@
-from abstracts import container_orchestrator as abco
-from abstracts.exceptions import AdaptorError, AdaptorCritical
-import subprocess
-import ruamel.yaml as yaml
+"""
+component_submitter.docker_adaptor
+----------------------------------
+
+A TOSCA to Docker (Swarm) adaptor.
+"""
+
 import logging
 import generator
+import subprocess
 import os
+
+import ruamel.yaml as yaml
+
+from abstracts import container_orchestrator as abco
+from abstracts.exceptions import AdaptorError
+from abstracts.exceptions import AdaptorCritical
+
+logger = logging.getLogger("adaptors."+__name__)
+
 DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_NETWORK, DOCKER_VOLUME) = \
                 ("tosca.nodes.MiCADO.Container.Application.Docker",
                 "tosca.nodes.MiCADO.network.Network.Docker",
                 "tosca.nodes.MiCADO.Volume.Docker")
-logger = logging.getLogger("adaptors."+__name__)
 
 class DockerAdaptor(abco.ContainerAdaptor):
+
+    """ The Docker adaptor class
+
+    Carries out the deployment of a Dockerised application or application stack
+    based on a description of an application provided by a YAML file which
+    follows the OpenStack TOSCA language specification.
+
+    Implements abstract methods ``translate``, ``execute`` and ``undeploy``.
+
+    Usage:
+        >>> from docker_adaptor import DockerAdaptor
+        >>> container_adapt = DockerAdaptor()
+        >>> container_adapt.translate(<path_to_tosca_yaml>)
+        <UNIQUE_ID>
+        >>> container_adapt.execute(<UNIQUE_ID>)
+        (Stack deployed)
+        >>> container_adapt.undeploy(<UNIQUE_ID>)
+        (Stack undeployed)
+
+    """
 
     def __init__(self):
         logger.debug("initialize the Docker Adaptor")
         super().__init__()
-        self.compose_data = {"version":"3.4"}
+        self.compose_data = {}
         logger.info("Adaptor ready to be used")
 
     def translate(self, parsed):
-        """ Translate the parsed subset to the Compose format """
+        """ Translate the parsed subset to the Compose format
+
+        Does the work of mapping the Docker relevant sections of TOSCA into a
+        dictionary following the Docker-Compose format, then dumping output to
+        a .yaml file in output_configs/
+
+        :param parsed: The tosca template to be translated into Docker compose
+        :type parsed: `ToscaTemplate <toscaparser.tosca_template.ToscaTemplate>`
+        :returns: The unique ID for this stack
+        :rtype: string
+        :raises: AdaptorCritical
+        """
+        def _dump_compose(compose_data, path):
+            """ Dump the dictionary to a Docker-Compose file """
+
+            class NoAliasRTDumper(yaml.RoundTripDumper):
+                """ Turn off aliases, preserve order """
+                def ignore_aliases(self, data):
+                    return True
+
+            with open(path, 'w') as file:
+                yaml.dump(compose_data, file,
+                          default_flow_style=False, Dumper=NoAliasRTDumper)
 
         logger.info("Starting translation...")
+
+        self.compose_data = {"version":"3.4"}
+
         for tpl in parsed.nodetemplates:
             if DOCKER_CONTAINER in tpl.type:
                 self._get_properties(tpl, "services")
@@ -41,10 +98,18 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 self._get_properties(tpl, "volumes")
 
         id_stack=generator.id_generator()
-        self.dump_compose("output_configs/{}.yaml".format(id_stack))
+        _dump_compose(self.compose_data, "output_configs/{}.yaml".format(id_stack))
         return id_stack
+
     def execute(self, id_stack):
-        """ Execute the Compose file """
+        """ Deploy the stack onto the Swarm
+
+        Executes the `docker stack deploy` command on the Docker-Compose file
+        created in `translate()`
+
+        :param id_stack: The unique identifier of the stack/compose-file to deploy
+        :raises: AdaptorCritical
+        """
         logger.info("Starting Docker execution...")
         try:
             subprocess.run(["docker", "stack", "deploy", "--compose-file",
@@ -56,7 +121,17 @@ class DockerAdaptor(abco.ContainerAdaptor):
         logger.info("Docker running...")
 
     def undeploy(self, id_stack):
-        """ Undeploy this application """
+        """ Undeploy the stack from Docker and cleanup
+
+        Runs `docker stack down` on the specified stack, removes the associated
+        Docker-Compose file from output_configs/
+
+        :param id_stack: The unique identifier of the stack to bring down
+        :raises: AdaptorCritical
+
+        .. note::
+           A warning will be logged if the Compose file cannot be removed
+        """
         logger.info("Undeploying the application")
         try:
             subprocess.run(["docker", "stack", "down", id_stack], check=True)
@@ -70,20 +145,6 @@ class DockerAdaptor(abco.ContainerAdaptor):
             os.remove("output_configs/{}.yaml".format(id_stack))
         except OSError as e:
             logger.warning(e)
-
-
-    def dump_compose(self, path):
-        """ Dump to Docker-Compose file """
-
-        class NoAliasRTDumper(yaml.RoundTripDumper):
-            """ Turn off aliases, preserve order """
-
-            def ignore_aliases(self, data):
-                return True
-
-        with open(path, 'w') as file:
-            yaml.dump(self.compose_data, file,
-                      default_flow_style=False, Dumper=NoAliasRTDumper)
 
     def _get_properties(self, node, key):
         """ Get TOSCA properties """
