@@ -12,9 +12,10 @@ import json
 
 
 JSON_FILE = "system/ids.json"
+LEVEL = "INFO"
 logging.basicConfig(filename="submitter.log", level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger=logging.getLogger("submitter."+__name__)
-
+logger.setLevel(LEVEL)
 class SubmitterEngine(object):
     """ SubmitterEngine class that is the main one that is used to treat with the application. """
     def __init__(self, **kwargs):
@@ -28,10 +29,13 @@ class SubmitterEngine(object):
         self.executed_adaptors = []
         self.parsed_params = None
         self.e = None
+
         try:
             with open(JSON_FILE, 'r') as json_data:
+                logger.debug("instantiation of dictionary id_dict with {}".format(JSON_FILE))
                 self.id_dict = json.load(json_data)
         except FileNotFoundError:
+            logger.debug("file {} doesn't exist so isntantiation of empty directory of id_dict".format(JSON_FILE))
             self.id_dict = dict()
 
         try:
@@ -50,7 +54,7 @@ class SubmitterEngine(object):
         #self._translate()
         #self._execute()
 
-    def undeploy(self, id):
+    def undeploy(self, id_app):
         """
         undeploy method will remove the application from the infrastructure.
         :params: id
@@ -61,18 +65,21 @@ class SubmitterEngine(object):
         logger.info("proceding to the undeployment of the application")
         try:
             for adaptor in reversed(self.executed_adaptors):
-                for item in self.id_dict[id]:
+                for item in self.id_dict[id_app]:
                     if adaptor.__class__.__name__ in item:
                         self._undeploy(adaptor, item.split("_",1)[1])
         except KeyError as e:
-            logger.error("no {} found in list of id".format(id))
+            logger.error("no {} found in list of id".format(id_app))
             return
-        self.id_dict.pop(id, None)
+        self.id_dict.pop(id_app, None)
         self._update_json()
 
 
     def _engine(self):
-        """ Engine itself """
+        """ Engine itself. Creates first a id, then parse the input file. Instantiate the
+        mapper. Retreive the list of id created by the translate methods of the adaptors.
+        Excute those id in their respective adaptor. Update the id_dict and the json file.
+        """
         try:
             id_app=generator.id_generator()
 
@@ -86,16 +93,15 @@ class SubmitterEngine(object):
 
 
         except MultiError as e:
-            print("I'm here!")
-            self._inform_user(e)
+        #    self._inform_user(e, e.levelname)
             raise
         except AdaptorCritical as e:
-            self._inform_user(e)
+        #    self._inform_user(e, e.levelname)
             raise
         except AdaptorCritical as e:
             for adaptor in reversed(self.executed_adaptors):
                 self._undeploy(adaptor)
-            self._inform_user(e)
+        #    self._inform_user(e, e.levelname)
             raise
 
     def _micado_parser_upload(self):
@@ -154,15 +160,16 @@ class SubmitterEngine(object):
         logger.info("undeploying component")
         Step(adaptor).undeploy(id)
 
-    def _inform_user(self, message):
-        """ Give the User the infromation on what happened """
-        # TODO: store the message for after run is stopped.
-        logger.info("message should be delivered if requested through API")
-        logger.info(message)
-        logger.info("should exist")
-        print("message should be delivered if requested through API")
-        print(message)
-        print("should exit")
+    #def _inform_user(self, message, level):
+    #    """ Give the User the infromation on what happened """
+    #    if "CRITICAL" in level:
+    #        logger.critical(message)
+    #    elif "INFO" in level:
+    #        logger.info(message)
+    #    elif "DEBUG" in level:
+    #        logger.debug(message)
+    #    elif "ERROR" in level:
+    #        logger.error(message)
 
     def _update_json(self):
         try:
