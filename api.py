@@ -2,9 +2,9 @@ from flask import request, url_for, Flask, jsonify, render_template
 from submitter_engine import SubmitterEngine
 from abstracts.exceptions import AdaptorCritical
 import os
-template_folder = os.path.realpath('./documentation/_build/html')
-app = Flask(__name__,static_url_path=template_folder)
+app = Flask(__name__)
 import logging
+
 logger = logging.getLogger("submitter."+__name__)
 
 class RequestError(Exception):
@@ -49,11 +49,7 @@ def handle_request_error(error):
 def engine():
     """ API functions to launch a application """
     logger.debug("serving request {}".format(request.method))
-    logger.info("jfwksndjsknlnsknjkwdnfjk")
-    logger.info("jfwksndjsknlnsknjkwdnfjk")
-    logger.info("wdnfjkdnsjkdnjknskdn")
     path_to_file = request.form["input"]
-    logger.debug("the path_to_file is {}".format(path_to_file))
     e = SubmitterEngine(path_to_file=path_to_file)
     if e is None:
         return "<h1> correctly launched</h1>"
@@ -66,9 +62,6 @@ def undeploy():
     id_app = request.form["id_app"]
     e.undeploy("id_app")
 
-@app.route('/')
-def render_static():
-    return app.send_static_file('index.html')
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

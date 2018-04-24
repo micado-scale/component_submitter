@@ -59,8 +59,8 @@ class DockerAdaptor(abco.ContainerAdaptor):
         """ Undeploy this application """
         logger.info("Undeploying the application")
         try:
-            subprocess.run(["docker", "stack", "down", id_stack], check=True)
-            #logger.debug("undeploy application with id: {}".format(id_stack))
+            #subprocess.run(["docker", "stack", "down", id_stack], check=True)
+            logger.debug("undeploy application with id: {}".format(id_stack))
         except subprocess.CalledProcessError:
             logger.error("Cannot undeploy the stack")
             raise AdaptorCritical("Cannot undeploy the stack")

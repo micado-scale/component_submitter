@@ -10,12 +10,26 @@ import generator
 from key_lists import KeyLists
 import json
 
-
 JSON_FILE = "system/ids.json"
-LEVEL = "INFO"
+
+""" set up of Logging """
+LEVEL = logging.INFO
 logging.basicConfig(filename="submitter.log", level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger=logging.getLogger("submitter."+__name__)
+
 logger.setLevel(LEVEL)
+"""define the Handler which write message to sys.stderr"""
+console = logging.StreamHandler()
+console.setLevel(LEVEL)
+""" set format which is simpler for console use"""
+formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+
+""" tell the handler to use this format """
+console.setFormatter(formatter)
+
+""" add the handler to the root logger"""
+logging.getLogger('').addHandler(console)
+
 class SubmitterEngine(object):
     """ SubmitterEngine class that is the main one that is used to treat with the application. """
     def __init__(self, **kwargs):
