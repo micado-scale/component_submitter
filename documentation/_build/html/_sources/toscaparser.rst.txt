@@ -1,14 +1,24 @@
 Working with OpenStack's TOSCA-Parser
 =====================================
 
+We rely on the open-source, Apache-2.0 licensed TOSCA-Parser by OpenStack for
+the initial mapping of TOSCA compliant ADTs into memory. Submitter engine adaptors
+should be designed with ToscaTemplate objects in mind. Adaptors are expected to
+use the methods provided by TOSCA-Parser in order to facilitate the extraction
+of relevant data from an ADT.
+
+Below you can find methods which were useful in the design of the first adaptor
+which was implemented alongside the submitter engine. See also the source code
+for this adaptor <component_submitter.adaptors.docker_adaptor>.
+
 Useful links:
 
-https://wiki.openstack.org/wiki/TOSCA-Parser
-https://github.com/openstack/tosca-parser
-https://launchpad.net/tosca-parser
+* https://wiki.openstack.org/wiki/TOSCA-Parser
+* https://github.com/openstack/tosca-parser
+* https://launchpad.net/tosca-parser
 
-ToscaTemplate Objects
-=====================
+Passing a ToscaTemplate Object
+==============================
 
 .. code-block :: python
 
@@ -18,7 +28,7 @@ ToscaTemplate Objects
 
 The translate method of an adaptor class should accept as an argument a ToscaTemplate
 object. The ToscaTemplate object is essentially a graph of the ADT which has been
-submitted to MiCADO, with all of its links resolved. ToscaTemplate objects offer
+submitted to MiCADO, with **most** of its links resolved. ToscaTemplate objects offer
 various methods to facilitate the extraction of relevant data from the template.
 
 *********************************
@@ -49,6 +59,14 @@ NodeTemplate.\ **get_properties()**
 NodeTemplate.\ **get_property_value(**\ *name*\ **)**
 -----------------------------------------------------
   Return the value of the named property. The *name* argument is a string.
+
+  .. note::
+
+    This may return a `<toscaparser.GetInput>` object
+    which can be resolved using GetInput.result()
+
+    Usage:
+      >>> NodeTemplate.get_property_value(<name>).result()
 
 NodeTemplate.\ **name**
 -----------------------
@@ -99,7 +117,7 @@ Return a TopologyTemplate object.
 
 TopologyTemplate.\ **custom_defs**
 ----------------------------------
-Return the raw representation of all associated custom TOSCA definitions as ``dict``
+  Return the raw representation of all associated custom TOSCA definitions as ``dict``
 
 ***********************
 ToscaTemplate.\ **tpl**

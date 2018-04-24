@@ -1,5 +1,6 @@
-from toscaparser.tosca_template import ToscaTemplate
 import logging
+
+from toscaparser.tosca_template import ToscaTemplate
 
 logger = logging.getLogger("submitter."+__name__)
 
@@ -7,16 +8,13 @@ class ValidationError(Exception):
     """Base error for validation"""
 
 class MultiError(ValidationError):
-    """For catching multiple errors"""
+    """Errors occured during validation..."""
     def __init__(self, msg, error_set):
-        """ init """
         super().__init__()
-
         self.msg = "Validation Error!\n--{}--".format(msg)
         for error in error_set:
             self.msg += "\n  {}".format(error)
         self.msg += "\n----{}".format("-"*len(msg))
-
         print (self.msg)
 
     def __str__(self):
@@ -24,11 +22,34 @@ class MultiError(ValidationError):
         return self.msg
 
 class Validator():
-    """The validator class"""
+
+    """ The MiCADO Validator class
+
+    Further validates a ToscaTemplate which has already passed validation steps
+    set out by the OpenStack ToscaParser. Currently validation checks exist for
+    repositories and the requirements and relationships of custom defined types.
+
+    :param tpl: The ToscaTemplate to validate
+    :type tpl: ToscaTemplate <toscaparser.tosca_template.ToscaTemplate>
+    :raises: TypeError, MultiError
+
+    Usage:
+        >>> from micado_validator import Validator
+
+            Successful validation:
+
+        >>> Validator(<toscaparser.tosca_template.ToscaTemplate>)
+        <micado_validator.Validator object>
+
+            Errors during validation:
+            
+        >>> Validator(<toscaparser.tosca_template.ToscaTemplate>)
+        ----Error List----
+        (...list of errors...)
+
+    """
 
     def __init__(self, tpl=None):
-        """ init """
-
         if not isinstance(tpl, ToscaTemplate):
             logger.error("Got a non-ToscaTemplate object!")
             raise TypeError("Not a ToscaTemplate object")

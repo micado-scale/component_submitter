@@ -46,13 +46,23 @@
             
   <div class="section" id="working-with-openstack-s-tosca-parser">
 <h1>Working with OpenStack’s TOSCA-Parser<a class="headerlink" href="#working-with-openstack-s-tosca-parser" title="Permalink to this headline">¶</a></h1>
+<p>We rely on the open-source, Apache-2.0 licensed TOSCA-Parser by OpenStack for
+the initial mapping of TOSCA compliant ADTs into memory. Submitter engine adaptors
+should be designed with ToscaTemplate objects in mind. Adaptors are expected to
+use the methods provided by TOSCA-Parser in order to facilitate the extraction
+of relevant data from an ADT.</p>
+<p>Below you can find methods which were useful in the design of the first adaptor
+which was implemented alongside the submitter engine. See also the source code
+for this adaptor &lt;component_submitter.adaptors.docker_adaptor&gt;.</p>
 <p>Useful links:</p>
-<p><a class="reference external" href="https://wiki.openstack.org/wiki/TOSCA-Parser">https://wiki.openstack.org/wiki/TOSCA-Parser</a>
-<a class="reference external" href="https://github.com/openstack/tosca-parser">https://github.com/openstack/tosca-parser</a>
-<a class="reference external" href="https://launchpad.net/tosca-parser">https://launchpad.net/tosca-parser</a></p>
+<ul class="simple">
+<li><a class="reference external" href="https://wiki.openstack.org/wiki/TOSCA-Parser">https://wiki.openstack.org/wiki/TOSCA-Parser</a></li>
+<li><a class="reference external" href="https://github.com/openstack/tosca-parser">https://github.com/openstack/tosca-parser</a></li>
+<li><a class="reference external" href="https://launchpad.net/tosca-parser">https://launchpad.net/tosca-parser</a></li>
+</ul>
 </div>
-<div class="section" id="toscatemplate-objects">
-<h1>ToscaTemplate Objects<a class="headerlink" href="#toscatemplate-objects" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="passing-a-toscatemplate-object">
+<h1>Passing a ToscaTemplate Object<a class="headerlink" href="#passing-a-toscatemplate-object" title="Permalink to this headline">¶</a></h1>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">toscaparser</span><span class="o">.</span><span class="n">tosca_template</span> <span class="kn">import</span> <span class="nn">ToscaTemplate</span>
 
 <span class="n">MyAdaptor</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">ToscaTemplate</span><span class="p">(</span> <span class="o">&lt;</span><span class="n">path_to_tosca</span><span class="o">.</span><span class="n">yaml</span><span class="o">&gt;</span> <span class="p">))</span>
@@ -60,7 +70,7 @@
 </div>
 <p>The translate method of an adaptor class should accept as an argument a ToscaTemplate
 object. The ToscaTemplate object is essentially a graph of the ADT which has been
-submitted to MiCADO, with all of its links resolved. ToscaTemplate objects offer
+submitted to MiCADO, with <strong>most</strong> of its links resolved. ToscaTemplate objects offer
 various methods to facilitate the extraction of relevant data from the template.</p>
 <div class="section" id="toscatemplate-nodetemplates">
 <h2>ToscaTemplate.<strong>nodetemplates</strong><a class="headerlink" href="#toscatemplate-nodetemplates" title="Permalink to this headline">¶</a></h2>
@@ -98,7 +108,20 @@ various methods to facilitate the extraction of relevant data from the template.
 <div class="section" id="nodetemplate-get-property-value-name">
 <h3>NodeTemplate.<strong>get_property_value(</strong><em>name</em><strong>)</strong><a class="headerlink" href="#nodetemplate-get-property-value-name" title="Permalink to this headline">¶</a></h3>
 <blockquote>
-<div>Return the value of the named property. The <em>name</em> argument is a string.</div></blockquote>
+<div><p>Return the value of the named property. The <em>name</em> argument is a string.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>This may return a <cite>&lt;toscaparser.GetInput&gt;</cite> object
+which can be resolved using GetInput.result()</p>
+<dl class="last docutils">
+<dt>Usage:</dt>
+<dd><div class="first last highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">NodeTemplate</span><span class="o">.</span><span class="n">get_property_value</span><span class="p">(</span><span class="o">&lt;</span><span class="n">name</span><span class="o">&gt;</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</div>
+</div></blockquote>
 </div>
 <div class="section" id="nodetemplate-name">
 <h3>NodeTemplate.<strong>name</strong><a class="headerlink" href="#nodetemplate-name" title="Permalink to this headline">¶</a></h3>
@@ -164,7 +187,8 @@ various methods to facilitate the extraction of relevant data from the template.
 <p>Return a TopologyTemplate object.</p>
 <div class="section" id="topologytemplate-custom-defs">
 <h3>TopologyTemplate.<strong>custom_defs</strong><a class="headerlink" href="#topologytemplate-custom-defs" title="Permalink to this headline">¶</a></h3>
-<p>Return the raw representation of all associated custom TOSCA definitions as <code class="docutils literal notranslate"><span class="pre">dict</span></code></p>
+<blockquote>
+<div>Return the raw representation of all associated custom TOSCA definitions as <code class="docutils literal notranslate"><span class="pre">dict</span></code></div></blockquote>
 </div>
 </div>
 <div class="section" id="toscatemplate-tpl">
@@ -182,7 +206,7 @@ various methods to facilitate the extraction of relevant data from the template.
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
 <li><a class="reference internal" href="#">Working with OpenStack’s TOSCA-Parser</a></li>
-<li><a class="reference internal" href="#toscatemplate-objects">ToscaTemplate Objects</a><ul>
+<li><a class="reference internal" href="#passing-a-toscatemplate-object">Passing a ToscaTemplate Object</a><ul>
 <li><a class="reference internal" href="#toscatemplate-nodetemplates">ToscaTemplate.<strong>nodetemplates</strong></a><ul>
 <li><a class="reference internal" href="#nodetemplate-entity-tpl">NodeTemplate.<strong>entity_tpl</strong></a></li>
 <li><a class="reference internal" href="#nodetemplate-get-properties">NodeTemplate.<strong>get_properties()</strong></a></li>
@@ -258,7 +282,7 @@ various methods to facilitate the extraction of relevant data from the template.
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
     </div>
   </body>
 </html>

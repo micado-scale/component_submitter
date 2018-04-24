@@ -51,9 +51,10 @@
 
 
 <span class="n">JSON_FILE</span> <span class="o">=</span> <span class="s2">&quot;system/ids.json&quot;</span>
+<span class="n">LEVEL</span> <span class="o">=</span> <span class="s2">&quot;INFO&quot;</span>
 <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;submitter.log&quot;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> - </span><span class="si">%(name)s</span><span class="s2"> - </span><span class="si">%(levelname)s</span><span class="s2"> - </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;submitter.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
-
+<span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">LEVEL</span><span class="p">)</span>
 <div class="viewcode-block" id="SubmitterEngine"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine">[docs]</a><span class="k">class</span> <span class="nc">SubmitterEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; SubmitterEngine class that is the main one that is used to treat with the application. &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -67,10 +68,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">executed_adaptors</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parsed_params</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">e</span> <span class="o">=</span> <span class="kc">None</span>
+
         <span class="k">try</span><span class="p">:</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">JSON_FILE</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_data</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;instantiation of dictionary id_dict with </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">JSON_FILE</span><span class="p">))</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">id_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">json_data</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;file </span><span class="si">{}</span><span class="s2"> doesn&#39;t exist so isntantiation of empty directory of id_dict&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">JSON_FILE</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">id_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 
         <span class="k">try</span><span class="p">:</span>
@@ -89,7 +93,7 @@
         <span class="c1">#self._translate()</span>
         <span class="c1">#self._execute()</span>
 
-<div class="viewcode-block" id="SubmitterEngine.undeploy"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+<div class="viewcode-block" id="SubmitterEngine.undeploy"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_app</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        undeploy method will remove the application from the infrastructure.</span>
 <span class="sd">        :params: id</span>
@@ -100,18 +104,21 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;proceding to the undeployment of the application&quot;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">executed_adaptors</span><span class="p">):</span>
-                <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_dict</span><span class="p">[</span><span class="nb">id</span><span class="p">]:</span>
+                <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_dict</span><span class="p">[</span><span class="n">id_app</span><span class="p">]:</span>
                     <span class="k">if</span> <span class="n">adaptor</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_undeploy</span><span class="p">(</span><span class="n">adaptor</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span><span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;no </span><span class="si">{}</span><span class="s2"> found in list of id&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">id</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;no </span><span class="si">{}</span><span class="s2"> found in list of id&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">))</span>
             <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">id_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">id_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_update_json</span><span class="p">()</span></div>
 
 
     <span class="k">def</span> <span class="nf">_engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Engine itself &quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot; Engine itself. Creates first a id, then parse the input file. Instantiate the</span>
+<span class="sd">        mapper. Retreive the list of id created by the translate methods of the adaptors.</span>
+<span class="sd">        Excute those id in their respective adaptor. Update the id_dict and the json file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="n">id_app</span><span class="o">=</span><span class="n">generator</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
 
@@ -125,16 +132,15 @@
 
 
         <span class="k">except</span> <span class="n">MultiError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;I&#39;m here!&quot;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_inform_user</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="c1">#    self._inform_user(e, e.levelname)</span>
             <span class="k">raise</span>
         <span class="k">except</span> <span class="n">AdaptorCritical</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_inform_user</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="c1">#    self._inform_user(e, e.levelname)</span>
             <span class="k">raise</span>
         <span class="k">except</span> <span class="n">AdaptorCritical</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">executed_adaptors</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_undeploy</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_inform_user</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="c1">#    self._inform_user(e, e.levelname)</span>
             <span class="k">raise</span>
 
     <span class="k">def</span> <span class="nf">_micado_parser_upload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -193,15 +199,16 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;undeploying component&quot;</span><span class="p">)</span>
         <span class="n">Step</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span><span class="o">.</span><span class="n">undeploy</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_inform_user</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Give the User the infromation on what happened &quot;&quot;&quot;</span>
-        <span class="c1"># TODO: store the message for after run is stopped.</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;message should be delivered if requested through API&quot;</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;should exist&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;message should be delivered if requested through API&quot;</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;should exit&quot;</span><span class="p">)</span>
+    <span class="c1">#def _inform_user(self, message, level):</span>
+    <span class="c1">#    &quot;&quot;&quot; Give the User the infromation on what happened &quot;&quot;&quot;</span>
+    <span class="c1">#    if &quot;CRITICAL&quot; in level:</span>
+    <span class="c1">#        logger.critical(message)</span>
+    <span class="c1">#    elif &quot;INFO&quot; in level:</span>
+    <span class="c1">#        logger.info(message)</span>
+    <span class="c1">#    elif &quot;DEBUG&quot; in level:</span>
+    <span class="c1">#        logger.debug(message)</span>
+    <span class="c1">#    elif &quot;ERROR&quot; in level:</span>
+    <span class="c1">#        logger.error(message)</span>
 
     <span class="k">def</span> <span class="nf">_update_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
@@ -247,7 +254,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
     </div>
   </body>
 </html>

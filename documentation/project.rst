@@ -60,7 +60,8 @@ Tosca-parser object
 -------------------
 
 .. toctree::
+    :maxdepth: 1
 
     toscaparser
 
-See the Docker Adaptor. For any help contact: g.gesmier@westminster.ac.uk
+Also see the Docker Adaptor for examples. For any help contact: g.gesmier@westminster.ac.uk
