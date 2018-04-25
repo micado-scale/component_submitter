@@ -9,6 +9,7 @@ import logging
 import generator
 import subprocess
 import os
+import json
 
 import ruamel.yaml as yaml
 
@@ -104,7 +105,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
         return id_stack
 
-    def execute(self, id_stack):
+    def execute(self, id_stack, outputs):
         """ Deploy the stack onto the Swarm
 
         Executes the `docker stack deploy` command on the Docker-Compose file
@@ -122,7 +123,8 @@ class DockerAdaptor(abco.ContainerAdaptor):
         except subprocess.CalledProcessError:
             logger.error("Cannot execute Docker")
             raise AdaptorCritical("Cannot execute Docker")
-        logger.info("Docker running...")
+        logger.info("Docker running, trying to get outputs...")
+        self._get_outputs(outputs, id_stack)
 
     def undeploy(self, id_stack):
         """ Undeploy the stack from Docker and cleanup
@@ -152,9 +154,36 @@ class DockerAdaptor(abco.ContainerAdaptor):
         except OSError as e:
             logger.warning(e)
 
+    def _get_outputs(self, outputs, id_stack):
+        """ Get outputs and their resultant attributes """
+        def get_attribute(service, query):
+            """ Get attribute from a service """
+            try:
+                inspect = subprocess.check_output(
+                                    ["docker", "service", "inspect", service] )
+                [inspect] = json.loads(inspect.decode('UTF-8'))
+            except (subprocess.CalledProcessError, TypeError):
+                logger.warning("Cannot inspect the service {}".format(service))
+            else:
+                if query == "ip_address":
+                    result = inspect.get("Endpoint").get("VirtualIPs")
+                elif query == "port":
+                    result = inspect.get("Endpoint").get("Ports")
+
+                logger.info("[OUTPUT] Service: <{}> Attr: <{}>\n  RESULT: {}"
+                            .format(service, query, result))
+
+        for output in outputs:
+            node = output.value.get_referenced_node_template()
+            if node.type == DOCKER_CONTAINER:
+                service = "{}_{}".format(id_stack, node.name)
+                logger.debug("Inspect service: {}".format(service))
+                query = output.value.attribute_name
+                #get_attribute(service, query)
+
+
     def _get_properties(self, node, key):
         """ Get TOSCA properties """
-
         properties = node.get_properties()
         entry = {node.name: {}}
 

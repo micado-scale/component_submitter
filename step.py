@@ -22,9 +22,9 @@ class Step():
             raise
 
 
-    def execute(self, id_element):
+    def execute(self, id_element, outputs):
         try:
-            self.object.execute(id_element)
+            self.object.execute(id_element, outputs)
 
         except AttributeError as e:
             logger.error("{}".format(e))

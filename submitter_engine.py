@@ -104,7 +104,7 @@ class SubmitterEngine(object):
             key_lists = self._mapper_instantiation(template)
             id_list=self._translate(template)
             logger.debug("list of ids is: {}".format(id_list))
-            executed_adaptors = self._execute(id_list)
+            executed_adaptors = self._execute(id_list, template.outputs)
             self.id_dict.update({id_app: id_list})
             self._update_json()
             logger.info("dictionnaty of id is: {}".format(self.id_dict))
@@ -162,7 +162,7 @@ class SubmitterEngine(object):
                 break
         return ids
         #    adaptor.translate(self.template)
-    def _execute(self, ids):
+    def _execute(self, ids, outputs):
         """ method called by the engine to launch the adaptors execute methods """
         logger.info("launch of the execute methods in each adaptors in a serial way")
         executed_adaptors = []
@@ -171,7 +171,7 @@ class SubmitterEngine(object):
                 if adaptor.__class__.__name__ in i:
 
                     logger.debug("\t execute adaptor: {}".format(adaptor))
-                    Step(adaptor).execute(i.split("_",1)[1])
+                    Step(adaptor).execute(i.split("_",1)[1], outputs)
         return executed_adaptors.append(adaptor)
 
 
