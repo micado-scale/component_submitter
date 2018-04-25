@@ -164,14 +164,14 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 [inspect] = json.loads(inspect.decode('UTF-8'))
             except (subprocess.CalledProcessError, TypeError):
                 logger.warning("Cannot inspect the service {}".format(service))
+            else:
+                if query == "ip_address":
+                    result = inspect.get("Endpoint").get("VirtualIPs")
+                elif query == "port":
+                    result = inspect.get("Endpoint").get("Ports")
 
-            if query == "ip_address":
-                result = inspect.get("Endpoint").get("VirtualIPs")
-            elif query == "port":
-                result = inspect.get("Endpoint").get("Ports")
-
-            logger.info("[OUTPUT] Service: <{}> Attr: <{}>\n  RESULT: {}"
-                        .format(service, query, result))
+                logger.info("[OUTPUT] Service: <{}> Attr: <{}>\n  RESULT: {}"
+                            .format(service, query, result))
 
         for output in outputs:
             node = output.value.get_referenced_node_template()
@@ -179,7 +179,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 service = "{}_{}".format(id_stack, node.name)
                 logger.debug("Inspect service: {}".format(service))
                 query = output.value.attribute_name
-                get_attribute(service, query)
+                #get_attribute(service, query)
 
 
     def _get_properties(self, node, key):
