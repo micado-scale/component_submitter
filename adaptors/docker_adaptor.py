@@ -18,10 +18,13 @@ from abstracts.exceptions import AdaptorCritical
 
 logger = logging.getLogger("adaptors."+__name__)
 
-DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_NETWORK, DOCKER_VOLUME) = \
+DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_NETWORK, DOCKER_VOLUME, DOCKER_IMAGE,
+                 CONNECT_PROP, ATTACH_PROP) = \
                 ("tosca.nodes.MiCADO.Container.Application.Docker",
-                "tosca.nodes.MiCADO.network.Network.Docker",
-                "tosca.nodes.MiCADO.Volume.Docker")
+                 "tosca.nodes.MiCADO.network.Network.Docker",
+                 "tosca.nodes.MiCADO.Volume.Docker",
+                 "tosca.artifacts.Deployment.Image.Container.Docker",
+                 "network","location")
 
 class DockerAdaptor(abco.ContainerAdaptor):
 
@@ -46,10 +49,10 @@ class DockerAdaptor(abco.ContainerAdaptor):
     """
 
     def __init__(self):
-        logger.debug("initialize the Docker Adaptor")
+        logger.debug("Initialise the Docker adaptor")
         super().__init__()
         self.compose_data = {}
-        logger.info("Adaptor ready to be used")
+        logger.info("DockerAdaptor ready to go!")
 
     def translate(self, parsed):
         """ Translate the parsed subset to the Compose format
@@ -77,7 +80,6 @@ class DockerAdaptor(abco.ContainerAdaptor):
                           default_flow_style=False, Dumper=NoAliasRTDumper)
 
         logger.info("Starting translation...")
-
         self.compose_data = {"version":"3.4"}
 
         for tpl in parsed.nodetemplates:
@@ -97,8 +99,9 @@ class DockerAdaptor(abco.ContainerAdaptor):
             elif DOCKER_VOLUME in tpl.type:
                 self._get_properties(tpl, "volumes")
 
-        id_stack=generator.id_generator()
+        id_stack = generator.id_generator()
         _dump_compose(self.compose_data, "output_configs/{}.yaml".format(id_stack))
+
         return id_stack
 
     def execute(self, id_stack):
@@ -113,8 +116,9 @@ class DockerAdaptor(abco.ContainerAdaptor):
         logger.info("Starting Docker execution...")
         try:
             #subprocess.run(["docker", "stack", "deploy", "--compose-file",
-            #                "output_configs/{}.yaml".format(id_stack), id_stack], check=True)
-            logger.info("subprocess.run([\"docker\", \"stack\", \"deploy\", \"--compose-file\", \"docker-compose.yaml\", id_stack], check=True)")
+            # "output_configs/{}.yaml".format(id_stack), id_stack], check=True)
+            logger.info("subprocess.run([\"docker\", \"stack\", \"deploy\", "
+             "\"--compose-file\", \"docker-compose.yaml\", id_stack], check=True)")
         except subprocess.CalledProcessError:
             logger.error("Cannot execute Docker")
             raise AdaptorCritical("Cannot execute Docker")
@@ -135,14 +139,14 @@ class DockerAdaptor(abco.ContainerAdaptor):
         logger.info("Undeploying the application")
         try:
             #subprocess.run(["docker", "stack", "down", id_stack], check=True)
-            logger.debug("undeploy application with id: {}".format(id_stack))
+            logger.debug("Undeploy application with ID: {}".format(id_stack))
         except subprocess.CalledProcessError:
             logger.error("Cannot undeploy the stack")
             raise AdaptorCritical("Cannot undeploy the stack")
         logger.info("Stack is down...")
 
     def cleanup(self, id_stack):
-        logger.info("clean up config for id {}".format(id_stack))
+        logger.info("Cleanup config for ID {}".format(id_stack))
         try:
             os.remove("output_configs/{}.yaml".format(id_stack))
         except OSError as e:
@@ -157,29 +161,32 @@ class DockerAdaptor(abco.ContainerAdaptor):
         for property in properties:
             try:
                 entry[node.name][property] = node.get_property_value(property).result()
-            except AttributeError as a:
-                logger.debug("Error caught {}, trying without .result()".format(a))
+            except AttributeError as e:
+                logger.debug("Error caught {}, trying without .result()".format(e))
                 entry[node.name][property] = node.get_property_value(property)
+
         # Write the compose data
         self._create_compose_properties(key, entry)
 
     def _get_artifacts(self, tpl, repositories):
         """ Get TOSCA artifacts """
+        artifacts = tpl.entity_tpl.get("artifacts").values()
+        for artifact in artifacts:
+            if DOCKER_IMAGE in artifact.get("type"):
+                break
+        else:
+            raise AdaptorCritical("No artifact of type <{}>".format(DOCKER_IMAGE))
 
-        image = tpl.entity_tpl.get("artifacts").get("image")
-        # Get the repository, include in image name if not Docker Hub
-        repository = image.get("repository")
+        repository = artifact.get("repository")
         if repository and "docker_hub" not in repository:
             for repo in repositories:
                 if repository == repo.name:
                     repository = repo.reposit
                     break
-            else:
-                raise AdaptorCritical("No repository: {}".format(repository))
         else:
             repository = ""
 
-        image = image["file"]
+        image = artifact["file"]
         image = "{}{}".format(repository, image)
 
         # Write the compose data
@@ -187,27 +194,23 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
     def _get_requirements(self, tpl):
         """ Get TOSCA requirements """
-
         for requirement in tpl.requirements:
             req_vals = list(requirement.values())[0]
             related_node = req_vals["node"]
 
-            # Fulfill the HostedOn relationship
-            #DISABLE until fully implemented
-            #if "HostedOn" in str(req_vals):
-            #    self._create_compose_constraint(tpl.name, related_node)
-
-            # Fulfill the ConnectsTo and AttachesTo relationships
-            if "ConnectsTo" in str(req_vals):
-                connector = req_vals["relationship"]["properties"]["network"]
+            #disable HostedOn until fully implemented
+            if "HostedOn" in str(req_vals):
+                #self._create_compose_constraint(tpl.name, related_node)
+                pass
+            elif "ConnectsTo" in str(req_vals):
+                connector = req_vals["relationship"]["properties"][CONNECT_PROP]
                 self._create_compose_connection(tpl.name, related_node, connector)
             elif "AttachesTo" in str(req_vals):
-                connector = req_vals["relationship"]["properties"]["location"]
+                connector = req_vals["relationship"]["properties"][ATTACH_PROP]
                 self._create_compose_volume(tpl.name, related_node, connector)
 
     def _create_compose_image(self, node, image):
         """ Create an image entry in the compose data """
-
         # Add the image entry under the service key
         node = self.compose_data.setdefault("services", {}).setdefault(node, {})
         if "image" not in node:
@@ -215,13 +218,11 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
     def _create_compose_properties(self, key, entry):
         """ Create an image entry in the compose data """
-
         # Add properties under the service key
         self.compose_data.setdefault(key, {}).update(entry)
 
     def _create_compose_volume(self, node, volume, location):
         """ Create a volume entry in the compose data """
-
         # Add the entry under the volumes key
         volume_key = self.compose_data.setdefault("volumes", {})
         if volume not in volume_key:
@@ -235,7 +236,6 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
     def _create_compose_connection(self, node, target, network):
         """ Create a network entry in the compose data """
-
         # Add the entry under the networks key
         network_key = self.compose_data.setdefault("networks", {})
         if network not in network_key:
@@ -253,7 +253,6 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
     def _create_compose_constraint(self, node, host):
         """ Create a constraint entry in the compose data """
-
         # Add the constraint under services key
         node = self.compose_data["services"][node].setdefault("deploy",{}) \
                                                   .setdefault("placement",{}) \

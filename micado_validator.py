@@ -1,3 +1,10 @@
+"""
+component_submitter.micado_validator
+----------------------------------
+
+A compatibility validator for ToscaTemplate objects.
+"""
+
 import logging
 
 from toscaparser.tosca_template import ToscaTemplate
@@ -11,11 +18,10 @@ class MultiError(ValidationError):
     """Errors occured during validation..."""
     def __init__(self, msg, error_set):
         super().__init__()
-        self.msg = "Validation Error!\n--{}--".format(msg)
+        self.msg = "\n--{}--".format(msg)
         for error in error_set:
             self.msg += "\n  {}".format(error)
         self.msg += "\n----{}".format("-"*len(msg))
-        print (self.msg)
 
     def __str__(self):
         """Overload __str__ to return msg when printing/logging"""
@@ -42,43 +48,44 @@ class Validator():
         <micado_validator.Validator object>
 
             Errors during validation:
-            
+
         >>> Validator(<toscaparser.tosca_template.ToscaTemplate>)
-        ----Error List----
+        ----Validation Errors!----
         (...list of errors...)
 
     """
 
-    def __init__(self, tpl=None):
+    def __init__(self, tpl):
+
         if not isinstance(tpl, ToscaTemplate):
             logger.error("Got a non-ToscaTemplate object!")
             raise TypeError("Not a ToscaTemplate object")
 
         self.custom_types = tuple(tpl.topology_template.custom_defs.keys())
-
         errors = set()
+
         for node in tpl.nodetemplates:
             errors.update(self._validate_repositories(node, tpl.repositories))
             if self._is_custom(node):
                 errors.update(self._validate_requirements(node))
                 errors.update(self._validate_relationships(node))
         if errors:
-            logger.debug("Incompatible TOSCA")
-            raise MultiError("Error List", sorted(errors))
+            logger.error("Incompatible ToscaTemplate!")
+            raise MultiError("Validation Errors!", sorted(errors))
         else:
-            logger.debug("Compatible TOSCA")
+            logger.info("ToscaTemplate object passed compatibility validation.")
 
     def _validate_repositories(self, node, repositories):
         """ Validate repository names """
 
-        repo_names = [repo.name for repo in repositories]
-        if not repo_names:
+        repository_names = [repository.name for repository in repositories]
+        if not repository_names:
             return {"[*TPL] No repositories found!"}
 
         repositories = self._key_search("repository", node.entity_tpl)
         return {
             "[NODE: {}] Repository <{}> not defined!".format(node.name, repo)
-            for repo in repositories if repo not in repo_names
+            for repo in repositories if repo not in repository_names
             }
 
     def _validate_requirements(self, node):
@@ -122,7 +129,10 @@ class Validator():
 
         for node_req in node_reqs:
             relationships = self._key_search(["relationship","type"], node_req)
-            supported_relationships = [self._key_search(["relationship","type"], type_req) for type_req in type_reqs]
+            supported_relationships = \
+                        [self._key_search(["relationship","type"], type_req)
+                         for type_req in type_reqs]
+
             errors.update({
                     "[NODE: {}] Relationship <{}> not supported!"
                     .format(node.name, relationship)
@@ -136,11 +146,13 @@ class Validator():
         """ Validate relationships"""
 
         def has_property(requirements, property, type):
+            """ Check if a requirement has the correct properties and type """
             for requirement_dict in requirements:
                 for requirement in requirement_dict.values():
                     relation = requirement.get("relationship")
                     if isinstance(relation, dict) and type in relation.get("type"):
-                        if property in str(requirement_dict): return True
+                        if property in str(requirement_dict):
+                            return True
             return False
 
         for target_node, relation in node.related.items():
@@ -154,13 +166,13 @@ class Validator():
         return set()
 
     def _is_custom(self,node):
-        """ Determines if node is of a custom type """
+        """ Determine if node is of a custom type """
         return True if node.type in self.custom_types else False
 
     def _key_search(self, query, node):
-        """ Search through the node for a key """
+        """ Search through the raw data of a node for a value given a key """
         def flatten_pairs(nest):
-            """ Crawl through nests """
+            """ Recursively crawl through a nested dictionary """
             for key, val in nest.items():
                 if isinstance(val, dict):
                     yield from flatten_pairs(val)
