@@ -15,7 +15,7 @@ class DummySeAdaptor(abco.SecurityEnforcerAdaptor):
         logger.info("Starting Setranslation")
         return generator.id_generator()
 
-    def execute(self, id_adaptor):
+    def execute(self, id_adaptor, outputs=None):
 
         logger.info("Starting Seexecution {}".format(id_adaptor))
 
@@ -25,4 +25,4 @@ class DummySeAdaptor(abco.SecurityEnforcerAdaptor):
 
     def cleanup(self, id_adaptor):
 
-        logger.info("cleaning up for Security Enforcer id {}".format(id_adaptor))  
+        logger.info("cleaning up for Security Enforcer id {}".format(id_adaptor))
