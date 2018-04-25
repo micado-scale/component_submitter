@@ -37,7 +37,14 @@
           <div class="body" role="main">
             
   <h1>Source code for component_submitter.micado_validator</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">component_submitter.micado_validator</span>
+<span class="sd">------------------------------------</span>
+
+<span class="sd">A compatibility validator for ToscaTemplate objects.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">logging</span>
 
 <span class="kn">from</span> <span class="nn">toscaparser.tosca_template</span> <span class="k">import</span> <span class="n">ToscaTemplate</span>
 
@@ -50,11 +57,10 @@
     <span class="sd">&quot;&quot;&quot;Errors occured during validation...&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">,</span> <span class="n">error_set</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Validation Error!</span><span class="se">\n</span><span class="s2">--</span><span class="si">{}</span><span class="s2">--&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--</span><span class="si">{}</span><span class="s2">--&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">error_set</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">----</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">msg</span><span class="p">))</span>
-        <span class="nb">print</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">msg</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Overload __str__ to return msg when printing/logging&quot;&quot;&quot;</span>
@@ -81,43 +87,44 @@
 <span class="sd">        &lt;micado_validator.Validator object&gt;</span>
 
 <span class="sd">            Errors during validation:</span>
-<span class="sd">            </span>
+
 <span class="sd">        &gt;&gt;&gt; Validator(&lt;toscaparser.tosca_template.ToscaTemplate&gt;)</span>
-<span class="sd">        ----Error List----</span>
+<span class="sd">        ----Validation Errors!----</span>
 <span class="sd">        (...list of errors...)</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tpl</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tpl</span><span class="p">):</span>
+
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tpl</span><span class="p">,</span> <span class="n">ToscaTemplate</span><span class="p">):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Got a non-ToscaTemplate object!&quot;</span><span class="p">)</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Not a ToscaTemplate object&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">custom_types</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">tpl</span><span class="o">.</span><span class="n">topology_template</span><span class="o">.</span><span class="n">custom_defs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-
         <span class="n">errors</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
         <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">:</span>
             <span class="n">errors</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_validate_repositories</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">tpl</span><span class="o">.</span><span class="n">repositories</span><span class="p">))</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_custom</span><span class="p">(</span><span class="n">node</span><span class="p">):</span>
                 <span class="n">errors</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_validate_requirements</span><span class="p">(</span><span class="n">node</span><span class="p">))</span>
                 <span class="n">errors</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_validate_relationships</span><span class="p">(</span><span class="n">node</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">errors</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Incompatible TOSCA&quot;</span><span class="p">)</span>
-            <span class="k">raise</span> <span class="n">MultiError</span><span class="p">(</span><span class="s2">&quot;Error List&quot;</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">errors</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Incompatible ToscaTemplate!&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">MultiError</span><span class="p">(</span><span class="s2">&quot;Validation Errors!&quot;</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">errors</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Compatible TOSCA&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ToscaTemplate object passed compatibility validation.&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_validate_repositories</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">repositories</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Validate repository names &quot;&quot;&quot;</span>
 
-        <span class="n">repo_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">repo</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">repo</span> <span class="ow">in</span> <span class="n">repositories</span><span class="p">]</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">repo_names</span><span class="p">:</span>
+        <span class="n">repository_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">repository</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">repository</span> <span class="ow">in</span> <span class="n">repositories</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">repository_names</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;[*TPL] No repositories found!&quot;</span><span class="p">}</span>
 
         <span class="n">repositories</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key_search</span><span class="p">(</span><span class="s2">&quot;repository&quot;</span><span class="p">,</span> <span class="n">node</span><span class="o">.</span><span class="n">entity_tpl</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">{</span>
             <span class="s2">&quot;[NODE: </span><span class="si">{}</span><span class="s2">] Repository &lt;</span><span class="si">{}</span><span class="s2">&gt; not defined!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">repo</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">repo</span> <span class="ow">in</span> <span class="n">repositories</span> <span class="k">if</span> <span class="n">repo</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">repo_names</span>
+            <span class="k">for</span> <span class="n">repo</span> <span class="ow">in</span> <span class="n">repositories</span> <span class="k">if</span> <span class="n">repo</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">repository_names</span>
             <span class="p">}</span>
 
     <span class="k">def</span> <span class="nf">_validate_requirements</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
@@ -161,7 +168,10 @@
 
         <span class="k">for</span> <span class="n">node_req</span> <span class="ow">in</span> <span class="n">node_reqs</span><span class="p">:</span>
             <span class="n">relationships</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key_search</span><span class="p">([</span><span class="s2">&quot;relationship&quot;</span><span class="p">,</span><span class="s2">&quot;type&quot;</span><span class="p">],</span> <span class="n">node_req</span><span class="p">)</span>
-            <span class="n">supported_relationships</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_key_search</span><span class="p">([</span><span class="s2">&quot;relationship&quot;</span><span class="p">,</span><span class="s2">&quot;type&quot;</span><span class="p">],</span> <span class="n">type_req</span><span class="p">)</span> <span class="k">for</span> <span class="n">type_req</span> <span class="ow">in</span> <span class="n">type_reqs</span><span class="p">]</span>
+            <span class="n">supported_relationships</span> <span class="o">=</span> \
+                        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_key_search</span><span class="p">([</span><span class="s2">&quot;relationship&quot;</span><span class="p">,</span><span class="s2">&quot;type&quot;</span><span class="p">],</span> <span class="n">type_req</span><span class="p">)</span>
+                         <span class="k">for</span> <span class="n">type_req</span> <span class="ow">in</span> <span class="n">type_reqs</span><span class="p">]</span>
+
             <span class="n">errors</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
                     <span class="s2">&quot;[NODE: </span><span class="si">{}</span><span class="s2">] Relationship &lt;</span><span class="si">{}</span><span class="s2">&gt; not supported!&quot;</span>
                     <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">relationship</span><span class="p">)</span>
@@ -175,11 +185,13 @@
         <span class="sd">&quot;&quot;&quot; Validate relationships&quot;&quot;&quot;</span>
 
         <span class="k">def</span> <span class="nf">has_property</span><span class="p">(</span><span class="n">requirements</span><span class="p">,</span> <span class="nb">property</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot; Check if a requirement has the correct properties and type &quot;&quot;&quot;</span>
             <span class="k">for</span> <span class="n">requirement_dict</span> <span class="ow">in</span> <span class="n">requirements</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">requirement</span> <span class="ow">in</span> <span class="n">requirement_dict</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
                     <span class="n">relation</span> <span class="o">=</span> <span class="n">requirement</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;relationship&quot;</span><span class="p">)</span>
                     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">relation</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">type</span> <span class="ow">in</span> <span class="n">relation</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">):</span>
-                        <span class="k">if</span> <span class="nb">property</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">requirement_dict</span><span class="p">):</span> <span class="k">return</span> <span class="kc">True</span>
+                        <span class="k">if</span> <span class="nb">property</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">requirement_dict</span><span class="p">):</span>
+                            <span class="k">return</span> <span class="kc">True</span>
             <span class="k">return</span> <span class="kc">False</span>
 
         <span class="k">for</span> <span class="n">target_node</span><span class="p">,</span> <span class="n">relation</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">related</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -193,13 +205,13 @@
         <span class="k">return</span> <span class="nb">set</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">_is_custom</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">node</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Determines if node is of a custom type &quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot; Determine if node is of a custom type &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">custom_types</span> <span class="k">else</span> <span class="kc">False</span>
 
     <span class="k">def</span> <span class="nf">_key_search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Search through the node for a key &quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot; Search through the raw data of a node for a value given a key &quot;&quot;&quot;</span>
         <span class="k">def</span> <span class="nf">flatten_pairs</span><span class="p">(</span><span class="n">nest</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot; Crawl through nests &quot;&quot;&quot;</span>
+            <span class="sd">&quot;&quot;&quot; Recursively crawl through a nested dictionary &quot;&quot;&quot;</span>
             <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">nest</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
                     <span class="k">yield from</span> <span class="n">flatten_pairs</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
@@ -249,7 +261,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>

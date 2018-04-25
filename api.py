@@ -5,7 +5,14 @@ import os
 app = Flask(__name__)
 import logging
 
-logger = logging.getLogger("submitter."+__name__)
+
+
+
+def __init__():
+    global logger, submitter
+    logger =  logging.getLogger("submitter."+__name__)
+    submitter = SubmitterEngine()
+
 
 class RequestError(Exception):
     status_code = 400
@@ -50,18 +57,26 @@ def engine():
     """ API functions to launch a application """
     logger.debug("serving request {}".format(request.method))
     path_to_file = request.form["input"]
-    e = SubmitterEngine(path_to_file=path_to_file)
-    if e is None:
-        return "<h1> correctly launched</h1>"
-    else:
-        return "<h1>{}</1>".format(e)
+    response = submitter.launch(path_to_file=path_to_file)
+    return "<h1>\nthe id of the launch application is: {} \n</h1>\n".format(response)
 
 @app.route('/undeploy/', methods=['POST'])
 def undeploy():
     """ API function to undeploy the application with a specific id """
     id_app = request.form["id_app"]
-    e.undeploy("id_app")
+    response = submitter.undeploy(id_app)
+    if response is None:
+        return "<h1>correctly undeployed</h1>\n"
+    else:
+        return "<h1>{}</h1>\n".format(response)
 
+@app.route('/list_app', methods=['GET'])
+def list_app():
+    response = []
+    for key, value in submitter.id_dict.items():
+        response.append(key)
+    return "<h1>here is the id list of applications \n {}\n</h1>\n".format(response)
 
 if __name__ == "__main__":
+    __init__()
     app.run(debug=True, port=5000)

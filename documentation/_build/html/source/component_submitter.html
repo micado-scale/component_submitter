@@ -114,8 +114,8 @@
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="component_submitter.api.render_static">
-<code class="descclassname">component_submitter.api.</code><code class="descname">render_static</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#render_static"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.render_static" title="Permalink to this definition">¶</a></dt>
+<dt id="component_submitter.api.list_app">
+<code class="descclassname">component_submitter.api.</code><code class="descname">list_app</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#list_app"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.list_app" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -227,6 +227,9 @@ object topology object.</p>
 </div>
 <div class="section" id="module-component_submitter.micado_validator">
 <span id="component-submitter-micado-validator-module"></span><h2>component_submitter.micado_validator module<a class="headerlink" href="#module-component_submitter.micado_validator" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="component-submitter-micado-validator">
+<h3>component_submitter.micado_validator<a class="headerlink" href="#component-submitter-micado-validator" title="Permalink to this headline">¶</a></h3>
+<p>A compatibility validator for ToscaTemplate objects.</p>
 <dl class="exception">
 <dt id="component_submitter.micado_validator.MultiError">
 <em class="property">exception </em><code class="descclassname">component_submitter.micado_validator.</code><code class="descname">MultiError</code><span class="sig-paren">(</span><em>msg</em>, <em>error_set</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#MultiError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.MultiError" title="Permalink to this definition">¶</a></dt>
@@ -243,7 +246,7 @@ object topology object.</p>
 
 <dl class="class">
 <dt id="component_submitter.micado_validator.Validator">
-<em class="property">class </em><code class="descclassname">component_submitter.micado_validator.</code><code class="descname">Validator</code><span class="sig-paren">(</span><em>tpl=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">component_submitter.micado_validator.</code><code class="descname">Validator</code><span class="sig-paren">(</span><em>tpl</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>The MiCADO Validator class</p>
 <p>Further validates a ToscaTemplate which has already passed validation steps
@@ -273,7 +276,7 @@ repositories and the requirements and relationships of custom defined types.</p>
 <blockquote>
 <div>Errors during validation:</div></blockquote>
 <div class="last highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Validator</span><span class="p">(</span><span class="o">&lt;</span><span class="n">toscaparser</span><span class="o">.</span><span class="n">tosca_template</span><span class="o">.</span><span class="n">ToscaTemplate</span><span class="o">&gt;</span><span class="p">)</span>
-<span class="go">----Error List----</span>
+<span class="go">----Validation Errors!----</span>
 <span class="go">(...list of errors...)</span>
 </pre></div>
 </div>
@@ -281,6 +284,7 @@ repositories and the requirements and relationships of custom defined types.</p>
 </dl>
 </dd></dl>
 
+</div>
 </div>
 <div class="section" id="module-component_submitter.plugins_gestion">
 <span id="component-submitter-plugins-gestion-module"></span><h2>component_submitter.plugins_gestion module<a class="headerlink" href="#module-component_submitter.plugins_gestion" title="Permalink to this headline">¶</a></h2>
@@ -305,6 +309,11 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
 <em class="property">class </em><code class="descclassname">component_submitter.step.</code><code class="descname">Step</code><span class="sig-paren">(</span><em>object</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="method">
+<dt id="component_submitter.step.Step.cleanup">
+<code class="descname">cleanup</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.cleanup" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="component_submitter.step.Step.execute">
 <code class="descname">execute</code><span class="sig-paren">(</span><em>id_element</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.execute" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -324,18 +333,37 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
 </div>
 <div class="section" id="module-component_submitter.submitter_engine">
 <span id="component-submitter-submitter-engine-module"></span><h2>component_submitter.submitter_engine module<a class="headerlink" href="#module-component_submitter.submitter_engine" title="Permalink to this headline">¶</a></h2>
+<dl class="data">
+<dt id="component_submitter.submitter_engine.JSON_FILE">
+<code class="descclassname">component_submitter.submitter_engine.</code><code class="descname">JSON_FILE</code><em class="property"> = 'system/ids.json'</em><a class="headerlink" href="#component_submitter.submitter_engine.JSON_FILE" title="Permalink to this definition">¶</a></dt>
+<dd><p>set up of Logging</p>
+</dd></dl>
+
 <dl class="class">
 <dt id="component_submitter.submitter_engine.SubmitterEngine">
-<em class="property">class </em><code class="descclassname">component_submitter.submitter_engine.</code><code class="descname">SubmitterEngine</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">component_submitter.submitter_engine.</code><code class="descname">SubmitterEngine</code><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>SubmitterEngine class that is the main one that is used to treat with the application.</p>
 <dl class="method">
+<dt id="component_submitter.submitter_engine.SubmitterEngine.launch">
+<code class="descname">launch</code><span class="sig-paren">(</span><em>path_to_file</em>, <em>parsed_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.launch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.launch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Launch method, that will call the in-method egine to execute the application
+:params: path_to_file, parsed_params
+:types: string, dictionary</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">For the time being we only have one “workflow engine” but we could extend this
+launch method to accept another parameter to be able to choose which engine to
+launch</p>
+</div>
+</dd></dl>
+
+<dl class="method">
 <dt id="component_submitter.submitter_engine.SubmitterEngine.undeploy">
 <code class="descname">undeploy</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.undeploy" title="Permalink to this definition">¶</a></dt>
-<dd><p>undeploy method will remove the application from the infrastructure.
+<dd><p>Undeploy method will remove the application from the infrastructure.
 :params: id
 :type: string</p>
-<p>this method needs to be implemented</p>
 </dd></dl>
 
 </dd></dl>
@@ -402,7 +430,10 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
 <li><a class="reference internal" href="#module-component_submitter.key_lists">component_submitter.key_lists module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.mapper">component_submitter.mapper module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.micado_parser">component_submitter.micado_parser module</a></li>
-<li><a class="reference internal" href="#module-component_submitter.micado_validator">component_submitter.micado_validator module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.micado_validator">component_submitter.micado_validator module</a><ul>
+<li><a class="reference internal" href="#component-submitter-micado-validator">component_submitter.micado_validator</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#module-component_submitter.plugins_gestion">component_submitter.plugins_gestion module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.step">component_submitter.step module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.submitter_engine">component_submitter.submitter_engine module</a></li>
@@ -462,7 +493,7 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>

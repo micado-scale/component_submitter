@@ -58,7 +58,15 @@ an application described by a TOSCA templates on the MiCADO infrastructure.</p>
 </pre></div>
 </td></tr></table></div>
 <p>To launch an application with no default value for the inputs use the curl command line:</p>
-<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -d <span class="s2">&quot;input=[Path to TOSCA Template]&quot;</span> -d <span class="s2">&quot;params={Input1: value a, Input2: value b}&quot;</span>
+<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -d <span class="s2">&quot;input=[Path to TOSCA Template]&quot;</span> -d <span class="s2">&quot;params={Input1: value a, Input2: value b}&quot;</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/engine/
+</pre></div>
+</td></tr></table></div>
+<p>To undeploy a wanted application you need to feed it the id:</p>
+<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -d <span class="s2">&quot;id_app=[ID]&quot;</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/undeploy/
+</pre></div>
+</td></tr></table></div>
+<p>To get the ids of the application deploy:</p>
+<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -X GET http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/list_app/
 </pre></div>
 </td></tr></table></div>
 </div>
@@ -70,14 +78,22 @@ package:</p>
 </pre></div>
 </td></tr></table></div>
 <p>Once you imported this you can create a submitter engine object like so:</p>
-<div class="highlight-python notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">SubmitterEngine</span><span class="p">(</span><span class="n">path_to_file</span><span class="o">=</span><span class="p">[</span><span class="n">path</span> <span class="n">to</span> <span class="n">TOSCA</span> <span class="n">Template</span><span class="p">])</span>
+<div class="highlight-python notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">SubmitterEngine</span><span class="p">()</span>
 </pre></div>
 </td></tr></table></div>
-<p>This will launch your application on the MiCADO infrastructure.</p>
+<p>This will initialize all the component needed.</p>
+<p>To launch your application on the MiCADO infrastructure you will need to execute this command:</p>
+<div class="highlight-python notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="n">s</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span><span class="o">=</span><span class="p">[</span><span class="n">path</span> <span class="n">to</span> <span class="n">TOSCA</span> <span class="n">Template</span><span class="p">])</span>
+</pre></div>
+</td></tr></table></div>
 <p>If you don’t want to use the default value of the inputs section you can pass <em>parsed_params</em>
 which will be a dictionary containing as key the input you want to modify and as value for the key
 the actual value you want to use as input.</p>
-<div class="highlight-python notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="n">s</span> <span class="o">=</span> <span class="n">SubmitterEngine</span><span class="p">(</span><span class="n">path_to_file</span><span class="o">=</span><span class="p">[</span><span class="n">path</span> <span class="n">to</span> <span class="n">TOSCA</span> <span class="n">Template</span><span class="p">],</span> <span class="n">parsed_params</span><span class="o">=</span><span class="p">{</span><span class="n">Input1</span><span class="p">:</span> <span class="n">value</span> <span class="n">a</span><span class="p">,</span> <span class="n">Input2</span><span class="p">:</span> <span class="n">value</span> <span class="n">b</span><span class="p">})</span>
+<div class="highlight-python notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="n">s</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span><span class="o">=</span><span class="p">[</span><span class="n">path</span> <span class="n">to</span> <span class="n">TOSCA</span> <span class="n">Template</span><span class="p">],</span> <span class="n">parsed_params</span><span class="o">=</span><span class="p">{</span><span class="n">Input1</span><span class="p">:</span> <span class="n">value</span> <span class="n">a</span><span class="p">,</span> <span class="n">Input2</span><span class="p">:</span> <span class="n">value</span> <span class="n">b</span><span class="p">})</span>
+</pre></div>
+</td></tr></table></div>
+<p>If you wish to undeploy a certain application, you will need to execute this command.</p>
+<div class="highlight-python notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span><span class="n">s</span><span class="o">.</span><span class="n">undeploy</span><span class="p">([</span><span class="n">ID</span> <span class="n">of</span> <span class="n">app</span> <span class="n">wanted</span><span class="p">])</span>
 </pre></div>
 </td></tr></table></div>
 </div>
@@ -147,7 +163,7 @@ the actual value you want to use as input.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>

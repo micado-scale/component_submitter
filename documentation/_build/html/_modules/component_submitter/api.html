@@ -41,10 +41,17 @@
 <span class="kn">from</span> <span class="nn">submitter_engine</span> <span class="k">import</span> <span class="n">SubmitterEngine</span>
 <span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorCritical</span>
 <span class="kn">import</span> <span class="nn">os</span>
-<span class="n">template_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="s1">&#39;./documentation/_build/html&#39;</span><span class="p">)</span>
-<span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">,</span><span class="n">static_url_path</span><span class="o">=</span><span class="n">template_folder</span><span class="p">)</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;submitter.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+
+
+<span class="k">def</span> <span class="nf">__init__</span><span class="p">():</span>
+    <span class="k">global</span> <span class="n">logger</span><span class="p">,</span> <span class="n">submitter</span>
+    <span class="n">logger</span> <span class="o">=</span>  <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;submitter.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="n">submitter</span> <span class="o">=</span> <span class="n">SubmitterEngine</span><span class="p">()</span>
+
 
 <div class="viewcode-block" id="RequestError"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.RequestError">[docs]</a><span class="k">class</span> <span class="nc">RequestError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="n">status_code</span> <span class="o">=</span> <span class="mi">400</span>
@@ -88,28 +95,29 @@
 <span class="k">def</span> <span class="nf">engine</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot; API functions to launch a application &quot;&quot;&quot;</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;serving request </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="p">))</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;jfwksndjsknlnsknjkwdnfjk&quot;</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;jfwksndjsknlnsknjkwdnfjk&quot;</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;wdnfjkdnsjkdnjknskdn&quot;</span><span class="p">)</span>
     <span class="n">path_to_file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;the path_to_file is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">))</span>
-    <span class="n">e</span> <span class="o">=</span> <span class="n">SubmitterEngine</span><span class="p">(</span><span class="n">path_to_file</span><span class="o">=</span><span class="n">path_to_file</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">e</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">&quot;&lt;h1&gt; correctly launched&lt;/h1&gt;&quot;</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="s2">&quot;&lt;h1&gt;</span><span class="si">{}</span><span class="s2">&lt;/1&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span><span class="o">=</span><span class="n">path_to_file</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;&lt;h1&gt;</span><span class="se">\n</span><span class="s2">the id of the launch application is: </span><span class="si">{}</span><span class="s2"> </span><span class="se">\n</span><span class="s2">&lt;/h1&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="undeploy"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.undeploy">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/undeploy/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
 <span class="k">def</span> <span class="nf">undeploy</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot; API function to undeploy the application with a specific id &quot;&quot;&quot;</span>
     <span class="n">id_app</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s2">&quot;id_app&quot;</span><span class="p">]</span>
-    <span class="n">e</span><span class="o">.</span><span class="n">undeploy</span><span class="p">(</span><span class="s2">&quot;id_app&quot;</span><span class="p">)</span></div>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">undeploy</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;h1&gt;correctly undeployed&lt;/h1&gt;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;h1&gt;</span><span class="si">{}</span><span class="s2">&lt;/h1&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="render_static"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.render_static">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">render_static</span><span class="p">():</span>
-    <span class="k">return</span> <span class="n">app</span><span class="o">.</span><span class="n">send_static_file</span><span class="p">(</span><span class="s1">&#39;index.html&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="list_app"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.list_app">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/list_app&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">list_app</span><span class="p">():</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">submitter</span><span class="o">.</span><span class="n">id_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;&lt;h1&gt;here is the id list of applications </span><span class="se">\n</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&lt;/h1&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="fm">__init__</span><span class="p">()</span>
     <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">5000</span><span class="p">)</span>
 </pre></div>
 
@@ -149,7 +157,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>
