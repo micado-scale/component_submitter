@@ -1,6 +1,6 @@
 """
 component_submitter.micado_validator
-----------------------------------
+------------------------------------
 
 A compatibility validator for ToscaTemplate objects.
 """

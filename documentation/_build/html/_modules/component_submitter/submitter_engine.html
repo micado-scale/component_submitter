@@ -49,15 +49,28 @@
 <span class="kn">from</span> <span class="nn">key_lists</span> <span class="k">import</span> <span class="n">KeyLists</span>
 <span class="kn">import</span> <span class="nn">json</span>
 
-
 <span class="n">JSON_FILE</span> <span class="o">=</span> <span class="s2">&quot;system/ids.json&quot;</span>
-<span class="n">LEVEL</span> <span class="o">=</span> <span class="s2">&quot;INFO&quot;</span>
+
+<span class="sd">&quot;&quot;&quot; set up of Logging &quot;&quot;&quot;</span>
+<span class="n">LEVEL</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span>
 <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;submitter.log&quot;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> - </span><span class="si">%(name)s</span><span class="s2"> - </span><span class="si">%(levelname)s</span><span class="s2"> - </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;submitter.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
+
 <span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">LEVEL</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot;define the Handler which write message to sys.stderr&quot;&quot;&quot;</span>
+<span class="n">console</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">()</span>
+<span class="n">console</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">LEVEL</span><span class="p">)</span>
+<span class="sd">&quot;&quot;&quot; set format which is simpler for console use&quot;&quot;&quot;</span>
+<span class="n">formatter</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%(name)-12s</span><span class="s1">: </span><span class="si">%(levelname)-8s</span><span class="s1"> </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">)</span>
+
+<span class="n">console</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span><span class="n">formatter</span><span class="p">)</span>
+
+<span class="sd">&quot;&quot;&quot; add the handler to the root logger&quot;&quot;&quot;</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">console</span><span class="p">)</span>
+
 <div class="viewcode-block" id="SubmitterEngine"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine">[docs]</a><span class="k">class</span> <span class="nc">SubmitterEngine</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; SubmitterEngine class that is the main one that is used to treat with the application. &quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        instantiate the SubmitterEngine class. Creating empty list for the whole class</span>
 <span class="sd">        adaptor and executed adaptor. launching the execute method.</span>
@@ -65,9 +78,6 @@
         <span class="nb">super</span><span class="p">(</span><span class="n">SubmitterEngine</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;init of submitter engine class&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">adaptors</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">executed_adaptors</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parsed_params</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">e</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">try</span><span class="p">:</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">JSON_FILE</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">json_data</span><span class="p">:</span>
@@ -77,44 +87,51 @@
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;file </span><span class="si">{}</span><span class="s2"> doesn&#39;t exist so isntantiation of empty directory of id_dict&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">JSON_FILE</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">id_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 
-        <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;path_to_file&quot;</span><span class="p">]</span>
-        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">path_to_file</span><span class="se">\&quot;</span><span class="s2"> arg not found.&quot;</span><span class="p">)</span>
-            <span class="k">raise</span>
-        <span class="k">try</span><span class="p">:</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">parsed_params</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;parsed_params&quot;</span><span class="p">]</span>
-        <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-          <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;KeyError, no </span><span class="si">{}</span><span class="s2"> key detected, will be set to None&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_adaptors</span><span class="p">()</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adaptors</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_engine</span><span class="p">()</span>
-        <span class="c1">#self._translate()</span>
-        <span class="c1">#self._execute()</span>
+
+
+
+<div class="viewcode-block" id="SubmitterEngine.launch"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.launch">[docs]</a>    <span class="k">def</span> <span class="nf">launch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Launch method, that will call the in-method egine to execute the application</span>
+<span class="sd">        :params: path_to_file, parsed_params</span>
+<span class="sd">        :types: string, dictionary</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">            For the time being we only have one &quot;workflow engine&quot; but we could extend this</span>
+<span class="sd">            launch method to accept another parameter to be able to choose which engine to</span>
+<span class="sd">            launch</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Launching the application located there </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">))</span>
+
+        <span class="n">id_app</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_engine</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">id_app</span></div>
 
 <div class="viewcode-block" id="SubmitterEngine.undeploy"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_app</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        undeploy method will remove the application from the infrastructure.</span>
+<span class="sd">        Undeploy method will remove the application from the infrastructure.</span>
 <span class="sd">        :params: id</span>
 <span class="sd">        :type: string</span>
-
-<span class="sd">        this method needs to be implemented</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;proceding to the undeployment of the application&quot;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">executed_adaptors</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adaptors</span><span class="p">):</span>
                 <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_dict</span><span class="p">[</span><span class="n">id_app</span><span class="p">]:</span>
                     <span class="k">if</span> <span class="n">adaptor</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_undeploy</span><span class="p">(</span><span class="n">adaptor</span><span class="p">,</span> <span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span><span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">except</span> <span class="ne">KeyError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;no </span><span class="si">{}</span><span class="s2"> found in list of id&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">))</span>
             <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cleanup</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">id_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_update_json</span><span class="p">()</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_engine</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+
+    <span class="k">def</span> <span class="nf">_engine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Engine itself. Creates first a id, then parse the input file. Instantiate the</span>
 <span class="sd">        mapper. Retreive the list of id created by the translate methods of the adaptors.</span>
 <span class="sd">        Excute those id in their respective adaptor. Update the id_dict and the json file.</span>
@@ -122,39 +139,41 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">id_app</span><span class="o">=</span><span class="n">generator</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">_micado_parser_upload</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_mapper_instantiation</span><span class="p">()</span>
-            <span class="n">id_list</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_translate</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">id_list</span><span class="p">)</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_micado_parser_upload</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">)</span>
+            <span class="n">key_lists</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapper_instantiation</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+            <span class="n">id_list</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_translate</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;list of ids is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_list</span><span class="p">))</span>
+            <span class="n">executed_adaptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">id_list</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">id_dict</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">id_app</span><span class="p">:</span> <span class="n">id_list</span><span class="p">})</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_update_json</span><span class="p">()</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;dictionnaty of id is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">id_dict</span><span class="p">))</span>
 
 
         <span class="k">except</span> <span class="n">MultiError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="c1">#    self._inform_user(e, e.levelname)</span>
             <span class="k">raise</span>
         <span class="k">except</span> <span class="n">AdaptorCritical</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="c1">#    self._inform_user(e, e.levelname)</span>
             <span class="k">raise</span>
         <span class="k">except</span> <span class="n">AdaptorCritical</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">executed_adaptors</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_undeploy</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span>
-        <span class="c1">#    self._inform_user(e, e.levelname)</span>
+            <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">executed_adaptors</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_undeploy</span><span class="p">(</span><span class="n">adaptor</span><span class="p">,</span> <span class="n">id_app</span><span class="p">)</span>
             <span class="k">raise</span>
+        <span class="k">return</span> <span class="n">id_app</span>
 
-    <span class="k">def</span> <span class="nf">_micado_parser_upload</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_micado_parser_upload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Parse the file and retrieve the object &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;instantiation of submitter and retrieve template&quot;</span><span class="p">)</span>
         <span class="n">parser</span> <span class="o">=</span> <span class="n">MiCADOParser</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">set_template</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parsed_params</span><span class="p">)</span>
+        <span class="n">template</span><span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">set_template</span><span class="p">(</span><span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="n">parsed_params</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Valid &amp; Compatible TOSCA template&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">template</span>
 
-    <span class="k">def</span> <span class="nf">_mapper_instantiation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">_mapper_instantiation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Retrieve the keylist from mapper &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;instantiation of mapper and retrieve keylists&quot;</span><span class="p">)</span>
-        <span class="n">mapper</span> <span class="o">=</span> <span class="n">Mapper</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">keylists</span> <span class="o">=</span> <span class="n">mapper</span><span class="o">.</span><span class="n">keylists</span>
+        <span class="n">mapper</span> <span class="o">=</span> <span class="n">Mapper</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+        <span class="n">keylists</span> <span class="o">=</span> <span class="n">mapper</span><span class="o">.</span><span class="n">keylists</span>
+        <span class="k">return</span> <span class="n">keylists</span>
 
     <span class="k">def</span> <span class="nf">_instantiate_adaptors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Instantiate the differrent adaptors &quot;&quot;&quot;</span>
@@ -167,7 +186,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">adaptors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;list of adaptors instantiated: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adaptors</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">_translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Launch the translate engine &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;launch of translate method&quot;</span><span class="p">)</span>
         <span class="n">ids</span><span class="o">=</span><span class="p">[]</span>
@@ -176,7 +195,7 @@
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;translating method call from </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="p">))</span>
             <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
                 <span class="k">try</span><span class="p">:</span>
-                    <span class="n">ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span><span class="n">Step</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="p">)))</span>
+                    <span class="n">ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span><span class="n">Step</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">template</span><span class="p">)))</span>
                 <span class="k">except</span> <span class="n">AdaptorError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                     <span class="k">continue</span>
                 <span class="k">break</span>
@@ -185,12 +204,14 @@
     <span class="k">def</span> <span class="nf">_execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; method called by the engine to launch the adaptors execute methods &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;launch of the execute methods in each adaptors in a serial way&quot;</span><span class="p">)</span>
+        <span class="n">executed_adaptors</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">adaptors</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">adaptor</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="n">i</span><span class="p">:</span>
+
                     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2"> execute adaptor: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="p">))</span>
                     <span class="n">Step</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">i</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span><span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">executed_adaptors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">executed_adaptors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span>
 
 
 
@@ -199,16 +220,13 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;undeploying component&quot;</span><span class="p">)</span>
         <span class="n">Step</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span><span class="o">.</span><span class="n">undeploy</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
 
-    <span class="c1">#def _inform_user(self, message, level):</span>
-    <span class="c1">#    &quot;&quot;&quot; Give the User the infromation on what happened &quot;&quot;&quot;</span>
-    <span class="c1">#    if &quot;CRITICAL&quot; in level:</span>
-    <span class="c1">#        logger.critical(message)</span>
-    <span class="c1">#    elif &quot;INFO&quot; in level:</span>
-    <span class="c1">#        logger.info(message)</span>
-    <span class="c1">#    elif &quot;DEBUG&quot; in level:</span>
-    <span class="c1">#        logger.debug(message)</span>
-    <span class="c1">#    elif &quot;ERROR&quot; in level:</span>
-    <span class="c1">#        logger.error(message)</span>
+    <span class="k">def</span> <span class="nf">_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;cleaning up the file after undeployment&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adaptors</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">id_dict</span><span class="p">[</span><span class="nb">id</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">adaptor</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+                    <span class="n">Step</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span><span class="o">.</span><span class="n">cleanup</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span><span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+
 
     <span class="k">def</span> <span class="nf">_update_json</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
@@ -254,7 +272,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>
