@@ -6,13 +6,11 @@ A TOSCA to Docker (Swarm) adaptor.
 """
 
 import logging
-import generator
 import subprocess
 import os
 import json
 
-import ruamel.yaml as yaml
-
+import utils
 from abstracts import container_orchestrator as abco
 from abstracts.exceptions import AdaptorError
 from abstracts.exceptions import AdaptorCritical
@@ -68,17 +66,6 @@ class DockerAdaptor(abco.ContainerAdaptor):
         :rtype: string
         :raises: AdaptorCritical
         """
-        def _dump_compose(compose_data, path):
-            """ Dump the dictionary to a Docker-Compose file """
-
-            class NoAliasRTDumper(yaml.RoundTripDumper):
-                """ Turn off aliases, preserve order """
-                def ignore_aliases(self, data):
-                    return True
-
-            with open(path, 'w') as file:
-                yaml.dump(compose_data, file,
-                          default_flow_style=False, Dumper=NoAliasRTDumper)
 
         logger.info("Starting translation...")
         self.compose_data = {"version":"3.4"}
@@ -100,8 +87,8 @@ class DockerAdaptor(abco.ContainerAdaptor):
             elif DOCKER_VOLUME in tpl.type:
                 self._get_properties(tpl, "volumes")
 
-        id_stack = generator.id_generator()
-        _dump_compose(self.compose_data, "output_configs/{}.yaml".format(id_stack))
+        id_stack = utils.id_generator()
+        utils.dump_order_yaml(self.compose_data, "files/output_configs/{}.yaml".format(id_stack))
 
         return id_stack
 
@@ -127,7 +114,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         self._get_outputs(outputs, id_stack)
 
     def undeploy(self, id_stack):
-        """ Undeploy the stack from Docker and cleanup
+        """ Undeploy the stack from Docker
 
         Runs `docker stack down` on the specified stack, removes the associated
         Docker-Compose file from output_configs/
@@ -135,8 +122,6 @@ class DockerAdaptor(abco.ContainerAdaptor):
         :param id_stack: The unique identifier of the stack to bring down
         :raises: AdaptorCritical
 
-        .. note::
-           A warning will be logged if the Compose file cannot be removed
         """
         logger.info("Undeploying the application")
         try:
@@ -148,9 +133,17 @@ class DockerAdaptor(abco.ContainerAdaptor):
         logger.info("Stack is down...")
 
     def cleanup(self, id_stack):
+        """ Cleanup is a method that removes the associated Docker-Compose file from
+        files/output_configs/
+
+        :params id_stack: The unique identifier of the Docker-Compose file
+
+        .. note::
+          A warning will be logged if the Compose file cannot be remove
+        """
         logger.info("Cleanup config for ID {}".format(id_stack))
         try:
-            os.remove("output_configs/{}.yaml".format(id_stack))
+            os.remove("files/output_configs/{}.yaml".format(id_stack))
         except OSError as e:
             logger.warning(e)
 

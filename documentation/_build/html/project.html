@@ -70,13 +70,14 @@ sub methods:</p>
 <div><ul class="simple">
 <li>translate()</li>
 <li>execute()</li>
-<li>unbuild()</li>
+<li>undeploy()</li>
+<li>cleanup()</li>
 </ul>
 </div></blockquote>
 <div class="section" id="translate">
 <h2>Translate<a class="headerlink" href="#translate" title="Permalink to this headline">¶</a></h2>
 <p>This method should create a configuration file for your external component,
-and store it in the output_configs directory located in the package where all the configuration file from the
+and store it in the files/output_configs directory located in the package where all the configuration file produced by the
 different other Adaptors are. This configuration file should be named after an ID that can be generated with the
 generator we provide, or another one you’d like. This method return this ID.</p>
 </div>
@@ -85,13 +86,26 @@ generator we provide, or another one you’d like. This method return this ID.</
 <p>This method should execute the wanted commands from the wanted Adaptor. It takes as
 parameter the ID link to the wanted component to be executed.</p>
 </div>
-<div class="section" id="unbuild">
-<h2>Unbuild<a class="headerlink" href="#unbuild" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="undeploy">
+<h2>Undeploy<a class="headerlink" href="#undeploy" title="Permalink to this headline">¶</a></h2>
 <p>This method takes as parameter the ID of the wanted component and unbuild it.</p>
 </div>
-<div class="section" id="generator">
-<h2>Generator<a class="headerlink" href="#generator" title="Permalink to this headline">¶</a></h2>
-<p>We do give access to a method that creates the random ID.</p>
+<div class="section" id="cleanup">
+<h2>Cleanup<a class="headerlink" href="#cleanup" title="Permalink to this headline">¶</a></h2>
+<p>This method takes the ID of the wanted component and remove all the files produced which was required for the execution of
+this application, which should be located under files/output_configs.</p>
+</div>
+<div class="section" id="utils">
+<h2>Utils<a class="headerlink" href="#utils" title="Permalink to this headline">¶</a></h2>
+<dl class="docutils">
+<dt>We do give access to utils method listed bellow:</dt>
+<dd><ul class="first last simple">
+<li>id_generator: that creates the random ID.</li>
+<li>dump_order_yaml: that dump in order into a yaml file</li>
+</ul>
+</dd>
+</dl>
+<p>for more information go to the utils method to see how to use those methods.</p>
 </div>
 <div class="section" id="tosca-parser-object">
 <h2>Tosca-parser object<a class="headerlink" href="#tosca-parser-object" title="Permalink to this headline">¶</a></h2>
@@ -117,8 +131,9 @@ parameter the ID link to the wanted component to be executed.</p>
 <li><a class="reference internal" href="#how-to-create-your-adaptor">How to create your Adaptor:</a><ul>
 <li><a class="reference internal" href="#translate">Translate</a></li>
 <li><a class="reference internal" href="#execute">Execute</a></li>
-<li><a class="reference internal" href="#unbuild">Unbuild</a></li>
-<li><a class="reference internal" href="#generator">Generator</a></li>
+<li><a class="reference internal" href="#undeploy">Undeploy</a></li>
+<li><a class="reference internal" href="#cleanup">Cleanup</a></li>
+<li><a class="reference internal" href="#utils">Utils</a></li>
 <li><a class="reference internal" href="#tosca-parser-object">Tosca-parser object</a></li>
 </ul>
 </li>
@@ -173,7 +188,7 @@ parameter the ID link to the wanted component to be executed.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>

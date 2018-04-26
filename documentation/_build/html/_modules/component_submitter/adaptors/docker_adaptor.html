@@ -45,13 +45,11 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">generator</span>
 <span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">json</span>
 
-<span class="kn">import</span> <span class="nn">ruamel.yaml</span> <span class="k">as</span> <span class="nn">yaml</span>
-
+<span class="kn">import</span> <span class="nn">utils</span>
 <span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">container_orchestrator</span> <span class="k">as</span> <span class="n">abco</span>
 <span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorError</span>
 <span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorCritical</span>
@@ -107,17 +105,6 @@
 <span class="sd">        :rtype: string</span>
 <span class="sd">        :raises: AdaptorCritical</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">def</span> <span class="nf">_dump_compose</span><span class="p">(</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot; Dump the dictionary to a Docker-Compose file &quot;&quot;&quot;</span>
-
-            <span class="k">class</span> <span class="nc">NoAliasRTDumper</span><span class="p">(</span><span class="n">yaml</span><span class="o">.</span><span class="n">RoundTripDumper</span><span class="p">):</span>
-                <span class="sd">&quot;&quot;&quot; Turn off aliases, preserve order &quot;&quot;&quot;</span>
-                <span class="k">def</span> <span class="nf">ignore_aliases</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
-                    <span class="k">return</span> <span class="kc">True</span>
-
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
-                <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span>
-                          <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">Dumper</span><span class="o">=</span><span class="n">NoAliasRTDumper</span><span class="p">)</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting translation...&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;version&quot;</span><span class="p">:</span><span class="s2">&quot;3.4&quot;</span><span class="p">}</span>
@@ -139,8 +126,8 @@
             <span class="k">elif</span> <span class="n">DOCKER_VOLUME</span> <span class="ow">in</span> <span class="n">tpl</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_get_properties</span><span class="p">(</span><span class="n">tpl</span><span class="p">,</span> <span class="s2">&quot;volumes&quot;</span><span class="p">)</span>
 
-        <span class="n">id_stack</span> <span class="o">=</span> <span class="n">generator</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
-        <span class="n">_dump_compose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="s2">&quot;output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">))</span>
+        <span class="n">id_stack</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
+        <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="s2">&quot;files/output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">id_stack</span></div>
 
@@ -166,7 +153,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_get_outputs</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">id_stack</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DockerAdaptor.undeploy"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_stack</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Undeploy the stack from Docker and cleanup</span>
+        <span class="sd">&quot;&quot;&quot; Undeploy the stack from Docker</span>
 
 <span class="sd">        Runs `docker stack down` on the specified stack, removes the associated</span>
 <span class="sd">        Docker-Compose file from output_configs/</span>
@@ -174,8 +161,6 @@
 <span class="sd">        :param id_stack: The unique identifier of the stack to bring down</span>
 <span class="sd">        :raises: AdaptorCritical</span>
 
-<span class="sd">        .. note::</span>
-<span class="sd">           A warning will be logged if the Compose file cannot be removed</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Undeploying the application&quot;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
@@ -187,9 +172,17 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Stack is down...&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DockerAdaptor.cleanup"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_stack</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Cleanup is a method that removes the associated Docker-Compose file from</span>
+<span class="sd">        files/output_configs/</span>
+
+<span class="sd">        :params id_stack: The unique identifier of the Docker-Compose file</span>
+
+<span class="sd">        .. note::</span>
+<span class="sd">          A warning will be logged if the Compose file cannot be remove</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Cleanup config for ID </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">))</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">))</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;files/output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_stack</span><span class="p">))</span>
         <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
 
@@ -197,7 +190,6 @@
         <span class="sd">&quot;&quot;&quot; Get outputs and their resultant attributes &quot;&quot;&quot;</span>
         <span class="k">def</span> <span class="nf">get_attribute</span><span class="p">(</span><span class="n">service</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
             <span class="sd">&quot;&quot;&quot; Get attribute from a service &quot;&quot;&quot;</span>
-            <span class="n">inspect</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">inspect</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span>
                                     <span class="p">[</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;service&quot;</span><span class="p">,</span> <span class="s2">&quot;inspect&quot;</span><span class="p">,</span> <span class="n">service</span><span class="p">]</span> <span class="p">)</span>
@@ -367,7 +359,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>

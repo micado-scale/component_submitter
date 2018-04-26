@@ -6,9 +6,11 @@ from step import Step
 from micado_validator import MultiError
 from abstracts.exceptions import AdaptorCritical, AdaptorError
 import logging
-import generator
+import utils
 from key_lists import KeyLists
 import json
+import ruamel.yaml as yaml
+import os
 
 JSON_FILE = "system/ids.json"
 
@@ -98,9 +100,10 @@ class SubmitterEngine(object):
         Excute those id in their respective adaptor. Update the id_dict and the json file.
         """
         try:
-            id_app=generator.id_generator()
+            id_app = utils.id_generator()
 
             template = self._micado_parser_upload(path, parsed_params)
+            self._save_file(id_app, path)
             key_lists = self._mapper_instantiation(template)
             id_list=self._translate(template)
             logger.debug("list of ids is: {}".format(id_list))
@@ -182,16 +185,34 @@ class SubmitterEngine(object):
         Step(adaptor).undeploy(id)
 
     def _cleanup(self, id):
+        """ method called by the engine to launch the celanup method of all the components for a specific application
+        identified by it's ID, and removing the template from files/templates"""
+
         logger.info("cleaning up the file after undeployment")
         for adaptor in reversed(self.adaptors):
             for item in self.id_dict[id]:
                 if adaptor.__class__.__name__ in item:
                     Step(adaptor).cleanup(item.split("_",1)[1])
+        try:
+            os.remove("files/templates/{}.yaml".format(id))
+        except OSError as e:
+            logger.warning(e)
 
 
     def _update_json(self):
+        """ method called by the engine to update the json file that will contain the dictionary of the IDs of the applications
+        and the list of the IDs of its components link to the ID of the app.
+
+        """
         try:
             with open(JSON_FILE, 'w') as outfile:
                 json.dump(self.id_dict, outfile)
         except Exception as e:
             logger.warning("{}".format(e))
+
+    def _save_file(self, id_app, path):
+        """ method called by the engine to dump the current template being treated to the files/templates directory, with as name
+        the ID of the app.
+        """
+        data = utils.get_yaml_data(path)
+        utils.dump_order_yaml(data, "files/templates/{}.yaml".format(id_app))

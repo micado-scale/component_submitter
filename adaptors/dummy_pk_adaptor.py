@@ -1,5 +1,5 @@
 import logging
-import generator
+import utils
 
 from abstracts import policykeeper as abco
 
@@ -14,7 +14,7 @@ class DummyPkAdaptor(abco.PolicyKeeperAdaptor):
     def translate(self, object):
 
         logger.info("Starting PKtranslation")
-        return generator.id_generator()
+        return utils.id_generator()
 
     def execute(self, id_adaptor, outputs=None):
 
