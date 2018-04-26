@@ -1,5 +1,5 @@
 import logging
-import generator
+import utils
 
 from abstracts import cloudorchestrator as abco
 
@@ -14,7 +14,7 @@ class DummyOccopusAdaptor(abco.CloudAdaptor):
     def translate(self, object):
 
         logger.info("Starting Occotranslation")
-        return generator.id_generator()
+        return utils.id_generator()
 
     def execute(self, id_adaptor, outputs=None):
 

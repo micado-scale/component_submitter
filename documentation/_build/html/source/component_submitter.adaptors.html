@@ -77,7 +77,22 @@ follows the OpenStack TOSCA language specification.</p>
 <dl class="method">
 <dt id="component_submitter.adaptors.docker_adaptor.DockerAdaptor.cleanup">
 <code class="descname">cleanup</code><span class="sig-paren">(</span><em>id_stack</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/docker_adaptor.html#DockerAdaptor.cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.docker_adaptor.DockerAdaptor.cleanup" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Cleanup is a method that removes the associated Docker-Compose file from
+files/output_configs/</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Params id_stack:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">The unique identifier of the Docker-Compose file</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">A warning will be logged if the Compose file cannot be remove</p>
+</div>
+</dd></dl>
 
 <dl class="method">
 <dt id="component_submitter.adaptors.docker_adaptor.DockerAdaptor.execute">
@@ -123,7 +138,7 @@ a .yaml file in output_configs/</p>
 <dl class="method">
 <dt id="component_submitter.adaptors.docker_adaptor.DockerAdaptor.undeploy">
 <code class="descname">undeploy</code><span class="sig-paren">(</span><em>id_stack</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/docker_adaptor.html#DockerAdaptor.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.docker_adaptor.DockerAdaptor.undeploy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Undeploy the stack from Docker and cleanup</p>
+<dd><p>Undeploy the stack from Docker</p>
 <p>Runs <cite>docker stack down</cite> on the specified stack, removes the associated
 Docker-Compose file from output_configs/</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -136,10 +151,6 @@ Docker-Compose file from output_configs/</p>
 </tr>
 </tbody>
 </table>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">A warning will be logged if the Compose file cannot be removed</p>
-</div>
 </dd></dl>
 
 </dd></dl>
@@ -305,7 +316,7 @@ Docker-Compose file from output_configs/</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>

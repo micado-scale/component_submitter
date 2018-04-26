@@ -28,15 +28,17 @@ sub methods:
 
  - translate()
  - execute()
- - unbuild()
+ - undeploy()
+ - cleanup()
 
 Translate
 ----------
 
 This method should create a configuration file for your external component,
-and store it in the output_configs directory located in the package where all the configuration file from the
+and store it in the files/output_configs directory located in the package where all the configuration file produced by the
 different other Adaptors are. This configuration file should be named after an ID that can be generated with the
 generator we provide, or another one you'd like. This method return this ID.
+
 
 Execute
 --------
@@ -44,16 +46,25 @@ Execute
 This method should execute the wanted commands from the wanted Adaptor. It takes as
 parameter the ID link to the wanted component to be executed.
 
-Unbuild
+Undeploy
 --------
 
 This method takes as parameter the ID of the wanted component and unbuild it.
 
+Cleanup
+-------
 
-Generator
+This method takes the ID of the wanted component and remove all the files produced which was required for the execution of
+this application, which should be located under files/output_configs.
+
+Utils
 ---------
 
-We do give access to a method that creates the random ID.
+We do give access to utils method listed bellow:
+  - id_generator: that creates the random ID.
+  - dump_order_yaml: that dump in order into a yaml file
+
+for more information go to the utils method to see how to use those methods.
 
 
 Tosca-parser object

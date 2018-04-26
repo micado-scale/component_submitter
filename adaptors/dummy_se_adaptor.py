@@ -1,5 +1,5 @@
 import logging
-import generator
+import utils
 from abstracts import securityenforcer as abco
 
 logger=logging.getLogger("adaptor."+__name__)
@@ -13,7 +13,7 @@ class DummySeAdaptor(abco.SecurityEnforcerAdaptor):
     def translate(self, object):
 
         logger.info("Starting Setranslation")
-        return generator.id_generator()
+        return utils.id_generator()
 
     def execute(self, id_adaptor, outputs=None):
 

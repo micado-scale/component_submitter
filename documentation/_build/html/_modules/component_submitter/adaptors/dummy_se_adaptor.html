@@ -38,7 +38,7 @@
             
   <h1>Source code for component_submitter.adaptors.dummy_se_adaptor</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">generator</span>
+<span class="kn">import</span> <span class="nn">utils</span>
 <span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">securityenforcer</span> <span class="k">as</span> <span class="n">abco</span>
 
 <span class="n">logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;adaptor.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
@@ -52,7 +52,7 @@
 <div class="viewcode-block" id="DummySeAdaptor.translate"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">):</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Setranslation&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">generator</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span></div>
+        <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="DummySeAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_adaptor</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
@@ -103,7 +103,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>

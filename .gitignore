@@ -103,7 +103,11 @@ ENV/
 .mypy_cache/
 
 # configurations
-output_configs/*.yaml
+files/output_configs/*.yaml
+files/output_configs/*.yml
+files/templates/*.yaml
+files/templates/*.yml
+
 
 # DS store
 .DS_Store
