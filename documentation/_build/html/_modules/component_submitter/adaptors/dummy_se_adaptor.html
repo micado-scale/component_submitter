@@ -45,26 +45,36 @@
 
 <div class="viewcode-block" id="DummySeAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor">[docs]</a><span class="k">class</span> <span class="nc">DummySeAdaptor</span><span class="p">(</span><span class="n">abco</span><span class="o">.</span><span class="n">SecurityEnforcerAdaptor</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">DummySeAdaptor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">adaptor_id</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">adaptor_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">adaptor_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="n">template</span>
+
+
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;SeAdaptor initialised&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DummySeAdaptor.translate"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="DummySeAdaptor.translate"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Setranslation&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Setranslation&quot;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DummySeAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_adaptor</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="DummySeAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Seexecution </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_adaptor</span><span class="p">))</span></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Seexecution </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="DummySeAdaptor.undeploy"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_adaptor</span><span class="p">):</span>
+<div class="viewcode-block" id="DummySeAdaptor.undeploy"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Undeploy the Security in Security Enforcer with id </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_adaptor</span><span class="p">))</span></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Undeploy the Security in Security Enforcer with id </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="DummySeAdaptor.cleanup"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_adaptor</span><span class="p">):</span>
+<div class="viewcode-block" id="DummySeAdaptor.cleanup"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;cleaning up for Security Enforcer id </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_adaptor</span><span class="p">))</span></div></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;cleaning up for Security Enforcer id </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="DummySeAdaptor.update"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;updating the component config </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span></div></div>
 </pre></div>
 
           </div>

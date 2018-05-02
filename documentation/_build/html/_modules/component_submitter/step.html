@@ -44,15 +44,15 @@
 
 <div class="viewcode-block" id="Step"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.step.Step">[docs]</a><span class="k">class</span> <span class="nc">Step</span><span class="p">():</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">):</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;intitialisation of Step, and execution of object&#39;s execute method &quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;intitialisation of Step, and execution of object&#39;s method &quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">object</span> <span class="o">=</span> <span class="nb">object</span>
         <span class="c1">#super(Step, self).__init__()</span>
     <span class="c1">#def init_object(self):</span>
     <span class="c1">#    try:</span>
     <span class="c1">#        self.object()</span>
-<div class="viewcode-block" id="Step.translate"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.step.Step.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+<div class="viewcode-block" id="Step.translate"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.step.Step.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
         <span class="k">except</span> <span class="n">AdaptorCritical</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span><span class="s2">&quot;critical error catched </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
             <span class="k">raise</span>
@@ -61,9 +61,9 @@
             <span class="k">raise</span></div>
 
 
-<div class="viewcode-block" id="Step.execute"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.step.Step.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_element</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
+<div class="viewcode-block" id="Step.execute"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.step.Step.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">id_element</span><span class="p">,</span> <span class="n">outputs</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
 
         <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
@@ -73,15 +73,15 @@
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;nothing to be deployed&quot;</span><span class="p">)</span>
             <span class="k">raise</span></div>
 
-<div class="viewcode-block" id="Step.undeploy"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.step.Step.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+<div class="viewcode-block" id="Step.undeploy"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.step.Step.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">undeploy</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">undeploy</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Step.cleanup"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.step.Step.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
+<div class="viewcode-block" id="Step.cleanup"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.step.Step.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">cleanup</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div></div>
 </pre></div>
