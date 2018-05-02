@@ -1,0 +1,134 @@
+tosca_definitions_version: tosca_simple_yaml_1_0
+
+imports:
+  - test_custom_types.yaml
+
+repositories:
+  docker_hub: https://hub.docker.com/
+
+topology_template:
+  inputs:
+    stress_img:
+      type: string
+      description: Docker image for stress
+      default: lorel/docker-stress-ng
+    mount_point:
+      type: string
+      description: Mount point for attached volume
+      default: /tmp
+    exposed_ports:
+      type: list
+      description: Ports to expose
+      default: ["6379:6379"]
+
+  node_templates:
+    NODE_A:
+       type: tosca.nodes.MiCADO.Container.Application.Docker
+       artifacts:
+         image:
+           type: tosca.artifacts.Deployment.Image.Container.Docker
+           file: { get_input: stress_img }
+           repository: bad_repo_name
+    NODE_B:
+      type: tosca.nodes.Broken.Requirements
+      requirements:
+       - service:
+          node: NODE_F
+          relationship:
+           type: tosca.relationships.MiCADO.ConnectsTo
+           properties:
+             network: stressnet
+       - volume:
+           node: busydata
+           relationship:
+             type: tosca.relationships.AttachesTo
+             properties:
+               location: /tmp
+       - host:
+           node: MICADO-worker
+           relationship: tosca.relationships.HostedOn
+
+    NODE_C:
+      type: tosca.nodes.MiCADO.Container.Application.Docker
+      requirements:
+       - service:
+          node: NODE_E
+          relationship:
+           type: tosca.relationships.MiCADO.ConnectsTo
+           properties:
+             network: stressnet
+         volume:
+           node: busydata
+           relationship:
+             type: tosca.relationships.AttachesTo
+             properties:
+               location: /tmp
+       - host:
+           node: MICADO-worker
+           relationship: tosca.relationships.HostedOn
+    NODE_D:
+      type: tosca.nodes.MiCADO.Container.Application.Docker
+      requirements:
+       - service:
+          node: NODE_C
+          relationship:
+           type: tosca.relationships.MiCADO.ConnectsTo
+           properties:
+             network: stressnet
+       - bad_req_name:
+           node: busydata
+           relationship:
+             type: tosca.relationships.AttachesTo
+             properties:
+               location: /tmp
+       - host:
+           node: MICADO-worker
+           relationship: tosca.relationships.HostedOn
+
+    NODE_E:
+      type: tosca.nodes.MiCADO.Container.Application.Docker
+      requirements:
+       - service:
+          node: NODE_A
+          relationship:
+           type: tosca.relationships.MiCADO.ConnectsTo
+           properties:
+             network: stressnet
+       - volume:
+           node: busydata
+           relationship:
+             type: bad_rel_name
+             properties:
+               location: /tmp
+       - host:
+           node: MICADO-worker
+           relationship: tosca.relationships.HostedOn
+
+    NODE_F:
+      type: tosca.nodes.MiCADO.Container.Application.Docker
+      requirements:
+       - service:
+          node: NODE_B
+          relationship:
+           type: tosca.relationships.MiCADO.ConnectsTo
+           properties:
+             network: stressnet
+       - volume:
+           node: busydata
+           relationship:
+             type: tosca.relationships.AttachesTo
+             properties:
+               bad_prop_name: /tmp
+       - host:
+           node: MICADO-worker
+           relationship: tosca.relationships.HostedOn
+
+    MICADO-worker:
+       type: tosca.nodes.MiCADO.Occopus.CloudSigma.Compute
+       properties:
+          cloud:
+            interface_cloud: cloudsigma
+            endpoint_cloud: https://zrh.cloudsigma.com/api/2.0
+
+    busydata:
+      type: tosca.nodes.MiCADO.Volume.Docker

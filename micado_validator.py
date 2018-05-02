@@ -36,32 +36,34 @@ class Validator():
     set out by the OpenStack ToscaParser. Currently validation checks exist for
     repositories and the requirements and relationships of custom defined types.
 
-    :param tpl: The ToscaTemplate to validate
-    :type tpl: ToscaTemplate <toscaparser.tosca_template.ToscaTemplate>
-    :raises: TypeError, MultiError
-
-    Usage:
-        >>> from micado_validator import Validator
-
-            Successful validation:
-
-        >>> Validator(<toscaparser.tosca_template.ToscaTemplate>)
-        <micado_validator.Validator object>
-
-            Errors during validation:
-
-        >>> Validator(<toscaparser.tosca_template.ToscaTemplate>)
-        ----Validation Errors!----
-        (...list of errors...)
-
     """
 
-    def __init__(self):
-
-        """ Potentially useless init """
-
     def validation(self, tpl):
-        """ The validation process """
+        """ The validation process
+
+        Runs validation steps on the given TOSCA Template, and builds an error
+        list. Raises a MultiError on failed validation. On success, says so.
+
+        :param tpl: The ToscaTemplate to validate
+        :type tpl: ToscaTemplate <toscaparser.tosca_template.ToscaTemplate>
+        :raises: TypeError, MultiError
+
+        Usage:
+            >>> from micado_validator import Validator
+
+                Successful validation:
+
+            >>> Validator().validation(<toscaparser.tosca_template.ToscaTemplate>)
+            'ToscaTemplate passed compatibility validation'
+
+                Errors during validation:
+
+            >>> Validator(<toscaparser.tosca_template.ToscaTemplate>)
+            micado_validator.MultiError:
+            ----
+            (...list of errors...)
+
+        """
         if not isinstance(tpl, ToscaTemplate):
             logger.error("Got a non-ToscaTemplate object!")
             raise TypeError("Not a ToscaTemplate object")
@@ -85,7 +87,12 @@ class Validator():
 
 
     def validate_repositories(self, node, repositories):
-        """ Validate repository names """
+        """ Validate repository names
+
+        Checks to see if repositories have been defined at the top level, and if
+        nodes reference those repositories correctly. Returns errors if not.
+
+        """
         repository_names = [repository.name for repository in repositories]
         if not repository_names:
             return {"[*TPL] No repositories found!"}
@@ -97,7 +104,13 @@ class Validator():
             }
 
     def validate_requirements(self, node):
-        """ Validate requirements"""
+        """ Validate requirements and their syntax
+
+        Checks that requirements in custom_types and in node definitions are
+        defined as one-item lists and that node definition requirements correctly
+        reference requirements defined in custom_types. Returns errors if not.
+
+        """
         type_reqs = node.type_definition.requirements
         node_reqs = node.requirements
 
@@ -118,7 +131,13 @@ class Validator():
             }
 
     def validate_relationships(self, node):
-        """ Validate relationships"""
+        """ Validate relationships
+
+        Checks that relationships used in node definitions correctly reference
+        relationships defined in TOSCA normative or custom types. Returns errors
+        if not.
+
+        """
         type_reqs = node.type_definition.requirements
         node_reqs = node.requirements
         errors = set()
@@ -139,7 +158,12 @@ class Validator():
         return errors
 
     def validate_relationship_properties(self, node):
-        """ Validate relationship properties """
+        """ Validate relationship properties
+
+        Checks that relationships defined properties required by their definition
+        in TOSCA normative or custom types. Returns errors if not.
+
+        """
         errors = set()
         for req, prop, relation in self._get_required_properties(node):
             if not self._has_property(req, prop, relation):
