@@ -130,13 +130,8 @@
 <dd></dd></dl>
 
 </div>
-<div class="section" id="module-component_submitter.generator">
-<span id="component-submitter-generator-module"></span><h2>component_submitter.generator module<a class="headerlink" href="#module-component_submitter.generator" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="component_submitter.generator.id_generator">
-<code class="descclassname">component_submitter.generator.</code><code class="descname">id_generator</code><span class="sig-paren">(</span><em>size=8</em>, <em>chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/generator.html#id_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.generator.id_generator" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
+<div class="section" id="component-submitter-generator-module">
+<h2>component_submitter.generator module<a class="headerlink" href="#component-submitter-generator-module" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-component_submitter.key_lists">
 <span id="component-submitter-key-lists-module"></span><h2>component_submitter.key_lists module<a class="headerlink" href="#module-component_submitter.key_lists" title="Permalink to this headline">¶</a></h2>
@@ -310,22 +305,22 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="method">
 <dt id="component_submitter.step.Step.cleanup">
-<code class="descname">cleanup</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.cleanup" title="Permalink to this definition">¶</a></dt>
+<code class="descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.cleanup" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="component_submitter.step.Step.execute">
-<code class="descname">execute</code><span class="sig-paren">(</span><em>id_element</em>, <em>outputs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.execute" title="Permalink to this definition">¶</a></dt>
+<code class="descname">execute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.execute" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="component_submitter.step.Step.translate">
-<code class="descname">translate</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.translate" title="Permalink to this definition">¶</a></dt>
+<code class="descname">translate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.translate" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="component_submitter.step.Step.undeploy">
-<code class="descname">undeploy</code><span class="sig-paren">(</span><em>id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.undeploy" title="Permalink to this definition">¶</a></dt>
+<code class="descname">undeploy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.undeploy" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -348,6 +343,7 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
 <dt id="component_submitter.submitter_engine.SubmitterEngine.launch">
 <code class="descname">launch</code><span class="sig-paren">(</span><em>path_to_file</em>, <em>parsed_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.launch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.launch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Launch method, that will call the in-method egine to execute the application
+Creating empty list for the whole class adaptor and executed adaptor
 :params: path_to_file, parsed_params
 :types: string, dictionary</p>
 <div class="admonition note">
@@ -366,6 +362,38 @@ launch</p>
 :type: string</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="component_submitter.submitter_engine.SubmitterEngine.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>id_app</em>, <em>path_to_file</em>, <em>parsed_params</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update method that will be updating the application we want to update.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Params id:</th><td class="field-body">id of the application we want to update</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Params type:</th><td class="field-body">string</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Params path_to_file:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">path to the template file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Params type:</th><td class="field-body">string</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Params parse_params:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">dictionary containing the value we want to use as the value of the input section</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Params type:</th><td class="field-body">dictionary</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="data">
+<dt id="component_submitter.submitter_engine.logger">
+<code class="descclassname">component_submitter.submitter_engine.</code><code class="descname">logger</code><em class="property"> = &lt;Logger submitter.component_submitter.submitter_engine (INFO)&gt;</em><a class="headerlink" href="#component_submitter.submitter_engine.logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>define the Handler which write message to sys.stderr</p>
 </dd></dl>
 
 </div>
@@ -426,7 +454,7 @@ launch</p>
 <li><a class="reference internal" href="#subpackages">Subpackages</a></li>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#module-component_submitter.api">component_submitter.api module</a></li>
-<li><a class="reference internal" href="#module-component_submitter.generator">component_submitter.generator module</a></li>
+<li><a class="reference internal" href="#component-submitter-generator-module">component_submitter.generator module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.key_lists">component_submitter.key_lists module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.mapper">component_submitter.mapper module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.micado_parser">component_submitter.micado_parser module</a></li>

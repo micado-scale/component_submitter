@@ -46,26 +46,34 @@
 
 <div class="viewcode-block" id="DummyPkAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_pk_adaptor.DummyPkAdaptor">[docs]</a><span class="k">class</span> <span class="nc">DummyPkAdaptor</span><span class="p">(</span><span class="n">abco</span><span class="o">.</span><span class="n">PolicyKeeperAdaptor</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">DummyPkAdaptor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">adaptor_id</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">adaptor_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">adaptor_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">templates</span> <span class="o">=</span> <span class="n">template</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;PKAdaptor initialised&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DummyPkAdaptor.translate"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_pk_adaptor.DummyPkAdaptor.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="DummyPkAdaptor.translate"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_pk_adaptor.DummyPkAdaptor.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting PKtranslation&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">utils</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting PKtranslation&quot;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DummyPkAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_pk_adaptor.DummyPkAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_adaptor</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="DummyPkAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_pk_adaptor.DummyPkAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting PKexecution&quot;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="DummyPkAdaptor.undeploy"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_pk_adaptor.DummyPkAdaptor.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_adaptor</span><span class="p">):</span>
+<div class="viewcode-block" id="DummyPkAdaptor.undeploy"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_pk_adaptor.DummyPkAdaptor.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Undeploy/remove the policy in pk service with id </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_adaptor</span><span class="p">))</span></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Undeploy/remove the policy in pk service with id </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="DummyPkAdaptor.cleanup"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_pk_adaptor.DummyPkAdaptor.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_adaptor</span><span class="p">):</span>
+<div class="viewcode-block" id="DummyPkAdaptor.cleanup"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_pk_adaptor.DummyPkAdaptor.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;cleaning up pk id </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_adaptor</span><span class="p">))</span></div></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;cleaning up pk id </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="DummyPkAdaptor.update"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.dummy_pk_adaptor.DummyPkAdaptor.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;updating the component config </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span></div></div>
 </pre></div>
 
           </div>

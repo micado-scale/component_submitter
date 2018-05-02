@@ -3,26 +3,35 @@ import utils
 
 from abstracts import cloudorchestrator as abco
 
+
 logger=logging.getLogger("adaptor."+__name__)
 
 class DummyOccopusAdaptor(abco.CloudAdaptor):
 
-    def __init__(self):
-        super(DummyOccopusAdaptor, self).__init__()
+    def __init__(self, template = None, adaptor_id = None):
+        super().__init__()
+        if adaptor_id is None:
+            self.ID = utils.id_generator()
+        else:
+            self.ID = adaptor_id
+        self.template = template
         logger.info("OccoAdaptor initialised")
 
-    def translate(self, object):
+    def translate(self):
 
         logger.info("Starting Occotranslation")
-        return utils.id_generator()
 
-    def execute(self, id_adaptor, outputs=None):
+    def execute(self):
 
-        logger.info("Starting Occoexecution {}".format(id_adaptor))
-    def undeploy(self, id_adaptor):
+        logger.info("Starting Occoexecution {}".format(self.ID))
+    def undeploy(self):
 
-        logger.info("undeploy {} infrastructure".format(id_adaptor))
+        logger.info("undeploy {} infrastructure".format(self.ID))
 
-    def cleanup(self, id_adaptor):
+    def cleanup(self):
 
-        logger.info("cleaning up for infrastructure id {}".format(id_adaptor))
+        logger.info("cleaning up for infrastructure id {}".format(self.ID))
+
+    def update(self):
+
+        logger.info("updating the component config {}".format(self.ID))

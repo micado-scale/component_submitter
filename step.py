@@ -5,15 +5,15 @@ logger=logging.getLogger("submitter."+__name__)
 
 class Step():
     def __init__(self, object):
-        logger.info("intitialisation of Step, and execution of object's execute method ")
+        logger.info("intitialisation of Step, and execution of object's method ")
         self.object = object
         #super(Step, self).__init__()
     #def init_object(self):
     #    try:
     #        self.object()
-    def translate(self, params):
+    def translate(self):
         try:
-            return self.object.translate(params)
+            self.object.translate()
         except AdaptorCritical as e:
             logger.critical("critical error catched {}".format(e))
             raise
@@ -22,9 +22,9 @@ class Step():
             raise
 
 
-    def execute(self, id_element, outputs):
+    def execute(self):
         try:
-            self.object.execute(id_element, outputs)
+            self.object.execute()
 
         except AttributeError as e:
             logger.error("{}".format(e))
@@ -34,14 +34,14 @@ class Step():
             logger.info("nothing to be deployed")
             raise
 
-    def undeploy(self, id):
+    def undeploy(self):
         try:
-            self.object.undeploy(id)
+            self.object.undeploy()
         except Exception as e:
             logger.error(e)
 
-    def cleanup(self, id):
+    def cleanup(self):
         try:
-            self.object.cleanup(id)
+            self.object.cleanup()
         except Exception as e:
             logger.error(e)

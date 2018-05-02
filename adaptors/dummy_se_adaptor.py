@@ -6,23 +6,33 @@ logger=logging.getLogger("adaptor."+__name__)
 
 class DummySeAdaptor(abco.SecurityEnforcerAdaptor):
 
-    def __init__(self):
-        super(DummySeAdaptor, self).__init__()
+    def __init__(self, template = None, adaptor_id = None):
+        super().__init__()
+        if adaptor_id is None:
+            self.ID = utils.id_generator()
+        else:
+            self.ID = adaptor_id
+        self.template = template
+
+
         logger.info("SeAdaptor initialised")
 
-    def translate(self, object):
+    def translate(self):
 
         logger.info("Starting Setranslation")
-        return utils.id_generator()
 
-    def execute(self, id_adaptor, outputs=None):
+    def execute(self):
 
-        logger.info("Starting Seexecution {}".format(id_adaptor))
+        logger.info("Starting Seexecution {}".format(self.ID))
 
-    def undeploy(self, id_adaptor):
+    def undeploy(self):
 
-        logger.info("Undeploy the Security in Security Enforcer with id {}".format(id_adaptor))
+        logger.info("Undeploy the Security in Security Enforcer with id {}".format(self.ID))
 
-    def cleanup(self, id_adaptor):
+    def cleanup(self):
 
-        logger.info("cleaning up for Security Enforcer id {}".format(id_adaptor))
+        logger.info("cleaning up for Security Enforcer id {}".format(self.ID))
+
+    def update(self):
+
+        logger.info("updating the component config {}".format(self.ID))

@@ -55,8 +55,8 @@ class PluginsGestion(object):
         logger.debug("check if {} is in the plugin list".format(plugin_name))
         if plugin_name in plugin_names:
             plugin_class = plugin_classes[plugin_names.index(plugin_name)]
-            plugin_instance = plugin_class()
+            #plugin_instance = plugin_class()
             #plugin_instance.data = self.data
         #return plugin_class, plugin_instance
-        logger.debug("return {}".format(plugin_instance))
-        return plugin_instance
+        logger.debug("return {}".format(plugin_class))
+        return plugin_class

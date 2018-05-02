@@ -47,39 +47,42 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
     """
 
-    def __init__(self):
+    def __init__(self, template = None, adaptor_id = None):
         logger.debug("Initialise the Docker adaptor")
         super().__init__()
         self.compose_data = {}
+
+        if adaptor_id is None:
+            self.ID = utils.id_generator()
+        else:
+            self.ID = adaptor_id
+
+        self.template = template
         logger.info("DockerAdaptor ready to go!")
 
-    def translate(self, parsed):
-        """ Translate the parsed subset to the Compose format
+    def translate(self):
+        """ Translate the self.template subset to the Compose format
 
         Does the work of mapping the Docker relevant sections of TOSCA into a
         dictionary following the Docker-Compose format, then dumping output to
         a .yaml file in output_configs/
 
-        :param parsed: The tosca template to be translated into Docker compose
-        :type parsed: `ToscaTemplate <toscaparser.tosca_template.ToscaTemplate>`
-        :returns: The unique ID for this stack
-        :rtype: string
         :raises: AdaptorCritical
         """
 
         logger.info("Starting translation...")
         self.compose_data = {"version":"3.4"}
 
-        for tpl in parsed.nodetemplates:
+        for tpl in self.template.nodetemplates:
             if DOCKER_CONTAINER in tpl.type:
                 self._get_properties(tpl, "services")
-                self._get_artifacts(tpl, parsed.repositories)
+                self._get_artifacts(tpl, self.template.repositories)
 
         if not self.compose_data.get("services"):
             logger.error("No TOSCA nodes of Docker type!")
             raise AdaptorCritical("No TOSCA nodes of Docker type!")
 
-        for tpl in parsed.nodetemplates:
+        for tpl in self.template.nodetemplates:
             if DOCKER_CONTAINER in tpl.type:
                 self._get_requirements(tpl)
             elif DOCKER_NETWORK in tpl.type:
@@ -87,68 +90,67 @@ class DockerAdaptor(abco.ContainerAdaptor):
             elif DOCKER_VOLUME in tpl.type:
                 self._get_properties(tpl, "volumes")
 
-        id_stack = utils.id_generator()
-        utils.dump_order_yaml(self.compose_data, "files/output_configs/{}.yaml".format(id_stack))
+        utils.dump_order_yaml(self.compose_data, "files/output_configs/{}.yaml".format(self.ID))
 
-        return id_stack
 
-    def execute(self, id_stack, outputs):
+    def execute(self):
         """ Deploy the stack onto the Swarm
 
         Executes the `docker stack deploy` command on the Docker-Compose file
         created in `translate()`
 
-        :param id_stack: The unique identifier of the stack/compose-file to deploy
         :raises: AdaptorCritical
         """
         logger.info("Starting Docker execution...")
         try:
             #subprocess.run(["docker", "stack", "deploy", "--compose-file",
-            # "output_configs/{}.yaml".format(id_stack), id_stack], check=True)
+            # "output_configs/{}.yaml".format(self.ID), self.ID], check=True)
             logger.info("subprocess.run([\"docker\", \"stack\", \"deploy\", "
-             "\"--compose-file\", \"docker-compose.yaml\", id_stack], check=True)")
+             "\"--compose-file\", \"docker-compose.yaml\", {}], check=True)".format(self.ID))
         except subprocess.CalledProcessError:
             logger.error("Cannot execute Docker")
             raise AdaptorCritical("Cannot execute Docker")
         logger.info("Docker running, trying to get outputs...")
-        self._get_outputs(outputs, id_stack)
+        #self._get_outputs()
 
-    def undeploy(self, id_stack):
+    def undeploy(self):
         """ Undeploy the stack from Docker
 
         Runs `docker stack down` on the specified stack, removes the associated
         Docker-Compose file from output_configs/
 
-        :param id_stack: The unique identifier of the stack to bring down
         :raises: AdaptorCritical
 
         """
         logger.info("Undeploying the application")
         try:
-            #subprocess.run(["docker", "stack", "down", id_stack], check=True)
-            logger.debug("Undeploy application with ID: {}".format(id_stack))
+            #subprocess.run(["docker", "stack", "down", self.ID], check=True)
+            logger.debug("Undeploy application with ID: {}".format(self.ID))
         except subprocess.CalledProcessError:
             logger.error("Cannot undeploy the stack")
             raise AdaptorCritical("Cannot undeploy the stack")
         logger.info("Stack is down...")
 
-    def cleanup(self, id_stack):
+    def cleanup(self):
         """ Cleanup is a method that removes the associated Docker-Compose file from
         files/output_configs/
-
-        :params id_stack: The unique identifier of the Docker-Compose file
 
         .. note::
           A warning will be logged if the Compose file cannot be remove
         """
-        logger.info("Cleanup config for ID {}".format(id_stack))
+        logger.info("Cleanup config for ID {}".format(self.ID))
         try:
-            os.remove("files/output_configs/{}.yaml".format(id_stack))
+            os.remove("files/output_configs/{}.yaml".format(self.ID))
         except OSError as e:
             logger.warning(e)
 
-    def _get_outputs(self, outputs, id_stack):
+    def update(self):
+
+        #TODO create this function
+        pass
+    def _get_outputs(self):
         """ Get outputs and their resultant attributes """
+
         def get_attribute(service, query):
             """ Get attribute from a service """
             try:
@@ -169,7 +171,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         for output in outputs:
             node = output.value.get_referenced_node_template()
             if node.type == DOCKER_CONTAINER:
-                service = "{}_{}".format(id_stack, node.name)
+                service = "{}_{}".format(self.ID, node.name)
                 logger.debug("Inspect service: {}".format(service))
                 query = output.value.attribute_name
                 #get_attribute(service, query)

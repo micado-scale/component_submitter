@@ -94,11 +94,11 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;check if </span><span class="si">{}</span><span class="s2"> is in the plugin list&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plugin_name</span><span class="p">))</span>
         <span class="k">if</span> <span class="n">plugin_name</span> <span class="ow">in</span> <span class="n">plugin_names</span><span class="p">:</span>
             <span class="n">plugin_class</span> <span class="o">=</span> <span class="n">plugin_classes</span><span class="p">[</span><span class="n">plugin_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">plugin_name</span><span class="p">)]</span>
-            <span class="n">plugin_instance</span> <span class="o">=</span> <span class="n">plugin_class</span><span class="p">()</span>
+            <span class="c1">#plugin_instance = plugin_class()</span>
             <span class="c1">#plugin_instance.data = self.data</span>
         <span class="c1">#return plugin_class, plugin_instance</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;return </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plugin_instance</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">plugin_instance</span></div></div>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;return </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">plugin_class</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">plugin_class</span></div></div>
 </pre></div>
 
           </div>
