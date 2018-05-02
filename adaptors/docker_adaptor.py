@@ -5,15 +5,16 @@ component_submitter.docker_adaptor
 A TOSCA to Docker (Swarm) adaptor.
 """
 
-import logging
 import subprocess
 import os
 import json
 
 import utils
+
 from abstracts import container_orchestrator as abco
 from abstracts.exceptions import AdaptorError
 from abstracts.exceptions import AdaptorCritical
+import logging
 
 logger = logging.getLogger("adaptors."+__name__)
 
@@ -48,6 +49,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
     """
 
     def __init__(self, template = None, adaptor_id = None):
+
         logger.debug("Initialise the Docker adaptor")
         super().__init__()
         self.compose_data = {}

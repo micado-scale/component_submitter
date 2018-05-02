@@ -3,8 +3,9 @@ from toscaparser.tosca_template import ToscaTemplate
 import os
 import toscaparser.utils.urlutils
 import sys
-import logging
 from micado_validator import Validator, MultiError
+import utils
+import logging
 logger=logging.getLogger("submitter."+__name__)
 
 

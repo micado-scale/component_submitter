@@ -5,7 +5,6 @@ import sys
 from step import Step
 from micado_validator import MultiError
 from abstracts.exceptions import AdaptorCritical, AdaptorError
-import logging
 import utils
 from key_lists import KeyLists
 import json
@@ -13,8 +12,8 @@ import ruamel.yaml as yaml
 import os
 import time
 from random import randint
-JSON_FILE = "system/ids.json"
 
+import logging
 """ set up of Logging """
 LEVEL = logging.INFO
 logging.basicConfig(filename="submitter.log", level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -31,6 +30,9 @@ console.setFormatter(formatter)
 """ add the handler to the root logger"""
 logging.getLogger('').addHandler(console)
 logger.setLevel(LEVEL)
+
+JSON_FILE = "system/ids.json"
+
 
 class SubmitterEngine(object):
     """ SubmitterEngine class that is the main one that is used to treat with the application. """

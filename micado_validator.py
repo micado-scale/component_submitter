@@ -5,11 +5,12 @@ component_submitter.micado_validator
 A compatibility validator for ToscaTemplate objects.
 """
 
-import logging
 
 from toscaparser.tosca_template import ToscaTemplate
+import utils
+import logging
 
-logger = logging.getLogger("submitter."+__name__)
+logger=logging.getLogger("adaptor."+__name__)
 
 class ValidationError(Exception):
     """Base error for validation"""
@@ -56,6 +57,7 @@ class Validator():
     """
 
     def __init__(self, tpl):
+
 
         if not isinstance(tpl, ToscaTemplate):
             logger.error("Got a non-ToscaTemplate object!")

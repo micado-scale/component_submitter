@@ -3,13 +3,15 @@ from submitter_engine import SubmitterEngine
 from abstracts.exceptions import AdaptorCritical
 import os
 app = Flask(__name__)
+import utils
 import logging
 
 
 
-
 def __init__():
+
     global logger, submitter
+
     logger =  logging.getLogger("submitter."+__name__)
     submitter = SubmitterEngine()
 

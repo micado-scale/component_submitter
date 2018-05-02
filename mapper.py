@@ -2,13 +2,15 @@
 
 #from occopus.occopus import Occopus
 from key_lists import KeyLists
-import logging
 from toscaparser.functions import GetInput
+import logging
+import utils
 logger=logging.getLogger("submitter."+__name__)
 
 class Mapper(object):
     """Mapper class that is creating a KeyList dictionary"""
     def __init__(self, topology):
+
         logger.debug("in init of Mapper")
         self.topology = topology
         logger.debug("look for get_input in the template")

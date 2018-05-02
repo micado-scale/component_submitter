@@ -1,12 +1,10 @@
 import random
 import string
 import ruamel.yaml as yaml
-import logging
 from six.moves import urllib
 import codecs
-
-
-logger =  logging.getLogger("submitter."+__name__)
+import logging
+logger=logging.getLogger("submitter."+__name__)
 
 
 def dump_order_yaml(data, path):
