@@ -50,6 +50,6 @@ class MiCADOParser(object):
         raise Exception("Cannot find input file {}".format(e))
 
     template = ToscaTemplate(self.path, parsed_params, isfile)
-    Validator(template)
+    Validator().validation(template)
 
     return template

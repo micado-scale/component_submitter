@@ -16,12 +16,13 @@ class ValidationError(Exception):
 
 class MultiError(ValidationError):
     """Errors occured during validation..."""
-    def __init__(self, msg, error_set):
+    def __init__(self, error_set, msg=None):
         super().__init__()
-        self.msg = "\n--{}--".format(msg)
+        msg = msg if msg else ""
+        self.msg = f'\n--{msg}--'
         for error in error_set:
-            self.msg += "\n  {}".format(error)
-        self.msg += "\n----{}".format("-"*len(msg))
+            self.msg += f'\n  {error}'
+        self.msg += f'\n----{"-"*len(msg)}'
 
     def __str__(self):
         """Overload __str__ to return msg when printing/logging"""
@@ -55,8 +56,12 @@ class Validator():
 
     """
 
-    def __init__(self, tpl):
+    def __init__(self):
 
+        """ Potentially useless init """
+
+    def validation(self, tpl):
+        """ The validation process """
         if not isinstance(tpl, ToscaTemplate):
             logger.error("Got a non-ToscaTemplate object!")
             raise TypeError("Not a ToscaTemplate object")
@@ -65,67 +70,58 @@ class Validator():
         errors = set()
 
         for node in tpl.nodetemplates:
-            errors.update(self._validate_repositories(node, tpl.repositories))
+            errors.update(self.validate_repositories(node, tpl.repositories))
             if self._is_custom(node):
-                errors.update(self._validate_requirements(node))
-                errors.update(self._validate_relationships(node))
+                errors.update(self.validate_requirements(node))
+                errors.update(self.validate_relationships(node))
+                errors.update(self.validate_relationship_properties(node))
+
         if errors:
             logger.error("Incompatible ToscaTemplate!")
-            raise MultiError("Validation Errors!", sorted(errors))
+            raise MultiError(sorted(errors))#, "Validation Errors!")
         else:
             logger.info("ToscaTemplate object passed compatibility validation.")
+            return f'ToscaTemplate passed compatibility validation'
 
-    def _validate_repositories(self, node, repositories):
+
+    def validate_repositories(self, node, repositories):
         """ Validate repository names """
-
         repository_names = [repository.name for repository in repositories]
         if not repository_names:
             return {"[*TPL] No repositories found!"}
 
         repositories = self._key_search("repository", node.entity_tpl)
         return {
-            "[NODE: {}] Repository <{}> not defined!".format(node.name, repo)
+            f'[NODE: {node.name}] Repository <{repo}> not defined!'
             for repo in repositories if repo not in repository_names
             }
 
-    def _validate_requirements(self, node):
+    def validate_requirements(self, node):
         """ Validate requirements"""
-
         type_reqs = node.type_definition.requirements
         node_reqs = node.requirements
 
-        if not isinstance (type_reqs, list):
-            return {
-            "[CUSTOM TYPE: {}] Requirements not formatted as list".format(node.type)
-                }
-        if not isinstance (node_reqs, list):
-            return {
-            "[NODE: {}] Requirements not formatted as list".format(node.name)
-                }
+        type_req_names = self._get_requirement_names(type_reqs)
+        node_req_names = self._get_requirement_names(node_reqs)
 
-        type_req_names = [ requirement for requirements in
-            [list(req.keys()) for req in type_reqs]
-                for requirement in requirements ]
-
-        node_req_names = [ requirement for requirements in
-            [list(req.keys()) for req in node_reqs]
-                for requirement in requirements ]
+        msg = "Too many requirements per list item!"
 
         if len(type_reqs) != len(type_req_names):
-            return {
-            "[CUSTOM TYPE: {}] "
-            "Too many requirements per list item".format(node.type)
-                }
-        if len(node_reqs) != len(node_req_names):
-            return {
-            "[NODE: {}] "
-            "Too many requirements per list item".format(node.name)
-                }
+            return {f'[CUSTOM TYPE: {node.type}] {msg}'}
 
-        errors = {
-            "[NODE: {}] Requirement <{}> not defined!".format(node.name, req)
+        elif len(node_reqs) != len(node_req_names):
+            return {f'[NODE: {node.name}] {msg}'}
+
+        return {
+            f'[NODE: {node.name}] Requirement <{req}> not defined!'
             for req in node_req_names if req not in type_req_names
             }
+
+    def validate_relationships(self, node):
+        """ Validate relationships"""
+        type_reqs = node.type_definition.requirements
+        node_reqs = node.requirements
+        errors = set()
 
         for node_req in node_reqs:
             relationships = self._key_search(["relationship","type"], node_req)
@@ -134,36 +130,47 @@ class Validator():
                          for type_req in type_reqs]
 
             errors.update({
-                    "[NODE: {}] Relationship <{}> not supported!"
-                    .format(node.name, relationship)
+                    f'[NODE: {node.name}] '
+                    f'Relationship <{relationship}> not supported!'
                     for relationship in relationships
                     if relationship not in str(supported_relationships)
                 })
 
         return errors
 
-    def _validate_relationships(self, node):
-        """ Validate relationships"""
+    def validate_relationship_properties(self, node):
+        """ Validate relationship properties """
+        errors = set()
+        for req, prop, relation in self._get_required_properties(node):
+            if not self._has_property(req, prop, relation):
+                errors.update({
+                    f'[NODE: {node.name}] Relationship <{relation}> '
+                    f'missing property <{prop}>'
+                    })
+        return errors
 
-        def has_property(requirements, property, type):
-            """ Check if a requirement has the correct properties and type """
-            for requirement_dict in requirements:
-                for requirement in requirement_dict.values():
-                    relation = requirement.get("relationship")
-                    if isinstance(relation, dict) and type in relation.get("type"):
-                        if property in str(requirement_dict):
-                            return True
-            return False
+    def _has_property(self, requirements, property, type):
+        """ Check if a requirement has the correct properties and type """
+        for requirement_dict in requirements:
+            for requirement in requirement_dict.values():
+                relation = requirement.get("relationship")
+                if isinstance(relation, dict) and type in relation.get("type"):
+                    if property in str(requirement_dict):
+                        return True
+        return False
 
-        for target_node, relation in node.related.items():
+    def _get_requirement_names(self, req_dict):
+        """ Get requirement names """
+        return [ requirement for requirements in
+            [list(req.keys()) for req in req_dict]
+                for requirement in requirements ]
+
+    def _get_required_properties(self, node):
+        """ Generate required properties """
+        for relation in node.related.values():
             for property, prop_obj in relation.get_properties_def().items():
                 if prop_obj.required:
-                    if not has_property(node.requirements, property, relation.type):
-                        return {
-                            "[NODE: {}] Relationship <{}> missing property <{}>"
-                            .format(node.name, relation.type, property)
-                            }
-        return set()
+                    yield (node.requirements, property, relation.type)
 
     def _is_custom(self,node):
         """ Determine if node is of a custom type """
