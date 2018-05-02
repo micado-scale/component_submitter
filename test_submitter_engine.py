@@ -17,7 +17,7 @@ class SubmitterEngineTestCase(unittest.TestCase):
         logging.debug("--------------------------------------------------------------------------------------------------------------------------------------")
         logging.debug("test_input_url_path")
         logging.debug("--------------------------------------------------------------------------------------------------------------------------------------")
-        result = SubmitterEngine(path_to_file = self.url_path)
+        result = SubmitterEngine().launch(path_to_file = self.url_path)
         logging.debug("\n\n\n")
 
     def test_input_url_path_j(self):
@@ -25,7 +25,7 @@ class SubmitterEngineTestCase(unittest.TestCase):
         logging.debug("test_input_url_path_j")
         logging.debug("--------------------------------------------------------------------------------------------------------------------------------------")
         logging.debug("{}".format(__name__))
-        result = SubmitterEngine(path_to_file = self.url_path_j)
+        result = SubmitterEngine().launch(path_to_file = self.url_path_j)
         logging.debug("\n\n\n")
 
     def test_input_file_path(self):
@@ -33,7 +33,7 @@ class SubmitterEngineTestCase(unittest.TestCase):
         logging.debug("test_input_file_path")
         logging.debug("--------------------------------------------------------------------------------------------------------------------------------------")
         logging.debug("{}".format(__name__))
-        result = SubmitterEngine(path_to_file = self.file_path)
+        result = SubmitterEngine().launch(path_to_file = self.file_path)
         logging.debug("\n\n\n")
 
     def test_parsed_params_file_path(self):
@@ -41,7 +41,7 @@ class SubmitterEngineTestCase(unittest.TestCase):
         logging.debug("test_parsed_params_file_path")
         logging.debug("--------------------------------------------------------------------------------------------------------------------------------------")
         logging.debug("{}".format(__name__))
-        result = SubmitterEngine(path_to_file = self.url_path, parse_params = self.parsed_params)
+        result = SubmitterEngine().launch(path_to_file = self.url_path, parse_params = self.parsed_params)
         logging.debug("\n\n\n")
 
 
@@ -50,7 +50,7 @@ class SubmitterEngineTestCase(unittest.TestCase):
         logging.debug("test_wrong_arg")
         logging.debug("--------------------------------------------------------------------------------------------------------------------------------------")
         logging.debug("{}".format(__name__))
-        self.assertRaises(KeyError, SubmitterEngine, path_of_file = self.url_path)
+        self.assertRaises(KeyError, SubmitterEngine().launch(), path_of_file = self.url_path)
         logging.debug("\n\n\n")
 
 if __name__ == "__main__":

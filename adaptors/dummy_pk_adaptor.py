@@ -7,23 +7,31 @@ logger=logging.getLogger("adaptor."+__name__)
 
 class DummyPkAdaptor(abco.PolicyKeeperAdaptor):
 
-    def __init__(self):
-        super(DummyPkAdaptor, self).__init__()
+    def __init__(self, template = None, adaptor_id = None):
+        super().__init__()
+        if adaptor_id is None:
+            self.ID = utils.id_generator()
+        else:
+            self.ID = adaptor_id
+        self.templates = template
         logger.info("PKAdaptor initialised")
 
-    def translate(self, object):
+    def translate(self):
 
         logger.info("Starting PKtranslation")
-        return utils.id_generator()
 
-    def execute(self, id_adaptor, outputs=None):
+    def execute(self):
 
         logger.info("Starting PKexecution")
 
-    def undeploy(self, id_adaptor):
+    def undeploy(self):
 
-        logger.info("Undeploy/remove the policy in pk service with id {}".format(id_adaptor))
+        logger.info("Undeploy/remove the policy in pk service with id {}".format(self.ID))
 
-    def cleanup(self, id_adaptor):
+    def cleanup(self):
 
-        logger.info("cleaning up pk id {}".format(id_adaptor))
+        logger.info("cleaning up pk id {}".format(self.ID))
+
+    def update(self):
+
+        logger.info("updating the component config {}".format(self.ID))

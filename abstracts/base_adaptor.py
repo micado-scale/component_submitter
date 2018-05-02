@@ -20,3 +20,7 @@ class Adaptor(ABC):
     @abstractmethod
     def cleanup(self):
         pass
+
+    @abstractmethod
+    def update(self):
+        pass

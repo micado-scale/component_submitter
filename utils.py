@@ -29,7 +29,7 @@ def get_yaml_data(path):
     except ValueError as exc:
         logger.error("file is local: {}".format(exc))
         f = codecs.open(path, encoding='utf-8', errors='strict')
-    return yaml.load(f.read())
+    return yaml.round_trip_load(f.read())
 
 
 def id_generator(size=8, chars=string.ascii_uppercase + string.digits):
