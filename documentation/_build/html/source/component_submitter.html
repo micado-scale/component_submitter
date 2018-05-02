@@ -227,7 +227,7 @@ object topology object.</p>
 <p>A compatibility validator for ToscaTemplate objects.</p>
 <dl class="exception">
 <dt id="component_submitter.micado_validator.MultiError">
-<em class="property">exception </em><code class="descclassname">component_submitter.micado_validator.</code><code class="descname">MultiError</code><span class="sig-paren">(</span><em>msg</em>, <em>error_set</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#MultiError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.MultiError" title="Permalink to this definition">¶</a></dt>
+<em class="property">exception </em><code class="descclassname">component_submitter.micado_validator.</code><code class="descname">MultiError</code><span class="sig-paren">(</span><em>error_set</em>, <em>msg=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#MultiError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.MultiError" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#component_submitter.micado_validator.ValidationError" title="component_submitter.micado_validator.ValidationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">component_submitter.micado_validator.ValidationError</span></code></a></p>
 <p>Errors occured during validation…</p>
 </dd></dl>
@@ -241,12 +241,52 @@ object topology object.</p>
 
 <dl class="class">
 <dt id="component_submitter.micado_validator.Validator">
-<em class="property">class </em><code class="descclassname">component_submitter.micado_validator.</code><code class="descname">Validator</code><span class="sig-paren">(</span><em>tpl</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">component_submitter.micado_validator.</code><code class="descname">Validator</code><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>The MiCADO Validator class</p>
 <p>Further validates a ToscaTemplate which has already passed validation steps
 set out by the OpenStack ToscaParser. Currently validation checks exist for
 repositories and the requirements and relationships of custom defined types.</p>
+<dl class="method">
+<dt id="component_submitter.micado_validator.Validator.validate_relationship_properties">
+<code class="descname">validate_relationship_properties</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator.validate_relationship_properties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator.validate_relationship_properties" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate relationship properties</p>
+<p>Checks that relationships defined properties required by their definition
+in TOSCA normative or custom types. Returns errors if not.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.micado_validator.Validator.validate_relationships">
+<code class="descname">validate_relationships</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator.validate_relationships"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator.validate_relationships" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate relationships</p>
+<p>Checks that relationships used in node definitions correctly reference
+relationships defined in TOSCA normative or custom types. Returns errors
+if not.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.micado_validator.Validator.validate_repositories">
+<code class="descname">validate_repositories</code><span class="sig-paren">(</span><em>node</em>, <em>repositories</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator.validate_repositories"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator.validate_repositories" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate repository names</p>
+<p>Checks to see if repositories have been defined at the top level, and if
+nodes reference those repositories correctly. Returns errors if not.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.micado_validator.Validator.validate_requirements">
+<code class="descname">validate_requirements</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator.validate_requirements"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator.validate_requirements" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate requirements and their syntax</p>
+<p>Checks that requirements in custom_types and in node definitions are
+defined as one-item lists and that node definition requirements correctly
+reference requirements defined in custom_types. Returns errors if not.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.micado_validator.Validator.validation">
+<code class="descname">validation</code><span class="sig-paren">(</span><em>tpl</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator.validation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator.validation" title="Permalink to this definition">¶</a></dt>
+<dd><p>The validation process</p>
+<p>Runs validation steps on the given TOSCA Template, and builds an error
+list. Raises a MultiError on failed validation. On success, says so.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -264,19 +304,22 @@ repositories and the requirements and relationships of custom defined types.</p>
 </div>
 <blockquote>
 <div>Successful validation:</div></blockquote>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Validator</span><span class="p">(</span><span class="o">&lt;</span><span class="n">toscaparser</span><span class="o">.</span><span class="n">tosca_template</span><span class="o">.</span><span class="n">ToscaTemplate</span><span class="o">&gt;</span><span class="p">)</span>
-<span class="go">&lt;micado_validator.Validator object&gt;</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Validator</span><span class="p">()</span><span class="o">.</span><span class="n">validation</span><span class="p">(</span><span class="o">&lt;</span><span class="n">toscaparser</span><span class="o">.</span><span class="n">tosca_template</span><span class="o">.</span><span class="n">ToscaTemplate</span><span class="o">&gt;</span><span class="p">)</span>
+<span class="go">&#39;ToscaTemplate passed compatibility validation&#39;</span>
 </pre></div>
 </div>
 <blockquote>
 <div>Errors during validation:</div></blockquote>
 <div class="last highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Validator</span><span class="p">(</span><span class="o">&lt;</span><span class="n">toscaparser</span><span class="o">.</span><span class="n">tosca_template</span><span class="o">.</span><span class="n">ToscaTemplate</span><span class="o">&gt;</span><span class="p">)</span>
-<span class="go">----Validation Errors!----</span>
+<span class="go">micado_validator.MultiError:</span>
+<span class="go">----</span>
 <span class="go">(...list of errors...)</span>
 </pre></div>
 </div>
 </dd>
 </dl>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -521,7 +564,7 @@ launch</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
     </div>
   </body>
 </html>
