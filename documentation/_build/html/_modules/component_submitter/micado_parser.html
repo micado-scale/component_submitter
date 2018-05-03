@@ -89,7 +89,7 @@
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Cannot find input file </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
 
     <span class="n">template</span> <span class="o">=</span> <span class="n">ToscaTemplate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">,</span> <span class="n">isfile</span><span class="p">)</span>
-    <span class="n">Validator</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+    <span class="n">Validator</span><span class="p">()</span><span class="o">.</span><span class="n">validation</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">template</span></div></div>
 </pre></div>
@@ -130,7 +130,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
     </div>
   </body>
 </html>
