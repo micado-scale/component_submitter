@@ -14,6 +14,7 @@ import utils
 from abstracts import container_orchestrator as abco
 from abstracts.exceptions import AdaptorError
 from abstracts.exceptions import AdaptorCritical
+import filecmp
 import logging
 
 logger = logging.getLogger("adaptors."+__name__)
@@ -62,7 +63,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         self.template = template
         logger.info("DockerAdaptor ready to go!")
 
-    def translate(self):
+    def translate(self, tmp = False):
         """ Translate the self.template subset to the Compose format
 
         Does the work of mapping the Docker relevant sections of TOSCA into a
@@ -92,7 +93,10 @@ class DockerAdaptor(abco.ContainerAdaptor):
             elif DOCKER_VOLUME in tpl.type:
                 self._get_properties(tpl, "volumes")
 
-        utils.dump_order_yaml(self.compose_data, "files/output_configs/{}.yaml".format(self.ID))
+        if tmp is False:
+            utils.dump_order_yaml(self.compose_data, "files/output_configs/{}.yaml".format(self.ID))
+        else:
+            utils.dump_order_yaml(self.compose_data, "files/output_configs/tmp_{}.yaml".format(self.ID))
 
 
     def execute(self):
@@ -147,8 +151,12 @@ class DockerAdaptor(abco.ContainerAdaptor):
             logger.warning(e)
 
     def update(self, template):
+        """ Translate the template into a tmp file, differentiate the tmp with the current config
+            if different move tmp file to old file, and execute.
+        """
+        self.translate(template, True)
+        self._differentiate()
 
-        #TODO create this function
         pass
     def _get_outputs(self):
         """ Get outputs and their resultant attributes """
@@ -286,3 +294,5 @@ class DockerAdaptor(abco.ContainerAdaptor):
         entry = "node.labels.host == {}".format(host)
         if entry not in node:
             node.append(entry)
+
+    def _differentiate(self):

@@ -3,8 +3,8 @@ from toscaparser.tosca_template import ToscaTemplate
 import os
 import toscaparser.utils.urlutils
 import sys
-from micado_validator import Validator, MultiError
 import logging
+import micado_validator as Validator
 logger=logging.getLogger("submitter."+__name__)
 
 
@@ -50,6 +50,6 @@ class MiCADOParser(object):
         raise Exception("Cannot find input file {}".format(e))
 
     template = ToscaTemplate(self.path, parsed_params, isfile)
-    Validator().validation(template)
+    Validator.validation(template)
 
     return template
