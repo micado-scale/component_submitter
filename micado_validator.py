@@ -1,8 +1,9 @@
 """
-component_submitter.micado_validator
+MiCADO Validator
 ------------------------------------
 
-A compatibility validator for ToscaTemplate objects.
+Validate ToscaTemplate objects to ensure syntactic and semantic compatibility
+with custom defined and TOSCA normative types.
 """
 
 import logging
