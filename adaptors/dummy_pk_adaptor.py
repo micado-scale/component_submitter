@@ -32,6 +32,6 @@ class DummyPkAdaptor(abco.PolicyKeeperAdaptor):
 
         logger.info("cleaning up pk id {}".format(self.ID))
 
-    def update(self):
+    def update(self, template):
 
         logger.info("updating the component config {}".format(self.ID))

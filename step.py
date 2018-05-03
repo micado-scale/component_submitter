@@ -1,5 +1,5 @@
 from abstracts.exceptions import AdaptorError, AdaptorCritical
-import utils
+
 
 import logging
 
@@ -36,6 +36,12 @@ class Step():
         except AdaptorCritical as e:
             logger.critical("{}".format(e))
             logger.info("nothing to be deployed")
+            raise
+    def update(self, template):
+        try:
+            self.object.update(template)
+        except AdaptorCritical as e:
+            logger.critical("critical error catched {}".format(e))
             raise
 
     def undeploy(self):

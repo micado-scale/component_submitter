@@ -15,8 +15,8 @@ from random import randint
 
 import logging
 """ set up of Logging """
-LEVEL = logging.INFO
-logging.basicConfig(filename="submitter.log", level=logging.DEBUG, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+LEVEL = logging.DEBUG
+logging.basicConfig(filename="submitter.log", level=LEVEL, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger=logging.getLogger("submitter."+__name__)
 
 """define the Handler which write message to sys.stderr"""
@@ -29,7 +29,6 @@ console.setFormatter(formatter)
 
 """ add the handler to the root logger"""
 logging.getLogger('').addHandler(console)
-logger.setLevel(LEVEL)
 
 JSON_FILE = "system/ids.json"
 
@@ -110,7 +109,7 @@ class SubmitterEngine(object):
 
 
 
-    def update(self, id_app, path_to_file, parsed_params):
+    def update(self, id_app, path_to_file, parsed_params = None):
         """
         Update method that will be updating the application we want to update.
 
@@ -128,6 +127,7 @@ class SubmitterEngine(object):
         logger.info("proceding to the update of the application {}".format(id_app))
         template = self._micado_parser_upload(path_to_file, parsed_params)
         object_adaptors = self._instantiate_adaptors(id_app, template, self.app_dict[id_app])
+        logger.debug("list of adaptor created: {}".format(object_adaptors))
         self._update(template, object_adaptors)
 
     def _engine(self,adaptors, template):
@@ -206,15 +206,14 @@ class SubmitterEngine(object):
             ids = app_ids
             for adaptor in self.adaptors_class_name:
                 for item in ids:
-                    if adaptor.__name__ in items:
-                        logger.debug("\n\n\nid: {}\n\n\n".format(item.split("_",2)))
+                    if adaptor.__name__ in item:
                         adaptors.append(adaptor(template = template, adaptor_id = item.split("_",2)[2]))
+            return adaptors
         elif app_ids is not None and template is None:
             ids = app_ids
             for adaptor in self.adaptors_class_name:
                 for item in ids:
                     if adaptor.__name__ in item:
-                        logger.debug("\n\n\nid: {}\n\n\n".format(item.split("_",2)))
                         adaptors.append(adaptor(adaptor_id=item.split("_", 2)[2]))
             return adaptors
 
@@ -252,6 +251,10 @@ class SubmitterEngine(object):
 
     def _update(self, template, adaptors):
         """ method that will translate first the new component and then see if there's a difference, and then execute"""
+        logger.info("update of each components related to the application wanted")
+        for adaptor in adaptors:
+            Step(adaptor).update(template)
+
 
     def _cleanup(self, id, adaptors):
         """ method called by the engine to launch the celanup method of all the components for a specific application

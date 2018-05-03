@@ -32,6 +32,6 @@ class DummyOccopusAdaptor(abco.CloudAdaptor):
 
         logger.info("cleaning up for infrastructure id {}".format(self.ID))
 
-    def update(self):
+    def update(self, template):
 
         logger.info("updating the component config {}".format(self.ID))

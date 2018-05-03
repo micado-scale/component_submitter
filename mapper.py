@@ -4,7 +4,6 @@
 from key_lists import KeyLists
 from toscaparser.functions import GetInput
 import logging
-import utils
 logger=logging.getLogger("submitter."+__name__)
 
 class Mapper(object):

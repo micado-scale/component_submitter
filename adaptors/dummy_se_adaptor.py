@@ -34,6 +34,6 @@ class DummySeAdaptor(abco.SecurityEnforcerAdaptor):
 
         logger.info("cleaning up for Security Enforcer id {}".format(self.ID))
 
-    def update(self):
+    def update(self, template):
 
         logger.info("updating the component config {}".format(self.ID))

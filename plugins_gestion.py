@@ -2,7 +2,6 @@ import os
 import imp, inspect, sys
 from abstracts import *
 PATH="./adaptors/"
-import utils
 import logging
 logger=logging.getLogger("submitter."+__name__)
 

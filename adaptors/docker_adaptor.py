@@ -146,7 +146,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         except OSError as e:
             logger.warning(e)
 
-    def update(self):
+    def update(self, template):
 
         #TODO create this function
         pass

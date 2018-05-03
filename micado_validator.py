@@ -59,16 +59,13 @@ class Validator():
 
                 Errors during validation:
 
-<<<<<<< HEAD
 
-=======
             >>> Validator(<toscaparser.tosca_template.ToscaTemplate>)
             micado_validator.MultiError:
             ----
             (...list of errors...)
 
         """
->>>>>>> upstream/dev
         if not isinstance(tpl, ToscaTemplate):
             logger.error("Got a non-ToscaTemplate object!")
             raise TypeError("Not a ToscaTemplate object")
