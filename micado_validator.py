@@ -60,14 +60,7 @@ class Validator():
                 Errors during validation:
 
 <<<<<<< HEAD
-<<<<<<< HEAD
 
-=======
-        """ Potentially useless init """
-
-    def validation(self, tpl):
-        """ The validation process """
->>>>>>> upstream/dev
 =======
             >>> Validator(<toscaparser.tosca_template.ToscaTemplate>)
             micado_validator.MultiError:
