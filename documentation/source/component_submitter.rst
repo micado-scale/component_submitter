@@ -20,10 +20,10 @@ component\_submitter.api module
     :undoc-members:
     :show-inheritance:
 
-component\_submitter.generator module
+component\_submitter.utils module
 -------------------------------------
 
-.. automodule:: component_submitter.generator
+.. automodule:: component_submitter.utils
     :members:
     :undoc-members:
     :show-inheritance:

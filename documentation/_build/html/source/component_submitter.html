@@ -64,7 +64,7 @@
 <li class="toctree-l1"><a class="reference internal" href="component_submitter.adaptors.html">component_submitter.adaptors package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.docker_adaptor">component_submitter.adaptors.docker_adaptor module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="component_submitter.adaptors.html#component-submitter-docker-adaptor">component_submitter.docker_adaptor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="component_submitter.adaptors.html#micado-submitter-engine-docker-adaptor">MiCADO Submitter Engine Docker Adaptor</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_occopus_adaptor">component_submitter.adaptors.dummy_occopus_adaptor module</a></li>
@@ -130,8 +130,26 @@
 <dd></dd></dl>
 
 </div>
-<div class="section" id="component-submitter-generator-module">
-<h2>component_submitter.generator module<a class="headerlink" href="#component-submitter-generator-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-component_submitter.utils">
+<span id="component-submitter-utils-module"></span><h2>component_submitter.utils module<a class="headerlink" href="#module-component_submitter.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="component_submitter.utils.dump_order_yaml">
+<code class="descclassname">component_submitter.utils.</code><code class="descname">dump_order_yaml</code><span class="sig-paren">(</span><em>data</em>, <em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#dump_order_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.dump_order_yaml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dump the dictionary to a Docker-Compose file</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.utils.get_yaml_data">
+<code class="descclassname">component_submitter.utils.</code><code class="descname">get_yaml_data</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#get_yaml_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.get_yaml_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve the yaml dictionary form a yaml file and return it</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.utils.id_generator">
+<code class="descclassname">component_submitter.utils.</code><code class="descname">id_generator</code><span class="sig-paren">(</span><em>size=8</em>, <em>chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#id_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.id_generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an ID</p>
+</dd></dl>
+
 </div>
 <div class="section" id="module-component_submitter.key_lists">
 <span id="component-submitter-key-lists-module"></span><h2>component_submitter.key_lists module<a class="headerlink" href="#module-component_submitter.key_lists" title="Permalink to this headline">¶</a></h2>
@@ -222,9 +240,13 @@ object topology object.</p>
 </div>
 <div class="section" id="module-component_submitter.micado_validator">
 <span id="component-submitter-micado-validator-module"></span><h2>component_submitter.micado_validator module<a class="headerlink" href="#module-component_submitter.micado_validator" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="component-submitter-micado-validator">
-<h3>component_submitter.micado_validator<a class="headerlink" href="#component-submitter-micado-validator" title="Permalink to this headline">¶</a></h3>
-<p>A compatibility validator for ToscaTemplate objects.</p>
+<div class="section" id="micado-submission-engine-tosca-validator">
+<h3>MiCADO Submission Engine TOSCA Validator<a class="headerlink" href="#micado-submission-engine-tosca-validator" title="Permalink to this headline">¶</a></h3>
+<p>Validate ToscaTemplate objects to ensure syntactic and semantic compatibility
+with custom defined and TOSCA normative types.</p>
+<p>Further validates a ToscaTemplate which has already passed validation steps
+set out by the OpenStack ToscaParser. Currently validation checks exist for
+repositories and the requirements and relationships of custom defined types.</p>
 <dl class="exception">
 <dt id="component_submitter.micado_validator.MultiError">
 <em class="property">exception </em><code class="descclassname">component_submitter.micado_validator.</code><code class="descname">MultiError</code><span class="sig-paren">(</span><em>error_set</em>, <em>msg=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#MultiError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.MultiError" title="Permalink to this definition">¶</a></dt>
@@ -239,51 +261,43 @@ object topology object.</p>
 <p>Base error for validation</p>
 </dd></dl>
 
-<dl class="class">
-<dt id="component_submitter.micado_validator.Validator">
-<em class="property">class </em><code class="descclassname">component_submitter.micado_validator.</code><code class="descname">Validator</code><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>The MiCADO Validator class</p>
-<p>Further validates a ToscaTemplate which has already passed validation steps
-set out by the OpenStack ToscaParser. Currently validation checks exist for
-repositories and the requirements and relationships of custom defined types.</p>
-<dl class="method">
-<dt id="component_submitter.micado_validator.Validator.validate_relationship_properties">
-<code class="descname">validate_relationship_properties</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator.validate_relationship_properties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator.validate_relationship_properties" title="Permalink to this definition">¶</a></dt>
+<dl class="function">
+<dt id="component_submitter.micado_validator.validate_relationship_properties">
+<code class="descclassname">component_submitter.micado_validator.</code><code class="descname">validate_relationship_properties</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#validate_relationship_properties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.validate_relationship_properties" title="Permalink to this definition">¶</a></dt>
 <dd><p>Validate relationship properties</p>
 <p>Checks that relationships defined properties required by their definition
 in TOSCA normative or custom types. Returns errors if not.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="component_submitter.micado_validator.Validator.validate_relationships">
-<code class="descname">validate_relationships</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator.validate_relationships"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator.validate_relationships" title="Permalink to this definition">¶</a></dt>
+<dl class="function">
+<dt id="component_submitter.micado_validator.validate_relationships">
+<code class="descclassname">component_submitter.micado_validator.</code><code class="descname">validate_relationships</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#validate_relationships"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.validate_relationships" title="Permalink to this definition">¶</a></dt>
 <dd><p>Validate relationships</p>
 <p>Checks that relationships used in node definitions correctly reference
 relationships defined in TOSCA normative or custom types. Returns errors
 if not.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="component_submitter.micado_validator.Validator.validate_repositories">
-<code class="descname">validate_repositories</code><span class="sig-paren">(</span><em>node</em>, <em>repositories</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator.validate_repositories"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator.validate_repositories" title="Permalink to this definition">¶</a></dt>
+<dl class="function">
+<dt id="component_submitter.micado_validator.validate_repositories">
+<code class="descclassname">component_submitter.micado_validator.</code><code class="descname">validate_repositories</code><span class="sig-paren">(</span><em>node</em>, <em>repositories</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#validate_repositories"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.validate_repositories" title="Permalink to this definition">¶</a></dt>
 <dd><p>Validate repository names</p>
 <p>Checks to see if repositories have been defined at the top level, and if
 nodes reference those repositories correctly. Returns errors if not.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="component_submitter.micado_validator.Validator.validate_requirements">
-<code class="descname">validate_requirements</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator.validate_requirements"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator.validate_requirements" title="Permalink to this definition">¶</a></dt>
+<dl class="function">
+<dt id="component_submitter.micado_validator.validate_requirements">
+<code class="descclassname">component_submitter.micado_validator.</code><code class="descname">validate_requirements</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#validate_requirements"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.validate_requirements" title="Permalink to this definition">¶</a></dt>
 <dd><p>Validate requirements and their syntax</p>
 <p>Checks that requirements in custom_types and in node definitions are
 defined as one-item lists and that node definition requirements correctly
 reference requirements defined in custom_types. Returns errors if not.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="component_submitter.micado_validator.Validator.validation">
-<code class="descname">validation</code><span class="sig-paren">(</span><em>tpl</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#Validator.validation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.Validator.validation" title="Permalink to this definition">¶</a></dt>
+<dl class="function">
+<dt id="component_submitter.micado_validator.validation">
+<code class="descclassname">component_submitter.micado_validator.</code><code class="descname">validation</code><span class="sig-paren">(</span><em>tpl</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#validation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.validation" title="Permalink to this definition">¶</a></dt>
 <dd><p>The validation process</p>
 <p>Runs validation steps on the given TOSCA Template, and builds an error
 list. Raises a MultiError on failed validation. On success, says so.</p>
@@ -318,8 +332,6 @@ list. Raises a MultiError on failed validation. On success, says so.</p>
 </div>
 </dd>
 </dl>
-</dd></dl>
-
 </dd></dl>
 
 </div>
@@ -497,12 +509,12 @@ launch</p>
 <li><a class="reference internal" href="#subpackages">Subpackages</a></li>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#module-component_submitter.api">component_submitter.api module</a></li>
-<li><a class="reference internal" href="#component-submitter-generator-module">component_submitter.generator module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.utils">component_submitter.utils module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.key_lists">component_submitter.key_lists module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.mapper">component_submitter.mapper module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.micado_parser">component_submitter.micado_parser module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.micado_validator">component_submitter.micado_validator module</a><ul>
-<li><a class="reference internal" href="#component-submitter-micado-validator">component_submitter.micado_validator</a></li>
+<li><a class="reference internal" href="#micado-submission-engine-tosca-validator">MiCADO Submission Engine TOSCA Validator</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-component_submitter.plugins_gestion">component_submitter.plugins_gestion module</a></li>
