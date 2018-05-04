@@ -48,8 +48,8 @@
 </div>
 <div class="section" id="module-component_submitter.adaptors.docker_adaptor">
 <span id="component-submitter-adaptors-docker-adaptor-module"></span><h2>component_submitter.adaptors.docker_adaptor module<a class="headerlink" href="#module-component_submitter.adaptors.docker_adaptor" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="component-submitter-docker-adaptor">
-<h3>component_submitter.docker_adaptor<a class="headerlink" href="#component-submitter-docker-adaptor" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="micado-submitter-engine-docker-adaptor">
+<h3>MiCADO Submitter Engine Docker Adaptor<a class="headerlink" href="#micado-submitter-engine-docker-adaptor" title="Permalink to this headline">¶</a></h3>
 <p>A TOSCA to Docker (Swarm) adaptor.</p>
 <dl class="class">
 <dt id="component_submitter.adaptors.docker_adaptor.DockerAdaptor">
@@ -59,17 +59,37 @@
 <p>Carries out the deployment of a Dockerised application or application stack
 based on a description of an application provided by a YAML file which
 follows the OpenStack TOSCA language specification.</p>
-<p>Implements abstract methods <code class="docutils literal notranslate"><span class="pre">translate</span></code>, <code class="docutils literal notranslate"><span class="pre">execute</span></code> and <code class="docutils literal notranslate"><span class="pre">undeploy</span></code>.</p>
+<p>Implements abstract methods <code class="docutils literal notranslate"><span class="pre">__init__()</span></code>, <code class="docutils literal notranslate"><span class="pre">translate()</span></code>, <code class="docutils literal notranslate"><span class="pre">execute()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">undeploy()</span></code> and <code class="docutils literal notranslate"><span class="pre">cleanup()</span></code>. Accepts as parameters an <strong>adaptor_id</strong>
+(required) and a <strong>template</strong> (optional). The <code class="docutils literal notranslate"><span class="pre">translate()</span></code> and <code class="docutils literal notranslate"><span class="pre">update()</span></code>
+methods require both an <strong>adaptor_id</strong> and <strong>template</strong>. The <code class="docutils literal notranslate"><span class="pre">execute()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">undeploy()</span></code> and <code class="docutils literal notranslate"><span class="pre">cleanup()</span></code> methods require only the <strong>adaptor_id</strong> .</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>adaptor_id</strong> (<em>string</em>) – The generated ID of the current application stack</li>
+<li><strong>template</strong> (<em>ToscaTemplate &lt;toscaparser.tosca_template.ToscaTemplate&gt;</em>) – The ADT / ToscaTemplate of the current application stack</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 <dl class="docutils">
 <dt>Usage:</dt>
 <dd><div class="first last highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">docker_adaptor</span> <span class="k">import</span> <span class="n">DockerAdaptor</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span> <span class="o">=</span> <span class="n">DockerAdaptor</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="o">&lt;</span><span class="n">path_to_tosca_yaml</span><span class="o">&gt;</span><span class="p">)</span>
-<span class="go">&lt;UNIQUE_ID&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="o">&lt;</span><span class="n">UNIQUE_ID</span><span class="o">&gt;</span><span class="p">)</span>
-<span class="go">(Stack deployed)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">undeploy</span><span class="p">(</span><span class="o">&lt;</span><span class="n">UNIQUE_ID</span><span class="o">&gt;</span><span class="p">)</span>
-<span class="go">(Stack undeployed)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span> <span class="o">=</span> <span class="n">DockerAdaptor</span><span class="p">(</span><span class="o">&lt;</span><span class="n">adaptor_id</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">ToscaTemplate</span><span class="o">&gt;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
+<span class="go">    (writes compose file to file/output_configs/&lt;adaptor_id&gt;.yaml)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+<span class="go">    (stack deployed)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+<span class="go">    (stack update if template is changed, otherwise nothing)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">undeploy</span><span class="p">()</span>
+<span class="go">    (stack undeployed)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
+<span class="go">    (compose file removed from file/output_configs/)</span>
 </pre></div>
 </div>
 </dd>
@@ -77,11 +97,11 @@ follows the OpenStack TOSCA language specification.</p>
 <dl class="method">
 <dt id="component_submitter.adaptors.docker_adaptor.DockerAdaptor.cleanup">
 <code class="descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/docker_adaptor.html#DockerAdaptor.cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.docker_adaptor.DockerAdaptor.cleanup" title="Permalink to this definition">¶</a></dt>
-<dd><p>Cleanup is a method that removes the associated Docker-Compose file from
-files/output_configs/</p>
+<dd><p>Remove the associated Compose file</p>
+<p>Removes output file created for this stack from <code class="docutils literal notranslate"><span class="pre">files/output_configs/</span></code></p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">A warning will be logged if the Compose file cannot be remove</p>
+<p class="last">A warning will be logged if the Compose file cannot be removed</p>
 </div>
 </dd></dl>
 
@@ -89,8 +109,8 @@ files/output_configs/</p>
 <dt id="component_submitter.adaptors.docker_adaptor.DockerAdaptor.execute">
 <code class="descname">execute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/docker_adaptor.html#DockerAdaptor.execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.docker_adaptor.DockerAdaptor.execute" title="Permalink to this definition">¶</a></dt>
 <dd><p>Deploy the stack onto the Swarm</p>
-<p>Executes the <cite>docker stack deploy</cite> command on the Docker-Compose file
-created in <cite>translate()</cite></p>
+<p>Executes the <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">stack</span> <span class="pre">deploy</span></code> command on the Docker-Compose file
+which was created in <code class="docutils literal notranslate"><span class="pre">translate()</span></code></p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -104,7 +124,7 @@ created in <cite>translate()</cite></p>
 <dl class="method">
 <dt id="component_submitter.adaptors.docker_adaptor.DockerAdaptor.translate">
 <code class="descname">translate</code><span class="sig-paren">(</span><em>tmp=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/docker_adaptor.html#DockerAdaptor.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.docker_adaptor.DockerAdaptor.translate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Translate the self.template subset to the Compose format</p>
+<dd><p>Translate the self.tpl subset to the Compose format</p>
 <p>Does the work of mapping the Docker relevant sections of TOSCA into a
 dictionary following the Docker-Compose format, then dumping output to
 a .yaml file in output_configs/</p>
@@ -112,7 +132,9 @@ a .yaml file in output_configs/</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body">AdaptorCritical</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tmp</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.6)"><em>bool</em></a>) – Set <code class="docutils literal notranslate"><span class="pre">True</span></code> for update() - outputfile gets prefix <code class="docutils literal notranslate"><span class="pre">tmp_</span></code></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body">AdaptorCritical</td>
 </tr>
 </tbody>
 </table>
@@ -122,8 +144,7 @@ a .yaml file in output_configs/</p>
 <dt id="component_submitter.adaptors.docker_adaptor.DockerAdaptor.undeploy">
 <code class="descname">undeploy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/docker_adaptor.html#DockerAdaptor.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.docker_adaptor.DockerAdaptor.undeploy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Undeploy the stack from Docker</p>
-<p>Runs <cite>docker stack down</cite> on the specified stack, removes the associated
-Docker-Compose file from output_configs/</p>
+<p>Runs <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">stack</span> <span class="pre">down</span></code> using the given ID to bring down the stack.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -137,8 +158,10 @@ Docker-Compose file from output_configs/</p>
 <dl class="method">
 <dt id="component_submitter.adaptors.docker_adaptor.DockerAdaptor.update">
 <code class="descname">update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/docker_adaptor.html#DockerAdaptor.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.docker_adaptor.DockerAdaptor.update" title="Permalink to this definition">¶</a></dt>
-<dd><p>Translate the template into a tmp file, differentiate the tmp with the current config
-if different move tmp file to old file, and execute.</p>
+<dd><p>Update an already deployed application stack with a changed ADT</p>
+<p>Translates the template into a <code class="docutils literal notranslate"><span class="pre">tmp</span></code> compose file, differentiates <code class="docutils literal notranslate"><span class="pre">tmp</span></code>
+with the current compose file. If different, replace current compose with
+<code class="docutils literal notranslate"><span class="pre">tmp</span></code> compose, and call execute().</p>
 </dd></dl>
 
 </dd></dl>
@@ -263,7 +286,7 @@ if different move tmp file to old file, and execute.</p>
 <li><a class="reference internal" href="#">component_submitter.adaptors package</a><ul>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#module-component_submitter.adaptors.docker_adaptor">component_submitter.adaptors.docker_adaptor module</a><ul>
-<li><a class="reference internal" href="#component-submitter-docker-adaptor">component_submitter.docker_adaptor</a></li>
+<li><a class="reference internal" href="#micado-submitter-engine-docker-adaptor">MiCADO Submitter Engine Docker Adaptor</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-component_submitter.adaptors.dummy_occopus_adaptor">component_submitter.adaptors.dummy_occopus_adaptor module</a></li>
@@ -319,7 +342,7 @@ if different move tmp file to old file, and execute.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
     </div>
   </body>
 </html>

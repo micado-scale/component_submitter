@@ -86,4 +86,4 @@ If you wish to undeploy a certain application, you will need to execute this com
 .. code-block:: python
     :linenos:
 
-    s.undeploy([ID of app wanted])
+    s.undeploy([ID of application stack to bring down])
