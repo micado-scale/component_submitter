@@ -38,8 +38,8 @@
             
   <h1>Source code for component_submitter.adaptors.docker_adaptor</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">component_submitter.docker_adaptor</span>
-<span class="sd">----------------------------------</span>
+<span class="sd">MiCADO Submitter Engine Docker Adaptor</span>
+<span class="sd">--------------------------------------</span>
 
 <span class="sd">A TOSCA to Docker (Swarm) adaptor.</span>
 <span class="sd">&quot;&quot;&quot;</span>
@@ -47,24 +47,26 @@
 <span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">json</span>
-
-<span class="kn">import</span> <span class="nn">utils</span>
-
-<span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">container_orchestrator</span> <span class="k">as</span> <span class="n">abco</span>
-<span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorError</span>
-<span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorCritical</span>
 <span class="kn">import</span> <span class="nn">filecmp</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 
+<span class="kn">from</span> <span class="nn">toscaparser.tosca_template</span> <span class="k">import</span> <span class="n">ToscaTemplate</span>
+
+<span class="kn">import</span> <span class="nn">utils</span>
+<span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">container_orchestrator</span> <span class="k">as</span> <span class="n">abco</span>
+<span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorCritical</span>
+
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;adaptors.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
 
+<span class="c1">#Some hard-coded TOSCA types that are relevant to Docker in this</span>
+<span class="c1">#implementation of MiCADO</span>
 <span class="n">DOCKER_THINGS</span> <span class="o">=</span> <span class="p">(</span><span class="n">DOCKER_CONTAINER</span><span class="p">,</span> <span class="n">DOCKER_NETWORK</span><span class="p">,</span> <span class="n">DOCKER_VOLUME</span><span class="p">,</span> <span class="n">DOCKER_IMAGE</span><span class="p">,</span>
                  <span class="n">CONNECT_PROP</span><span class="p">,</span> <span class="n">ATTACH_PROP</span><span class="p">)</span> <span class="o">=</span> \
                 <span class="p">(</span><span class="s2">&quot;tosca.nodes.MiCADO.Container.Application.Docker&quot;</span><span class="p">,</span>
                  <span class="s2">&quot;tosca.nodes.MiCADO.network.Network.Docker&quot;</span><span class="p">,</span>
                  <span class="s2">&quot;tosca.nodes.MiCADO.Volume.Docker&quot;</span><span class="p">,</span>
                  <span class="s2">&quot;tosca.artifacts.Deployment.Image.Container.Docker&quot;</span><span class="p">,</span>
-                 <span class="s2">&quot;network&quot;</span><span class="p">,</span><span class="s2">&quot;location&quot;</span><span class="p">)</span>
+                 <span class="s2">&quot;network&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DockerAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor">[docs]</a><span class="k">class</span> <span class="nc">DockerAdaptor</span><span class="p">(</span><span class="n">abco</span><span class="o">.</span><span class="n">ContainerAdaptor</span><span class="p">):</span>
 
@@ -74,80 +76,102 @@
 <span class="sd">    based on a description of an application provided by a YAML file which</span>
 <span class="sd">    follows the OpenStack TOSCA language specification.</span>
 
-<span class="sd">    Implements abstract methods ``translate``, ``execute`` and ``undeploy``.</span>
+<span class="sd">    Implements abstract methods ``__init__()``, ``translate()``, ``execute()``,</span>
+<span class="sd">    ``undeploy()`` and ``cleanup()``. Accepts as parameters an **adaptor_id**</span>
+<span class="sd">    (required) and a **template** (optional). The ``translate()`` and ``update()``</span>
+<span class="sd">    methods require both an **adaptor_id** and **template**. The ``execute()``,</span>
+<span class="sd">    ``undeploy()`` and ``cleanup()`` methods require only the **adaptor_id** .</span>
+
+<span class="sd">    :param string adaptor_id: The generated ID of the current application stack</span>
+<span class="sd">    :param template: The ADT / ToscaTemplate of the current application stack</span>
+<span class="sd">    :type template: ToscaTemplate &lt;toscaparser.tosca_template.ToscaTemplate&gt;</span>
 
 <span class="sd">    Usage:</span>
 <span class="sd">        &gt;&gt;&gt; from docker_adaptor import DockerAdaptor</span>
-<span class="sd">        &gt;&gt;&gt; container_adapt = DockerAdaptor()</span>
-<span class="sd">        &gt;&gt;&gt; container_adapt.translate(&lt;path_to_tosca_yaml&gt;)</span>
-<span class="sd">        &lt;UNIQUE_ID&gt;</span>
-<span class="sd">        &gt;&gt;&gt; container_adapt.execute(&lt;UNIQUE_ID&gt;)</span>
-<span class="sd">        (Stack deployed)</span>
-<span class="sd">        &gt;&gt;&gt; container_adapt.undeploy(&lt;UNIQUE_ID&gt;)</span>
-<span class="sd">        (Stack undeployed)</span>
+<span class="sd">        &gt;&gt;&gt; container_adapt = DockerAdaptor(&lt;adaptor_id&gt;, &lt;ToscaTemplate&gt;)</span>
+<span class="sd">        &gt;&gt;&gt; container_adapt.translate()</span>
+<span class="sd">            (writes compose file to file/output_configs/&lt;adaptor_id&gt;.yaml)</span>
+<span class="sd">        &gt;&gt;&gt; container_adapt.execute()</span>
+<span class="sd">            (stack deployed)</span>
+<span class="sd">        &gt;&gt;&gt; container_adapt.update()</span>
+<span class="sd">            (stack update if template is changed, otherwise nothing)</span>
+<span class="sd">        &gt;&gt;&gt; container_adapt.undeploy()</span>
+<span class="sd">            (stack undeployed)</span>
+<span class="sd">        &gt;&gt;&gt; container_adapt.cleanup()</span>
+<span class="sd">            (compose file removed from file/output_configs/)</span>
 
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">adaptor_id</span><span class="p">,</span> <span class="n">template</span> <span class="o">=</span> <span class="kc">None</span> <span class="p">):</span>
-
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Initialise the Docker adaptor&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adaptor_id</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Constructor method of the Adaptor as described above &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">template</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">ToscaTemplate</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Template is not a valid TOSCAParser object&quot;</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Initialising the Docker adaptor with ID &amp; TPL...&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">adaptor_id</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="n">template</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span> <span class="o">=</span> <span class="n">template</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;DockerAdaptor ready to go!&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DockerAdaptor.translate"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Translate the self.template subset to the Compose format</span>
+<div class="viewcode-block" id="DockerAdaptor.translate"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Translate the self.tpl subset to the Compose format</span>
 
 <span class="sd">        Does the work of mapping the Docker relevant sections of TOSCA into a</span>
 <span class="sd">        dictionary following the Docker-Compose format, then dumping output to</span>
 <span class="sd">        a .yaml file in output_configs/</span>
 
+<span class="sd">        :param bool tmp: Set ``True`` for update() - outputfile gets prefix ``tmp_``</span>
+
 <span class="sd">        :raises: AdaptorCritical</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting translation...&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting translation to compose...&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;version&quot;</span><span class="p">:</span><span class="s2">&quot;3.4&quot;</span><span class="p">}</span>
 
-        <span class="k">for</span> <span class="n">tpl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">DOCKER_CONTAINER</span> <span class="ow">in</span> <span class="n">tpl</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_get_properties</span><span class="p">(</span><span class="n">tpl</span><span class="p">,</span> <span class="s2">&quot;services&quot;</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_get_artifacts</span><span class="p">(</span><span class="n">tpl</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">repositories</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">DOCKER_CONTAINER</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;services&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_artifacts</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">repositories</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;services&quot;</span><span class="p">):</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;No TOSCA nodes of Docker type!&quot;</span><span class="p">)</span>
             <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;No TOSCA nodes of Docker type!&quot;</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">tpl</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">DOCKER_CONTAINER</span> <span class="ow">in</span> <span class="n">tpl</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_get_requirements</span><span class="p">(</span><span class="n">tpl</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">DOCKER_NETWORK</span> <span class="ow">in</span> <span class="n">tpl</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_get_properties</span><span class="p">(</span><span class="n">tpl</span><span class="p">,</span> <span class="s2">&quot;networks&quot;</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">DOCKER_VOLUME</span> <span class="ow">in</span> <span class="n">tpl</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_get_properties</span><span class="p">(</span><span class="n">tpl</span><span class="p">,</span> <span class="s2">&quot;volumes&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">DOCKER_CONTAINER</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_requirements</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">DOCKER_NETWORK</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;networks&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">DOCKER_VOLUME</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;volumes&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">tmp</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
-            <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="s2">&quot;files/output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;files/output_configs/</span><span class="si">{self.ID}</span><span class="s1">.yaml&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="s2">&quot;files/output_configs/tmp_</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span></div>
+            <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">f</span><span class="s1">&#39;files/output_configs/tmp_</span><span class="si">{self.ID}</span><span class="s1">.yaml&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="DockerAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Deploy the stack onto the Swarm</span>
 
-<span class="sd">        Executes the `docker stack deploy` command on the Docker-Compose file</span>
-<span class="sd">        created in `translate()`</span>
+<span class="sd">        Executes the ``docker stack deploy`` command on the Docker-Compose file</span>
+<span class="sd">        which was created in ``translate()``</span>
 
 <span class="sd">        :raises: AdaptorCritical</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Docker execution...&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Commented code makes dry-runs possible (no Docker in our test env)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="c1">#subprocess.run([&quot;docker&quot;, &quot;stack&quot;, &quot;deploy&quot;, &quot;--compose-file&quot;,</span>
-            <span class="c1"># &quot;output_configs/{}.yaml&quot;.format(self.ID), self.ID], check=True)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;subprocess.run([</span><span class="se">\&quot;</span><span class="s2">docker</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">stack</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">deploy</span><span class="se">\&quot;</span><span class="s2">, &quot;</span>
-             <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2">--compose-file</span><span class="se">\&quot;</span><span class="s2">, </span><span class="se">\&quot;</span><span class="s2">docker-compose.yaml</span><span class="se">\&quot;</span><span class="s2">, </span><span class="si">{}</span><span class="s2">], check=True)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+            <span class="c1">#f&#39;output_configs/{self.ID}.yaml&#39;, self.ID], check=True)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;subprocess.run([</span><span class="se">\&quot;</span><span class="s1">docker</span><span class="se">\&quot;</span><span class="s1">, </span><span class="se">\&quot;</span><span class="s1">stack</span><span class="se">\&quot;</span><span class="s1">, </span><span class="se">\&quot;</span><span class="s1">deploy</span><span class="se">\&quot;</span><span class="s1">, &#39;</span>
+                        <span class="n">f</span><span class="s1">&#39;</span><span class="se">\&quot;</span><span class="s1">--compose-file</span><span class="se">\&quot;</span><span class="s1">, </span><span class="se">\&quot;</span><span class="s1">docker-compose.yaml</span><span class="se">\&quot;</span><span class="s1">, &#39;</span>
+                        <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.ID}</span><span class="s1">], check=True)&#39;</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
             <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
@@ -157,104 +181,119 @@
 <div class="viewcode-block" id="DockerAdaptor.undeploy"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Undeploy the stack from Docker</span>
 
-<span class="sd">        Runs `docker stack down` on the specified stack, removes the associated</span>
-<span class="sd">        Docker-Compose file from output_configs/</span>
+<span class="sd">        Runs ``docker stack down`` using the given ID to bring down the stack.</span>
 
 <span class="sd">        :raises: AdaptorCritical</span>
-
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Undeploying the application&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Commented code is so for dry-runs (no Docker in test-env)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="c1">#subprocess.run([&quot;docker&quot;, &quot;stack&quot;, &quot;down&quot;, self.ID], check=True)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Undeploy application with ID: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Undeploy application with ID: </span><span class="si">{self.ID}</span><span class="s1">&#39;</span><span class="p">)</span>
         <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot undeploy the stack&quot;</span><span class="p">)</span>
             <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Cannot undeploy the stack&quot;</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Stack is down...&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DockerAdaptor.cleanup"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Cleanup is a method that removes the associated Docker-Compose file from</span>
-<span class="sd">        files/output_configs/</span>
+        <span class="sd">&quot;&quot;&quot; Remove the associated Compose file</span>
+
+<span class="sd">        Removes output file created for this stack from ``files/output_configs/``</span>
 
 <span class="sd">        .. note::</span>
-<span class="sd">          A warning will be logged if the Compose file cannot be remove</span>
+<span class="sd">          A warning will be logged if the Compose file cannot be removed</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Cleanup config for ID </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Cleanup config for ID </span><span class="si">{self.ID}</span><span class="s1">&#39;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;files/output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;files/output_configs/</span><span class="si">{self.ID}</span><span class="s1">.yaml&#39;</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DockerAdaptor.update"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Translate the template into a tmp file, differentiate the tmp with the current config</span>
-<span class="sd">            if different move tmp file to old file, and execute.</span>
+        <span class="sd">&quot;&quot;&quot; Update an already deployed application stack with a changed ADT</span>
+
+<span class="sd">        Translates the template into a ``tmp`` compose file, differentiates ``tmp``</span>
+<span class="sd">        with the current compose file. If different, replace current compose with</span>
+<span class="sd">        ``tmp`` compose, and call execute().</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;strating the update&quot;</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;creating temporary template&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting the update...&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating temporary template...&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_differentiate</span><span class="p">():</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;tmp file different than the config, moving the tmp file to the config and execute&quot;</span><span class="p">)</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">&quot;files/output_configs/tmp_</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">),</span> <span class="s2">&quot;files/output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;tmp file different, replacing old config and executing&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;files/output_configs/tmp_</span><span class="si">{self.ID}</span><span class="s1">.yaml&#39;</span><span class="p">,</span>
+                      <span class="n">f</span><span class="s1">&#39;files/output_configs/</span><span class="si">{self.ID}</span><span class="s1">.yaml&#39;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;tmp file is the same as the config file, then removing the tmp file&quot;</span><span class="p">)</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;files/output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;tmp file is the same, removing the tmp file&quot;</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;files/output_configs/tmp_</span><span class="si">{self.ID}</span><span class="s1">.yaml&#39;</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+
     <span class="k">def</span> <span class="nf">_get_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Get outputs and their resultant attributes &quot;&quot;&quot;</span>
-
         <span class="k">def</span> <span class="nf">get_attribute</span><span class="p">(</span><span class="n">service</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
             <span class="sd">&quot;&quot;&quot; Get attribute from a service &quot;&quot;&quot;</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="n">inspect</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_output</span><span class="p">(</span>
-                                    <span class="p">[</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;service&quot;</span><span class="p">,</span> <span class="s2">&quot;inspect&quot;</span><span class="p">,</span> <span class="n">service</span><span class="p">]</span> <span class="p">)</span>
+                    <span class="p">[</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;service&quot;</span><span class="p">,</span> <span class="s2">&quot;inspect&quot;</span><span class="p">,</span> <span class="n">service</span><span class="p">])</span>
                 <span class="p">[</span><span class="n">inspect</span><span class="p">]</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;UTF-8&#39;</span><span class="p">))</span>
             <span class="k">except</span> <span class="p">(</span><span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Cannot inspect the service </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">service</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Cannot inspect the service </span><span class="si">{service}</span><span class="s1">&#39;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">query</span> <span class="o">==</span> <span class="s2">&quot;ip_address&quot;</span><span class="p">:</span>
                     <span class="n">result</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Endpoint&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;VirtualIPs&quot;</span><span class="p">)</span>
                 <span class="k">elif</span> <span class="n">query</span> <span class="o">==</span> <span class="s2">&quot;port&quot;</span><span class="p">:</span>
                     <span class="n">result</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Endpoint&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Ports&quot;</span><span class="p">)</span>
 
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;[OUTPUT] Service: &lt;</span><span class="si">{}</span><span class="s2">&gt; Attr: &lt;</span><span class="si">{}</span><span class="s2">&gt;</span><span class="se">\n</span><span class="s2">  RESULT: </span><span class="si">{}</span><span class="s2">&quot;</span>
-                            <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">service</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">result</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;[OUTPUT] Service: &lt;</span><span class="si">{service}</span><span class="s1">&gt; Attr: &lt;</span><span class="si">{query}</span><span class="s1">&gt;</span><span class="se">\n</span><span class="s1">&#39;</span>
+                            <span class="n">f</span><span class="s1">&#39;RESULT: </span><span class="si">{result}</span><span class="s1">&#39;</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">outputs</span><span class="p">:</span>
             <span class="n">node</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">get_referenced_node_template</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">DOCKER_CONTAINER</span><span class="p">:</span>
-                <span class="n">service</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Inspect service: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">service</span><span class="p">))</span>
+                <span class="n">service</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.ID}</span><span class="s1">_</span><span class="si">{node.name}</span><span class="s1">&#39;</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Inspect service: </span><span class="si">{service}</span><span class="s1">&#39;</span><span class="p">)</span>
                 <span class="n">query</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">attribute_name</span>
+                <span class="c1">#Code commented for dry-runs....</span>
                 <span class="c1">#get_attribute(service, query)</span>
 
+    <span class="k">def</span> <span class="nf">_differentiate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Compare two compose files &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">filecmp</span><span class="o">.</span><span class="n">cmp</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;files/output_configs/</span><span class="si">{self.ID}</span><span class="s1">.yaml&#39;</span><span class="p">,</span>
+                           <span class="n">f</span><span class="s1">&#39;files/output_configs/tmp_</span><span class="si">{self.ID}</span><span class="s1">.yaml&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_get_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Get TOSCA properties &quot;&quot;&quot;</span>
         <span class="n">properties</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get_properties</span><span class="p">()</span>
         <span class="n">entry</span> <span class="o">=</span> <span class="p">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="p">{}}</span>
 
-        <span class="k">for</span> <span class="nb">property</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">entry</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="nb">property</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get_property_value</span><span class="p">(</span><span class="nb">property</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                <span class="n">entry</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="n">prop</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get_property_value</span><span class="p">(</span><span class="n">prop</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
             <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Error caught </span><span class="si">{}</span><span class="s2">, trying without .result()&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-                <span class="n">entry</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="nb">property</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get_property_value</span><span class="p">(</span><span class="nb">property</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Error caught </span><span class="si">{e}</span><span class="s1">, trying without .result()&#39;</span><span class="p">)</span>
+                <span class="n">entry</span><span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">][</span><span class="n">prop</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get_property_value</span><span class="p">(</span><span class="n">prop</span><span class="p">)</span>
 
         <span class="c1"># Write the compose data</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_create_compose_properties</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">entry</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_get_artifacts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tpl</span><span class="p">,</span> <span class="n">repositories</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_get_artifacts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">repositories</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Get TOSCA artifacts &quot;&quot;&quot;</span>
-        <span class="n">artifacts</span> <span class="o">=</span> <span class="n">tpl</span><span class="o">.</span><span class="n">entity_tpl</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;artifacts&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">artifacts</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">entity_tpl</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;artifacts&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;No artifacts found!&quot;</span><span class="p">)</span>
+
+        <span class="n">artifact</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">artifact</span> <span class="ow">in</span> <span class="n">artifacts</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">DOCKER_IMAGE</span> <span class="ow">in</span> <span class="n">artifact</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">):</span>
                 <span class="k">break</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;No artifact of type &lt;</span><span class="si">{}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">DOCKER_IMAGE</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;No artifact of type &lt;</span><span class="si">{DOCKER_IMAGE}</span><span class="s1">&gt;&#39;</span><span class="p">)</span>
 
         <span class="n">repository</span> <span class="o">=</span> <span class="n">artifact</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;repository&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">repository</span> <span class="ow">and</span> <span class="s2">&quot;docker_hub&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">repository</span><span class="p">:</span>
@@ -266,82 +305,77 @@
             <span class="n">repository</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 
         <span class="n">image</span> <span class="o">=</span> <span class="n">artifact</span><span class="p">[</span><span class="s2">&quot;file&quot;</span><span class="p">]</span>
-        <span class="n">image</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">repository</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{repository}{image}</span><span class="s1">&#39;</span>
 
         <span class="c1"># Write the compose data</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_create_compose_image</span><span class="p">(</span><span class="n">tpl</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_create_compose_image</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">_get_requirements</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tpl</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_get_requirements</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Get TOSCA requirements &quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">requirement</span> <span class="ow">in</span> <span class="n">tpl</span><span class="o">.</span><span class="n">requirements</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">requirement</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">requirements</span><span class="p">:</span>
             <span class="n">req_vals</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">requirement</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
             <span class="n">related_node</span> <span class="o">=</span> <span class="n">req_vals</span><span class="p">[</span><span class="s2">&quot;node&quot;</span><span class="p">]</span>
 
             <span class="c1">#disable HostedOn until fully implemented</span>
             <span class="k">if</span> <span class="s2">&quot;HostedOn&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">req_vals</span><span class="p">):</span>
-                <span class="c1">#self._create_compose_constraint(tpl.name, related_node)</span>
+                <span class="c1">#self._create_compose_constraint(node.name, related_node)</span>
                 <span class="k">pass</span>
+
             <span class="k">elif</span> <span class="s2">&quot;ConnectsTo&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">req_vals</span><span class="p">):</span>
                 <span class="n">connector</span> <span class="o">=</span> <span class="n">req_vals</span><span class="p">[</span><span class="s2">&quot;relationship&quot;</span><span class="p">][</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="n">CONNECT_PROP</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_create_compose_connection</span><span class="p">(</span><span class="n">tpl</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">related_node</span><span class="p">,</span> <span class="n">connector</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_create_compose_connection</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">related_node</span><span class="p">,</span> <span class="n">connector</span><span class="p">)</span>
+
             <span class="k">elif</span> <span class="s2">&quot;AttachesTo&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">req_vals</span><span class="p">):</span>
                 <span class="n">connector</span> <span class="o">=</span> <span class="n">req_vals</span><span class="p">[</span><span class="s2">&quot;relationship&quot;</span><span class="p">][</span><span class="s2">&quot;properties&quot;</span><span class="p">][</span><span class="n">ATTACH_PROP</span><span class="p">]</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_create_compose_volume</span><span class="p">(</span><span class="n">tpl</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">related_node</span><span class="p">,</span> <span class="n">connector</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_create_compose_volume</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">related_node</span><span class="p">,</span> <span class="n">connector</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_create_compose_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">image</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Create an image entry in the compose data &quot;&quot;&quot;</span>
-        <span class="c1"># Add the image entry under the service key</span>
+        <span class="sd">&quot;&quot;&quot; Create an image entry in the compose data under image: &quot;&quot;&quot;</span>
         <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;services&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="p">{})</span>
         <span class="k">if</span> <span class="s2">&quot;image&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">node</span><span class="p">:</span>
             <span class="n">node</span><span class="p">[</span><span class="s2">&quot;image&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">image</span>
 
     <span class="k">def</span> <span class="nf">_create_compose_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">entry</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Create an image entry in the compose data &quot;&quot;&quot;</span>
-        <span class="c1"># Add properties under the service key</span>
+        <span class="sd">&quot;&quot;&quot; Create entries in the compose data under properties: &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_create_compose_volume</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">volume</span><span class="p">,</span> <span class="n">location</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Create a volume entry in the compose data &quot;&quot;&quot;</span>
-        <span class="c1"># Add the entry under the volumes key</span>
+        <span class="sd">&quot;&quot;&quot; Create a volume entry in the compose data under volumes: &quot;&quot;&quot;</span>
         <span class="n">volume_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;volumes&quot;</span><span class="p">,</span> <span class="p">{})</span>
         <span class="k">if</span> <span class="n">volume</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">volume_key</span><span class="p">:</span>
             <span class="n">volume_key</span><span class="p">[</span><span class="n">volume</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
-        <span class="c1"># Add the entry for the volume under the current node</span>
-        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">[</span><span class="s2">&quot;services&quot;</span><span class="p">][</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;volumes&quot;</span><span class="p">,[])</span>
-        <span class="n">entry</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">volume</span><span class="p">,</span> <span class="n">location</span><span class="p">)</span>
+        <span class="c1"># Add the entry for the volume under the current node&#39;s key in compose</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">[</span><span class="s2">&quot;services&quot;</span><span class="p">][</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;volumes&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="si">{volume}</span><span class="s1">:</span><span class="si">{location}</span><span class="s1">&#39;</span>
         <span class="k">if</span> <span class="n">entry</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">node</span><span class="p">:</span>
             <span class="n">node</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_create_compose_connection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">network</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Create a network entry in the compose data &quot;&quot;&quot;</span>
-        <span class="c1"># Add the entry under the networks key</span>
+        <span class="sd">&quot;&quot;&quot; Create a network entry in the compose data under networks: &quot;&quot;&quot;</span>
         <span class="n">network_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;networks&quot;</span><span class="p">,</span> <span class="p">{})</span>
         <span class="k">if</span> <span class="n">network</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">network_key</span><span class="p">:</span>
             <span class="n">network_key</span><span class="p">[</span><span class="n">network</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;driver&quot;</span><span class="p">:</span><span class="s2">&quot;overlay&quot;</span><span class="p">}</span>
 
-        <span class="c1"># Add the entry for the network under the current node</span>
-        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">[</span><span class="s2">&quot;services&quot;</span><span class="p">][</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;networks&quot;</span><span class="p">,[])</span>
+        <span class="c1"># Add the entry for the network under the current node&#39;s key in compose</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">[</span><span class="s2">&quot;services&quot;</span><span class="p">][</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;networks&quot;</span><span class="p">,</span> <span class="p">[])</span>
         <span class="k">if</span> <span class="n">network</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">node</span><span class="p">:</span>
             <span class="n">node</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">network</span><span class="p">)</span>
 
-        <span class="c1"># Add the entry for the network under the target node</span>
-        <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">[</span><span class="s2">&quot;services&quot;</span><span class="p">][</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;networks&quot;</span><span class="p">,[])</span>
+        <span class="c1"># Add the entry for the network under the target node&#39;s key in compose</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">[</span><span class="s2">&quot;services&quot;</span><span class="p">][</span><span class="n">target</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;networks&quot;</span><span class="p">,</span> <span class="p">[])</span>
         <span class="k">if</span> <span class="n">network</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">target</span><span class="p">:</span>
             <span class="n">target</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">network</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_create_compose_constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">host</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Create a constraint entry in the compose data &quot;&quot;&quot;</span>
-        <span class="c1"># Add the constraint under services key</span>
-        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">[</span><span class="s2">&quot;services&quot;</span><span class="p">][</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;deploy&quot;</span><span class="p">,{})</span> \
-                                                  <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;placement&quot;</span><span class="p">,{})</span> \
-                                                  <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;constraints&quot;</span><span class="p">,[])</span>
-        <span class="n">entry</span> <span class="o">=</span> <span class="s2">&quot;node.labels.host == </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
+        <span class="c1"># Add the constraint under services key for the relevant node</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">[</span><span class="s2">&quot;services&quot;</span><span class="p">][</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;deploy&quot;</span><span class="p">,</span> <span class="p">{})</span> \
+                                                  <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;placement&quot;</span><span class="p">,</span> <span class="p">{})</span> \
+                                                  <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;constraints&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;node.labels.host == </span><span class="si">{host}</span><span class="s1">&#39;</span>
         <span class="k">if</span> <span class="n">entry</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">node</span><span class="p">:</span>
-            <span class="n">node</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_differentiate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">filecmp</span><span class="o">.</span><span class="n">cmp</span><span class="p">(</span><span class="s2">&quot;files/output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">),</span><span class="s2">&quot;files/output_configs/tmp_</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span></div>
+            <span class="n">node</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span></div>
 </pre></div>
 
           </div>
@@ -380,7 +414,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
     </div>
   </body>
 </html>
