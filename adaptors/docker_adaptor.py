@@ -74,6 +74,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         self.compose_data = {}
         self.ID = adaptor_id
         self.tpl = template
+        self.output = dict()
         logger.info("DockerAdaptor ready to go!")
 
     def translate(self, tmp=False):
@@ -137,7 +138,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
             logger.error("Cannot execute Docker")
             raise AdaptorCritical("Cannot execute Docker")
         logger.info("Docker running, trying to get outputs...")
-        #self._get_outputs()
+        self._get_outputs()
 
     def undeploy(self):
         """ Undeploy the stack from Docker
@@ -194,14 +195,18 @@ class DockerAdaptor(abco.ContainerAdaptor):
             except OSError as e:
                 logger.warning(e)
 
+        self._get_outputs()
+
+
     def _get_outputs(self):
         """ Get outputs and their resultant attributes """
         def get_attribute(service, query):
             """ Get attribute from a service """
             try:
-                inspect = subprocess.check_output(
-                    ["docker", "service", "inspect", service])
-                [inspect] = json.loads(inspect.decode('UTF-8'))
+            #    inspect = subprocess.check_output(
+            #                        ["docker", "service", "inspect", service] )
+            #    [inspect] = json.loads(inspect.decode('UTF-8'))
+                inspect = {"Endpoint": {"VirtualIPs": "120.12.12.12", "Ports":"120"}}
             except (subprocess.CalledProcessError, TypeError):
                 logger.warning(f'Cannot inspect the service {service}')
             else:
@@ -210,8 +215,9 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 elif query == "port":
                     result = inspect.get("Endpoint").get("Ports")
 
-                logger.info(f'[OUTPUT] Service: <{service}> Attr: <{query}>\n'
-                            f'RESULT: {result}')
+                logger.info("[OUTPUT] Service: <{}> Attr: <{}>\n  RESULT: {}"
+                            .format(service, query, result))
+                self.output.update({query:{"service": service, "result": result}})
 
         for output in self.tpl.outputs:
             node = output.value.get_referenced_node_template()
@@ -219,8 +225,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 service = f'{self.ID}_{node.name}'
                 logger.debug(f'Inspect service: {service}')
                 query = output.value.attribute_name
-                #Code commented for dry-runs....
-                #get_attribute(service, query)
+                get_attribute(service, query)
 
     def _differentiate(self):
         """ Compare two compose files """

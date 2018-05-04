@@ -49,7 +49,7 @@ class SubmitterEngine(object):
                 self.app_list = json.load(json_data)
         except FileNotFoundError:
             logger.debug("file {} doesn't exist so isntantiation of empty directory of app_list".format(JSON_FILE))
-            self.app_list = list()
+            self.app_list = dict()
 
         self.adaptors_class_name = []
         self._get_adaptors_class()
@@ -80,11 +80,11 @@ class SubmitterEngine(object):
         object_adaptors = self._instantiate_adaptors(id_app, template)
         logger.debug("list of objects adaptor: {}".format(object_adaptors))
         #self._save_file(id_app, path_to_file)
-        self.app_list.append(id_app)
+        self.app_list.update({id_app: ""})
         self._update_json()
         logger.info("dictionnaty of id is: {}".format(self.app_list))
 
-        self._engine(object_adaptors, template)
+        self._engine(object_adaptors, template, id_app)
         return id_app
 
     def undeploy(self, id_app):
@@ -101,7 +101,7 @@ class SubmitterEngine(object):
             self._undeploy(adaptor)
 
         self._cleanup(id_app, adaptors)
-        self.app_list.remove(id_app)
+        self.app_list.pop(id_app)
         self._update_json()
 
 
@@ -127,9 +127,9 @@ class SubmitterEngine(object):
 
         object_adaptors = self._instantiate_adaptors(id_app, template)
         logger.debug("list of adaptor created: {}".format(object_adaptors))
-        self._update(object_adaptors)
+        self._update(object_adaptors, id_app)
 
-    def _engine(self,adaptors, template):
+    def _engine(self,adaptors, template, app_id):
         """ Engine itself. Creates first a id, then parse the input file. Instantiate the
         mapper. Retreive the list of id created by the translate methods of the adaptors.
         Excute those id in their respective adaptor. Update the app_list and the json file.
@@ -137,7 +137,7 @@ class SubmitterEngine(object):
         try:
 
             self._translate(adaptors)
-            executed_adaptors = self._execute(adaptors)
+            executed_adaptors = self._execute(app_id, adaptors)
 
 
         except MultiError as e:
@@ -216,19 +216,31 @@ class SubmitterEngine(object):
             while True:
                 try:
 
-                    Step(adaptor).translate()
+                    #Step(adaptor).translate()
+                    adaptor.translate()
 
                 except AdaptorError as e:
                     continue
                 break
 
-    def _execute(self, adaptors):
+    def _execute(self, app_id, adaptors):
         """ method called by the engine to launch the adaptors execute methods """
         logger.info("launch of the execute methods in each adaptors in a serial way")
         executed_adaptors = []
         for adaptor in adaptors:
                 logger.debug("\t execute adaptor: {}".format(adaptor))
-                Step(adaptor).execute()
+                #Step(adaptor).execute()
+                adaptor.execute()
+                try:
+                    #self.app_list.update(app_id, Step(adaptor).output)
+                    #self.app_list.update(app_id, adaptor.output)
+                    self.app_list[app_id] = adaptor.output
+
+                except AttributeError as e:
+                    logger.warning("the Adaptor doesn't provide a output attribute")
+
+        self._update_json()
+
         return executed_adaptors.append(adaptor)
 
 
@@ -236,13 +248,21 @@ class SubmitterEngine(object):
     def _undeploy(self, adaptor):
         """ method called by the engine to launch the adaptor undeploy method of a specific component identified by its ID"""
         logger.info("undeploying component")
-        Step(adaptor).undeploy()
-
-    def _update(self, adaptors):
+        #Step(adaptor).undeploy()
+        adaptor.undeploy()
+    def _update(self, adaptors, app_id):
         """ method that will translate first the new component and then see if there's a difference, and then execute"""
         logger.info("update of each components related to the application wanted")
         for adaptor in adaptors:
-            Step(adaptor).update()
+            #Step(adaptor).update()
+            adaptor.update()
+            try:
+                #self.app_list.update(app_id, Step(adaptor).output)
+                self.app_list.update(app_id, adaptor.output)
+            except AttributeError as e:
+                logger.warning("the Adaptor doesn't provide a output attribute")
+        self._update_json()
+
 
 
     def _cleanup(self, id, adaptors):
@@ -251,7 +271,8 @@ class SubmitterEngine(object):
 
         logger.info("cleaning up the file after undeployment")
         for adaptor in reversed(adaptors):
-            Step(adaptor).cleanup()
+            #Step(adaptor).cleanup()
+            adaptor.cleanup()
 
     def _update_json(self):
         """ method called by the engine to update the json file that will contain the dictionary of the IDs of the applications
