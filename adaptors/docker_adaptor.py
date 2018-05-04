@@ -58,6 +58,8 @@ class DockerAdaptor(abco.ContainerAdaptor):
             self.ID = adaptor_id
 
         self.template = template
+        logger.info("*******************")
+        logger.info(self.template.nodetemplates[0].entity_tpl)
         logger.info("DockerAdaptor ready to go!")
 
     def translate(self):
