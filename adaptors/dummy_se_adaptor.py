@@ -1,4 +1,4 @@
-import utils
+
 from abstracts import securityenforcer as abco
 import logging
 logger=logging.getLogger("adaptor."+__name__)
@@ -6,13 +6,10 @@ logger=logging.getLogger("adaptor."+__name__)
 
 class DummySeAdaptor(abco.SecurityEnforcerAdaptor):
 
-    def __init__(self, template = None, adaptor_id = None):
+    def __init__(self, adaptor_id, template = None):
         super().__init__()
 
-        if adaptor_id is None:
-            self.ID = utils.id_generator()
-        else:
-            self.ID = adaptor_id
+        self.ID = adaptor_id
         self.template = template
 
 
@@ -34,6 +31,6 @@ class DummySeAdaptor(abco.SecurityEnforcerAdaptor):
 
         logger.info("cleaning up for Security Enforcer id {}".format(self.ID))
 
-    def update(self, template):
+    def update(self):
 
         logger.info("updating the component config {}".format(self.ID))

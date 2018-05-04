@@ -45,11 +45,11 @@ class SubmitterEngine(object):
 
         try:
             with open(JSON_FILE, 'r') as json_data:
-                logger.debug("instantiation of dictionary app_dict with {}".format(JSON_FILE))
-                self.app_dict = json.load(json_data)
+                logger.debug("instantiation of dictionary app_list with {}".format(JSON_FILE))
+                self.app_list = json.load(json_data)
         except FileNotFoundError:
-            logger.debug("file {} doesn't exist so isntantiation of empty directory of app_dict".format(JSON_FILE))
-            self.app_dict = dict()
+            logger.debug("file {} doesn't exist so isntantiation of empty directory of app_list".format(JSON_FILE))
+            self.app_list = list()
 
         self.adaptors_class_name = []
         self._get_adaptors_class()
@@ -71,15 +71,18 @@ class SubmitterEngine(object):
         """
         logger.info("Launching the application located there {}".format(path_to_file))
         template = self._micado_parser_upload(path_to_file, parsed_params)
+        self.template = template
+        tpl = self._mapper_instantiation(template)
+
 
         id_app = utils.id_generator()
-        ids, object_adaptors = self._instantiate_adaptors(id_app, template)
+
+        object_adaptors = self._instantiate_adaptors(id_app, template)
         logger.debug("list of objects adaptor: {}".format(object_adaptors))
         #self._save_file(id_app, path_to_file)
-        logger.debug("list of ids is: {}".format(ids))
-        self.app_dict.update({id_app: ids})
+        self.app_list.append(id_app)
         self._update_json()
-        logger.info("dictionnaty of id is: {}".format(self.app_dict))
+        logger.info("dictionnaty of id is: {}".format(self.app_list))
 
         self._engine(object_adaptors, template)
         return id_app
@@ -91,20 +94,14 @@ class SubmitterEngine(object):
         :type: string
         """
         logger.info("proceding to the undeployment of the application")
-        adaptors = self._instantiate_adaptors(id_app, app_ids=self.app_dict[id_app])
+        adaptors = self._instantiate_adaptors(id_app)
         logger.debug("{}".format(adaptors))
-        try:
-            for adaptor in reversed(adaptors):
-                for item in self.app_dict[id_app]:
-                    logger.debug("{}    {}".format(item, adaptor.__class__.__name__))
-                    if adaptor.__class__.__name__ in item:
 
-                        self._undeploy(adaptor)
-        except KeyError as e:
-            logger.error("no {} found in list of id".format(id_app))
-            return
+        for adaptor in reversed(adaptors):
+            self._undeploy(adaptor)
+
         self._cleanup(id_app, adaptors)
-        self.app_dict.pop(id_app, None)
+        self.app_list.remove(id_app)
         self._update_json()
 
 
@@ -126,18 +123,19 @@ class SubmitterEngine(object):
 
         logger.info("proceding to the update of the application {}".format(id_app))
         template = self._micado_parser_upload(path_to_file, parsed_params)
-        object_adaptors = self._instantiate_adaptors(id_app, template, self.app_dict[id_app])
+        key_lists = self._mapper_instantiation(template)
+
+        object_adaptors = self._instantiate_adaptors(id_app, template)
         logger.debug("list of adaptor created: {}".format(object_adaptors))
-        self._update(template, object_adaptors)
+        self._update(object_adaptors)
 
     def _engine(self,adaptors, template):
         """ Engine itself. Creates first a id, then parse the input file. Instantiate the
         mapper. Retreive the list of id created by the translate methods of the adaptors.
-        Excute those id in their respective adaptor. Update the app_dict and the json file.
+        Excute those id in their respective adaptor. Update the app_list and the json file.
         """
         try:
 
-            key_lists = self._mapper_instantiation(template)
             self._translate(adaptors)
             executed_adaptors = self._execute(adaptors)
 
@@ -165,7 +163,7 @@ class SubmitterEngine(object):
         logger.debug("instantiation of mapper and retrieve keylists")
         mapper = Mapper(template)
         keylists = mapper.keylists
-        return keylists
+        return mapper.topology
 
     def _get_adaptors_class(self):
         """ Retrieve the list of the differrent class adaptors """
@@ -178,43 +176,34 @@ class SubmitterEngine(object):
             self.adaptors_class_name.append(adaptor)
         logger.debug("list of adaptors instantiated: {}".format(self.adaptors_class_name))
 
-    def _instantiate_adaptors(self, app_id, template = None , app_ids = None):
+    def _instantiate_adaptors(self, app_id, template = None):
         """ Instantiate the list of adaptors from the adaptors class list
 
             :params app_id: id of the application
             :params app_ids: list of ids to specify the adaptors (can be None)
             :params template: template of the application
 
-            if provide list of adaptors object ids
+            if provide list of adaptors object and app_id
 
             :returns: list of adaptors
-            else if app_ids is None
-            :returns: list of ids and list of adaptors object
+
         """
         adaptors = []
 
-        if app_ids is None and template is not None:
-            ids = []
+        if template is not None:
             for adaptor in self.adaptors_class_name:
                 logger.debug("instantiate {}".format(adaptor))
-                obj = adaptor(template = template)
-                ids.append("{}_{}_{}".format(app_id, obj.__class__.__name__, obj.ID))
+                adaptor_id="{}_{}".format(app_id, adaptor.__name__)
+                obj = adaptor(adaptor_id, template = template)
                 adaptors.append(obj)
-            return ids, adaptors
-
-        elif app_ids is not None and template is not None:
-            ids = app_ids
-            for adaptor in self.adaptors_class_name:
-                for item in ids:
-                    if adaptor.__name__ in item:
-                        adaptors.append(adaptor(template = template, adaptor_id = item.split("_",2)[2]))
             return adaptors
-        elif app_ids is not None and template is None:
-            ids = app_ids
+
+        elif template is None:
             for adaptor in self.adaptors_class_name:
-                for item in ids:
-                    if adaptor.__name__ in item:
-                        adaptors.append(adaptor(adaptor_id=item.split("_", 2)[2]))
+                logger.debug("instantiate {}".format(adaptor))
+                adaptor_id="{}_{}".format(app_id, adaptor.__name__)
+                obj = adaptor(adaptor_id, template = template)
+                adaptors.append(obj)
             return adaptors
 
 
@@ -249,11 +238,11 @@ class SubmitterEngine(object):
         logger.info("undeploying component")
         Step(adaptor).undeploy()
 
-    def _update(self, template, adaptors):
+    def _update(self, adaptors):
         """ method that will translate first the new component and then see if there's a difference, and then execute"""
         logger.info("update of each components related to the application wanted")
         for adaptor in adaptors:
-            Step(adaptor).update(template)
+            Step(adaptor).update()
 
 
     def _cleanup(self, id, adaptors):
@@ -262,9 +251,7 @@ class SubmitterEngine(object):
 
         logger.info("cleaning up the file after undeployment")
         for adaptor in reversed(adaptors):
-            for item in self.app_dict[id]:
-                if adaptor.__class__.__name__ in item:
-                    Step(adaptor).cleanup()
+            Step(adaptor).cleanup()
 
     def _update_json(self):
         """ method called by the engine to update the json file that will contain the dictionary of the IDs of the applications
@@ -273,7 +260,7 @@ class SubmitterEngine(object):
         """
         try:
             with open(JSON_FILE, 'w') as outfile:
-                json.dump(self.app_dict, outfile)
+                json.dump(self.app_list, outfile)
         except Exception as e:
             logger.warning("{}".format(e))
 

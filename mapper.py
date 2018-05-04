@@ -4,6 +4,7 @@
 from key_lists import KeyLists
 from toscaparser.functions import GetInput
 import logging
+import utils
 logger=logging.getLogger("submitter."+__name__)
 
 class Mapper(object):
@@ -13,14 +14,14 @@ class Mapper(object):
         logger.debug("in init of Mapper")
         self.topology = topology
         logger.debug("look for get_input in the template")
-        self._find_get_input(self.topology.tpl)
+        self._find_get_input(topology.tpl)
         #self._orchestrator_selection()
         self.keylists = KeyLists().set_dictionary(topology)
 
 
     def _find_get_input(self,template):
         for key, value in template.items():
-            if isinstance(value,dict):
+            if isinstance(value, dict):
                 logger.debug("sub dictionary found, look through this to find \"get_input\"")
                 result = self._find_get_input(value)
                 if result is not None:
@@ -47,7 +48,7 @@ class Mapper(object):
             try:
                 if isinstance(self.topology.parsed_params, dict):
                     if self.topology.parsed_params[key]:
-                        return self.topology.parsed_params
+                        return self.topology.parsed_params[key]
             except KeyError as j:
                 logger.error("{} no {} in parsed_params".format(j,key))
 

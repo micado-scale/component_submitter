@@ -1,4 +1,3 @@
-import utils
 
 from abstracts import policykeeper as abco
 import logging
@@ -6,13 +5,10 @@ logger=logging.getLogger("adaptor."+__name__)
 
 class DummyPkAdaptor(abco.PolicyKeeperAdaptor):
 
-    def __init__(self, template = None, adaptor_id = None):
+    def __init__(self, adaptor_id,  template = None):
 
         super().__init__()
-        if adaptor_id is None:
-            self.ID = utils.id_generator()
-        else:
-            self.ID = adaptor_id
+        self.ID = adaptor_id
         self.templates = template
         logger.info("PKAdaptor initialised")
 
@@ -32,6 +28,6 @@ class DummyPkAdaptor(abco.PolicyKeeperAdaptor):
 
         logger.info("cleaning up pk id {}".format(self.ID))
 
-    def update(self, template):
+    def update(self):
 
         logger.info("updating the component config {}".format(self.ID))

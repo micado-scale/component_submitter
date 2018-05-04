@@ -1,6 +1,6 @@
 """
 MiCADO Submission Engine TOSCA Validator
--------------------------------------
+-----------------------------------------
 
 Validate ToscaTemplate objects to ensure syntactic and semantic compatibility
 with custom defined and TOSCA normative types.

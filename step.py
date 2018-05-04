@@ -37,9 +37,9 @@ class Step():
             logger.critical("{}".format(e))
             logger.info("nothing to be deployed")
             raise
-    def update(self, template):
+    def update(self):
         try:
-            self.object.update(template)
+            self.object.update()
         except AdaptorCritical as e:
             logger.critical("critical error catched {}".format(e))
             raise

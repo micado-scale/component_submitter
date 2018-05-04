@@ -48,38 +48,27 @@
 </div>
 <div class="section" id="module-component_submitter.adaptors.docker_adaptor">
 <span id="component-submitter-adaptors-docker-adaptor-module"></span><h2>component_submitter.adaptors.docker_adaptor module<a class="headerlink" href="#module-component_submitter.adaptors.docker_adaptor" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="micado-submitter-engine-docker-adaptor">
-<h3>MiCADO Submitter Engine Docker Adaptor<a class="headerlink" href="#micado-submitter-engine-docker-adaptor" title="Permalink to this headline">¶</a></h3>
-<p>A TOSCA to Docker (Swarm) adaptor for the MiCADO submission engine.</p>
+<div class="section" id="component-submitter-docker-adaptor">
+<h3>component_submitter.docker_adaptor<a class="headerlink" href="#component-submitter-docker-adaptor" title="Permalink to this headline">¶</a></h3>
+<p>A TOSCA to Docker (Swarm) adaptor.</p>
 <dl class="class">
 <dt id="component_submitter.adaptors.docker_adaptor.DockerAdaptor">
-<em class="property">class </em><code class="descclassname">component_submitter.adaptors.docker_adaptor.</code><code class="descname">DockerAdaptor</code><span class="sig-paren">(</span><em>template=None</em>, <em>adaptor_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/docker_adaptor.html#DockerAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.docker_adaptor.DockerAdaptor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">component_submitter.adaptors.docker_adaptor.</code><code class="descname">DockerAdaptor</code><span class="sig-paren">(</span><em>adaptor_id</em>, <em>template=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/docker_adaptor.html#DockerAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.docker_adaptor.DockerAdaptor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abstracts.container_orchestrator.ContainerAdaptor</span></code></p>
 <p>The Docker adaptor class</p>
 <p>Carries out the deployment of a Dockerised application or application stack
 based on a description of an application provided by a YAML file which
 follows the OpenStack TOSCA language specification.</p>
 <p>Implements abstract methods <code class="docutils literal notranslate"><span class="pre">translate</span></code>, <code class="docutils literal notranslate"><span class="pre">execute</span></code> and <code class="docutils literal notranslate"><span class="pre">undeploy</span></code>.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>template</strong> (<em>ToscaTemplate &lt;toscaparser.tosca_template.ToscaTemplate&gt;</em><em> or </em><em>None</em>) – The ToscaTemplate for this instance of the adaptor</li>
-<li><strong>adaptor_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.6)"><em>str</em></a>) – The ID of the stack for this instance of the adaptor</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
 <dl class="docutils">
 <dt>Usage:</dt>
 <dd><div class="first last highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">docker_adaptor</span> <span class="k">import</span> <span class="n">DockerAdaptor</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span> <span class="o">=</span> <span class="n">DockerAdaptor</span><span class="p">(</span><span class="o">&lt;</span><span class="n">path_to_tosca_yaml</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">adaptor_id</span><span class="o">&gt;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span> <span class="o">=</span> <span class="n">DockerAdaptor</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="o">&lt;</span><span class="n">path_to_tosca_yaml</span><span class="o">&gt;</span><span class="p">)</span>
+<span class="go">&lt;UNIQUE_ID&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="o">&lt;</span><span class="n">UNIQUE_ID</span><span class="o">&gt;</span><span class="p">)</span>
 <span class="go">(Stack deployed)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">undeploy</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">undeploy</span><span class="p">(</span><span class="o">&lt;</span><span class="n">UNIQUE_ID</span><span class="o">&gt;</span><span class="p">)</span>
 <span class="go">(Stack undeployed)</span>
 </pre></div>
 </div>
@@ -114,7 +103,7 @@ created in <cite>translate()</cite></p>
 
 <dl class="method">
 <dt id="component_submitter.adaptors.docker_adaptor.DockerAdaptor.translate">
-<code class="descname">translate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/docker_adaptor.html#DockerAdaptor.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.docker_adaptor.DockerAdaptor.translate" title="Permalink to this definition">¶</a></dt>
+<code class="descname">translate</code><span class="sig-paren">(</span><em>tmp=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/docker_adaptor.html#DockerAdaptor.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.docker_adaptor.DockerAdaptor.translate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Translate the self.template subset to the Compose format</p>
 <p>Does the work of mapping the Docker relevant sections of TOSCA into a
 dictionary following the Docker-Compose format, then dumping output to
@@ -148,7 +137,9 @@ Docker-Compose file from output_configs/</p>
 <dl class="method">
 <dt id="component_submitter.adaptors.docker_adaptor.DockerAdaptor.update">
 <code class="descname">update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/docker_adaptor.html#DockerAdaptor.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.docker_adaptor.DockerAdaptor.update" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Translate the template into a tmp file, differentiate the tmp with the current config
+if different move tmp file to old file, and execute.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -158,7 +149,7 @@ Docker-Compose file from output_configs/</p>
 <span id="component-submitter-adaptors-dummy-occopus-adaptor-module"></span><h2>component_submitter.adaptors.dummy_occopus_adaptor module<a class="headerlink" href="#module-component_submitter.adaptors.dummy_occopus_adaptor" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor">
-<em class="property">class </em><code class="descclassname">component_submitter.adaptors.dummy_occopus_adaptor.</code><code class="descname">DummyOccopusAdaptor</code><span class="sig-paren">(</span><em>template=None</em>, <em>adaptor_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_occopus_adaptor.html#DummyOccopusAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">component_submitter.adaptors.dummy_occopus_adaptor.</code><code class="descname">DummyOccopusAdaptor</code><span class="sig-paren">(</span><em>adaptor_id</em>, <em>template=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_occopus_adaptor.html#DummyOccopusAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abstracts.cloudorchestrator.CloudAdaptor</span></code></p>
 <dl class="method">
 <dt id="component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor.cleanup">
@@ -192,7 +183,7 @@ Docker-Compose file from output_configs/</p>
 <span id="component-submitter-adaptors-dummy-pk-adaptor-module"></span><h2>component_submitter.adaptors.dummy_pk_adaptor module<a class="headerlink" href="#module-component_submitter.adaptors.dummy_pk_adaptor" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="component_submitter.adaptors.dummy_pk_adaptor.DummyPkAdaptor">
-<em class="property">class </em><code class="descclassname">component_submitter.adaptors.dummy_pk_adaptor.</code><code class="descname">DummyPkAdaptor</code><span class="sig-paren">(</span><em>template=None</em>, <em>adaptor_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_pk_adaptor.html#DummyPkAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_pk_adaptor.DummyPkAdaptor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">component_submitter.adaptors.dummy_pk_adaptor.</code><code class="descname">DummyPkAdaptor</code><span class="sig-paren">(</span><em>adaptor_id</em>, <em>template=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_pk_adaptor.html#DummyPkAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_pk_adaptor.DummyPkAdaptor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abstracts.policykeeper.PolicyKeeperAdaptor</span></code></p>
 <dl class="method">
 <dt id="component_submitter.adaptors.dummy_pk_adaptor.DummyPkAdaptor.cleanup">
@@ -226,7 +217,7 @@ Docker-Compose file from output_configs/</p>
 <span id="component-submitter-adaptors-dummy-se-adaptor-module"></span><h2>component_submitter.adaptors.dummy_se_adaptor module<a class="headerlink" href="#module-component_submitter.adaptors.dummy_se_adaptor" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor">
-<em class="property">class </em><code class="descclassname">component_submitter.adaptors.dummy_se_adaptor.</code><code class="descname">DummySeAdaptor</code><span class="sig-paren">(</span><em>template=None</em>, <em>adaptor_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_se_adaptor.html#DummySeAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">component_submitter.adaptors.dummy_se_adaptor.</code><code class="descname">DummySeAdaptor</code><span class="sig-paren">(</span><em>adaptor_id</em>, <em>template=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_se_adaptor.html#DummySeAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abstracts.securityenforcer.SecurityEnforcerAdaptor</span></code></p>
 <dl class="method">
 <dt id="component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.cleanup">
@@ -272,7 +263,7 @@ Docker-Compose file from output_configs/</p>
 <li><a class="reference internal" href="#">component_submitter.adaptors package</a><ul>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#module-component_submitter.adaptors.docker_adaptor">component_submitter.adaptors.docker_adaptor module</a><ul>
-<li><a class="reference internal" href="#micado-submitter-engine-docker-adaptor">MiCADO Submitter Engine Docker Adaptor</a></li>
+<li><a class="reference internal" href="#component-submitter-docker-adaptor">component_submitter.docker_adaptor</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-component_submitter.adaptors.dummy_occopus_adaptor">component_submitter.adaptors.dummy_occopus_adaptor module</a></li>
@@ -328,7 +319,7 @@ Docker-Compose file from output_configs/</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>

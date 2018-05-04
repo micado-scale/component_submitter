@@ -41,13 +41,15 @@
 <span class="kn">import</span> <span class="nn">yaml</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">collections</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="n">logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;submitter.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
-
+<span class="kn">import</span> <span class="nn">utils</span>
 <span class="n">CONFIG_FILE</span> <span class="o">=</span> <span class="s2">&quot;system/key_config.yml&quot;</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="n">logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;submitter.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
 
 <div class="viewcode-block" id="KeyLists"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.key_lists.KeyLists">[docs]</a><span class="k">class</span> <span class="nc">KeyLists</span><span class="p">():</span>
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
       <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;initialisation of KeyLists class&quot;</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">keys</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
       <span class="c1">#self.template = template</span>
@@ -236,7 +238,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>
