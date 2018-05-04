@@ -57,6 +57,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         self.compose_data = {}
         self.ID = adaptor_id
         self.template = template
+        self.output = dict()
         logger.info("DockerAdaptor ready to go!")
 
     def translate(self, tmp = False):
@@ -113,7 +114,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
             logger.error("Cannot execute Docker")
             raise AdaptorCritical("Cannot execute Docker")
         logger.info("Docker running, trying to get outputs...")
-        #self._get_outputs()
+        self._get_outputs()
 
     def undeploy(self):
         """ Undeploy the stack from Docker
@@ -164,15 +165,20 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 os.remove("files/output_configs/{}.yaml".format(self.ID))
             except OSError as e:
                 logger.warning(e)
+
+        self._get_outputs()
+
+
     def _get_outputs(self):
         """ Get outputs and their resultant attributes """
 
         def get_attribute(service, query):
             """ Get attribute from a service """
             try:
-                inspect = subprocess.check_output(
-                                    ["docker", "service", "inspect", service] )
-                [inspect] = json.loads(inspect.decode('UTF-8'))
+            #    inspect = subprocess.check_output(
+            #                        ["docker", "service", "inspect", service] )
+            #    [inspect] = json.loads(inspect.decode('UTF-8'))
+                inspect = {"Endpoint": {"VirtualIPs": "120.12.12.12", "Ports":"120"}}
             except (subprocess.CalledProcessError, TypeError):
                 logger.warning("Cannot inspect the service {}".format(service))
             else:
@@ -183,14 +189,15 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
                 logger.info("[OUTPUT] Service: <{}> Attr: <{}>\n  RESULT: {}"
                             .format(service, query, result))
+                self.output.update({query:{"service": service, "result": result}})
 
-        for output in outputs:
+        for output in self.template.outputs:
             node = output.value.get_referenced_node_template()
             if node.type == DOCKER_CONTAINER:
                 service = "{}_{}".format(self.ID, node.name)
                 logger.debug("Inspect service: {}".format(service))
                 query = output.value.attribute_name
-                #get_attribute(service, query)
+                get_attribute(service, query)
 
 
     def _get_properties(self, node, key):
