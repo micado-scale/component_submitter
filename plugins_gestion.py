@@ -1,13 +1,14 @@
 import os
 import imp, inspect, sys
-import logging
-logger=logging.getLogger("submitter."+__name__)
 from abstracts import *
 PATH="./adaptors/"
+import logging
+logger=logging.getLogger("submitter."+__name__)
 
 
 class PluginsGestion(object):
     def __init__(self):
+
         logger.debug("init of the Plugin_Gestion")
     def _load_plugins(self):
         """search through the plugin folder and import all valid plugin"""

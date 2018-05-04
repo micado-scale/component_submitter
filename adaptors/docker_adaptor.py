@@ -5,15 +5,17 @@ component_submitter.docker_adaptor
 A TOSCA to Docker (Swarm) adaptor.
 """
 
-import logging
 import subprocess
 import os
 import json
 
 import utils
+
 from abstracts import container_orchestrator as abco
 from abstracts.exceptions import AdaptorError
 from abstracts.exceptions import AdaptorCritical
+import filecmp
+import logging
 
 logger = logging.getLogger("adaptors."+__name__)
 
@@ -45,24 +47,21 @@ class DockerAdaptor(abco.ContainerAdaptor):
         >>> container_adapt.undeploy(<UNIQUE_ID>)
         (Stack undeployed)
 
+
     """
 
-    def __init__(self, template = None, adaptor_id = None):
+    def __init__(self,adaptor_id, template = None ):
+
         logger.debug("Initialise the Docker adaptor")
         super().__init__()
         self.compose_data = {}
-
-        if adaptor_id is None:
-            self.ID = utils.id_generator()
-        else:
-            self.ID = adaptor_id
-
+        self.ID = adaptor_id
         self.template = template
         logger.info("*******************")
         logger.info(self.template.nodetemplates[0].entity_tpl)
         logger.info("DockerAdaptor ready to go!")
 
-    def translate(self):
+    def translate(self, tmp = False):
         """ Translate the self.template subset to the Compose format
 
         Does the work of mapping the Docker relevant sections of TOSCA into a
@@ -92,7 +91,10 @@ class DockerAdaptor(abco.ContainerAdaptor):
             elif DOCKER_VOLUME in tpl.type:
                 self._get_properties(tpl, "volumes")
 
-        utils.dump_order_yaml(self.compose_data, "files/output_configs/{}.yaml".format(self.ID))
+        if tmp is False:
+            utils.dump_order_yaml(self.compose_data, "files/output_configs/{}.yaml".format(self.ID))
+        else:
+            utils.dump_order_yaml(self.compose_data, "files/output_configs/tmp_{}.yaml".format(self.ID))
 
 
     def execute(self):
@@ -147,9 +149,23 @@ class DockerAdaptor(abco.ContainerAdaptor):
             logger.warning(e)
 
     def update(self):
+        """ Translate the template into a tmp file, differentiate the tmp with the current config
+            if different move tmp file to old file, and execute.
+        """
+        logger.info("strating the update")
+        logger.debug("creating temporary template")
+        self.translate(True)
 
-        #TODO create this function
-        pass
+        if not self._differentiate():
+            logger.debug("tmp file different than the config, moving the tmp file to the config and execute")
+            os.rename("files/output_configs/tmp_{}.yaml".format(self.ID), "files/output_configs/{}.yaml".format(self.ID))
+            self.execute()
+        else:
+            try:
+                logger.debug("tmp file is the same as the config file, then removing the tmp file")
+                os.remove("files/output_configs/{}.yaml".format(self.ID))
+            except OSError as e:
+                logger.warning(e)
     def _get_outputs(self):
         """ Get outputs and their resultant attributes """
 
@@ -286,3 +302,6 @@ class DockerAdaptor(abco.ContainerAdaptor):
         entry = "node.labels.host == {}".format(host)
         if entry not in node:
             node.append(entry)
+
+    def _differentiate(self):
+        return filecmp.cmp("files/output_configs/{}.yaml".format(self.ID),"files/output_configs/tmp_{}.yaml".format(self.ID))

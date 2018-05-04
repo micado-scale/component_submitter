@@ -39,7 +39,7 @@
   <h1>Source code for component_submitter.micado_validator</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">MiCADO Submission Engine TOSCA Validator</span>
-<span class="sd">----------------------------------------</span>
+<span class="sd">-----------------------------------------</span>
 
 <span class="sd">Validate ToscaTemplate objects to ensure syntactic and semantic compatibility</span>
 <span class="sd">with custom defined and TOSCA normative types.</span>
@@ -49,11 +49,12 @@
 <span class="sd">repositories and the requirements and relationships of custom defined types.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
 
 <span class="kn">from</span> <span class="nn">toscaparser.tosca_template</span> <span class="k">import</span> <span class="n">ToscaTemplate</span>
+<span class="kn">import</span> <span class="nn">utils</span>
+<span class="kn">import</span> <span class="nn">logging</span>
 
-<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;submitter.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;adaptor.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
 
 <div class="viewcode-block" id="ValidationError"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.micado_validator.ValidationError">[docs]</a><span class="k">class</span> <span class="nc">ValidationError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Base error for validation&quot;&quot;&quot;</span></div>
@@ -291,7 +292,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>
