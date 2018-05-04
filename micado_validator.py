@@ -1,6 +1,6 @@
 """
 MiCADO Submission Engine TOSCA Validator
--------------------------------------
+-----------------------------------------
 
 Validate ToscaTemplate objects to ensure syntactic and semantic compatibility
 with custom defined and TOSCA normative types.
@@ -10,11 +10,12 @@ set out by the OpenStack ToscaParser. Currently validation checks exist for
 repositories and the requirements and relationships of custom defined types.
 """
 
-import logging
 
 from toscaparser.tosca_template import ToscaTemplate
+import utils
+import logging
 
-logger = logging.getLogger("submitter."+__name__)
+logger=logging.getLogger("adaptor."+__name__)
 
 class ValidationError(Exception):
     """Base error for validation"""

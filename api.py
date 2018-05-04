@@ -7,9 +7,10 @@ import logging
 
 
 
-
 def __init__():
+
     global logger, submitter
+
     logger =  logging.getLogger("submitter."+__name__)
     submitter = SubmitterEngine()
 

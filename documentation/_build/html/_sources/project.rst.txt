@@ -26,42 +26,56 @@ How to create your Adaptor:
 At the moment we have the abstract base Adaptor that is describing three abstract
 sub methods:
 
+ - __init__()
  - translate()
  - execute()
+ - update()
  - undeploy()
  - cleanup()
+
+Init
+----
+This is the __init__ method, it can take 1 or 2 parameter, the id that is mandatory,
+and the template which is a TOSCA Parser object, that would state it them for the whole
+object.
 
 Translate
 ----------
 
 This method should create a configuration file for your external component,
 and store it in the files/output_configs directory located in the package where all the configuration file produced by the
-different other Adaptors are. This configuration file should be named after an ID that can be generated with the
-generator we provide, or another one you'd like. This method return this ID.
+different other Adaptors are. This configuration file should be named after an ID.
 
 
 Execute
 --------
 
-This method should execute the wanted commands from the wanted Adaptor. It takes as
-parameter the ID link to the wanted component to be executed.
+This method should execute the wanted commands for the wanted component.
+
+Update
+------
+
+This method should take the template that would have been re-instantiated by the engine,
+retranslate it and put it as a tmp file, then do a diff of both files (the already launch one and the tmp).
+If there's a difference between both file (use the filecmp.cmp(old_file, tmp_file)) then move the tmp file to
+the old_file, and launch the execute method.
+If there's no difference, then just delete the tmp file.
 
 Undeploy
 --------
 
-This method takes as parameter the ID of the wanted component and unbuild it.
+This method undeploy the component.
 
 Cleanup
 -------
 
-This method takes the ID of the wanted component and remove all the files produced which was required for the execution of
+This method remove all the files produced which was required for the execution of
 this application, which should be located under files/output_configs.
 
 Utils
 ---------
 
 We do give access to utils method listed bellow:
-  - id_generator: that creates the random ID.
   - dump_order_yaml: that dump in order into a yaml file
 
 for more information go to the utils method to see how to use those methods.

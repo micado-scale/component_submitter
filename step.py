@@ -1,10 +1,14 @@
-import logging
 from abstracts.exceptions import AdaptorError, AdaptorCritical
+
+
+import logging
+
 logger=logging.getLogger("submitter."+__name__)
 
 
 class Step():
     def __init__(self, object):
+
         logger.info("intitialisation of Step, and execution of object's method ")
         self.object = object
         #super(Step, self).__init__()
@@ -32,6 +36,12 @@ class Step():
         except AdaptorCritical as e:
             logger.critical("{}".format(e))
             logger.info("nothing to be deployed")
+            raise
+    def update(self):
+        try:
+            self.object.update()
+        except AdaptorCritical as e:
+            logger.critical("critical error catched {}".format(e))
             raise
 
     def undeploy(self):

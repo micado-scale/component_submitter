@@ -2,13 +2,15 @@
 import yaml
 import re
 import collections
-import logging
-logger=logging.getLogger("submitter."+__name__)
-
+import utils
 CONFIG_FILE = "system/key_config.yml"
+import logging
+
+logger=logging.getLogger("submitter."+__name__)
 
 class KeyLists():
   def __init__(self):
+
       logger.debug("initialisation of KeyLists class")
       self.keys = dict()
       #self.template = template

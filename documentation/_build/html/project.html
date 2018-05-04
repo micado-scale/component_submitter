@@ -68,31 +68,45 @@
 sub methods:</p>
 <blockquote>
 <div><ul class="simple">
+<li>__init__()</li>
 <li>translate()</li>
 <li>execute()</li>
+<li>update()</li>
 <li>undeploy()</li>
 <li>cleanup()</li>
 </ul>
 </div></blockquote>
+<div class="section" id="init">
+<h2>Init<a class="headerlink" href="#init" title="Permalink to this headline">¶</a></h2>
+<p>This is the __init__ method, it can take 1 or 2 parameter, the id that is mandatory,
+and the template which is a TOSCA Parser object, that would state it them for the whole
+object.</p>
+</div>
 <div class="section" id="translate">
 <h2>Translate<a class="headerlink" href="#translate" title="Permalink to this headline">¶</a></h2>
 <p>This method should create a configuration file for your external component,
 and store it in the files/output_configs directory located in the package where all the configuration file produced by the
-different other Adaptors are. This configuration file should be named after an ID that can be generated with the
-generator we provide, or another one you’d like. This method return this ID.</p>
+different other Adaptors are. This configuration file should be named after an ID.</p>
 </div>
 <div class="section" id="execute">
 <h2>Execute<a class="headerlink" href="#execute" title="Permalink to this headline">¶</a></h2>
-<p>This method should execute the wanted commands from the wanted Adaptor. It takes as
-parameter the ID link to the wanted component to be executed.</p>
+<p>This method should execute the wanted commands for the wanted component.</p>
+</div>
+<div class="section" id="update">
+<h2>Update<a class="headerlink" href="#update" title="Permalink to this headline">¶</a></h2>
+<p>This method should take the template that would have been re-instantiated by the engine,
+retranslate it and put it as a tmp file, then do a diff of both files (the already launch one and the tmp).
+If there’s a difference between both file (use the filecmp.cmp(old_file, tmp_file)) then move the tmp file to
+the old_file, and launch the execute method.
+If there’s no difference, then just delete the tmp file.</p>
 </div>
 <div class="section" id="undeploy">
 <h2>Undeploy<a class="headerlink" href="#undeploy" title="Permalink to this headline">¶</a></h2>
-<p>This method takes as parameter the ID of the wanted component and unbuild it.</p>
+<p>This method undeploy the component.</p>
 </div>
 <div class="section" id="cleanup">
 <h2>Cleanup<a class="headerlink" href="#cleanup" title="Permalink to this headline">¶</a></h2>
-<p>This method takes the ID of the wanted component and remove all the files produced which was required for the execution of
+<p>This method remove all the files produced which was required for the execution of
 this application, which should be located under files/output_configs.</p>
 </div>
 <div class="section" id="utils">
@@ -100,7 +114,6 @@ this application, which should be located under files/output_configs.</p>
 <dl class="docutils">
 <dt>We do give access to utils method listed bellow:</dt>
 <dd><ul class="first last simple">
-<li>id_generator: that creates the random ID.</li>
 <li>dump_order_yaml: that dump in order into a yaml file</li>
 </ul>
 </dd>
@@ -129,8 +142,10 @@ this application, which should be located under files/output_configs.</p>
   <ul>
 <li><a class="reference internal" href="#">MiCADO Project</a></li>
 <li><a class="reference internal" href="#how-to-create-your-adaptor">How to create your Adaptor:</a><ul>
+<li><a class="reference internal" href="#init">Init</a></li>
 <li><a class="reference internal" href="#translate">Translate</a></li>
 <li><a class="reference internal" href="#execute">Execute</a></li>
+<li><a class="reference internal" href="#update">Update</a></li>
 <li><a class="reference internal" href="#undeploy">Undeploy</a></li>
 <li><a class="reference internal" href="#cleanup">Cleanup</a></li>
 <li><a class="reference internal" href="#utils">Utils</a></li>
@@ -188,7 +203,7 @@ this application, which should be located under files/output_configs.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>

@@ -38,21 +38,23 @@
             
   <h1>Source code for component_submitter.adaptors.docker_adaptor</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">MiCADO Submitter Engine Docker Adaptor</span>
-<span class="sd">--------------------------------------</span>
+<span class="sd">component_submitter.docker_adaptor</span>
+<span class="sd">----------------------------------</span>
 
-<span class="sd">A TOSCA to Docker (Swarm) adaptor for the MiCADO submission engine.</span>
+<span class="sd">A TOSCA to Docker (Swarm) adaptor.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">subprocess</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">json</span>
 
 <span class="kn">import</span> <span class="nn">utils</span>
+
 <span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">container_orchestrator</span> <span class="k">as</span> <span class="n">abco</span>
 <span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorError</span>
 <span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorCritical</span>
+<span class="kn">import</span> <span class="nn">filecmp</span>
+<span class="kn">import</span> <span class="nn">logging</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;adaptors.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
 
@@ -74,38 +76,29 @@
 
 <span class="sd">    Implements abstract methods ``translate``, ``execute`` and ``undeploy``.</span>
 
-<span class="sd">    :param template: The ToscaTemplate for this instance of the adaptor</span>
-<span class="sd">    :type template: ToscaTemplate &lt;toscaparser.tosca_template.ToscaTemplate&gt; or None</span>
-<span class="sd">    :param str adaptor_id: The ID of the stack for this instance of the adaptor</span>
-
 <span class="sd">    Usage:</span>
 <span class="sd">        &gt;&gt;&gt; from docker_adaptor import DockerAdaptor</span>
-<span class="sd">        &gt;&gt;&gt; container_adapt = DockerAdaptor(&lt;path_to_tosca_yaml&gt;, &lt;adaptor_id&gt;)</span>
-<span class="sd">        &gt;&gt;&gt; container_adapt.translate()</span>
-<span class="sd">        &gt;&gt;&gt; container_adapt.execute()</span>
+<span class="sd">        &gt;&gt;&gt; container_adapt = DockerAdaptor()</span>
+<span class="sd">        &gt;&gt;&gt; container_adapt.translate(&lt;path_to_tosca_yaml&gt;)</span>
+<span class="sd">        &lt;UNIQUE_ID&gt;</span>
+<span class="sd">        &gt;&gt;&gt; container_adapt.execute(&lt;UNIQUE_ID&gt;)</span>
 <span class="sd">        (Stack deployed)</span>
-<span class="sd">        &gt;&gt;&gt; container_adapt.undeploy()</span>
+<span class="sd">        &gt;&gt;&gt; container_adapt.undeploy(&lt;UNIQUE_ID&gt;)</span>
 <span class="sd">        (Stack undeployed)</span>
+
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">adaptor_id</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-
-        <span class="sd">&quot;&quot;&quot; Constructor, as described in the description of DockerAdaptor class &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">adaptor_id</span><span class="p">,</span> <span class="n">template</span> <span class="o">=</span> <span class="kc">None</span> <span class="p">):</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Initialise the Docker adaptor&quot;</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span> <span class="o">=</span> <span class="p">{}</span>
-
-        <span class="k">if</span> <span class="n">adaptor_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">adaptor_id</span>
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">adaptor_id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="n">template</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;DockerAdaptor ready to go!&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DockerAdaptor.translate"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="DockerAdaptor.translate"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Translate the self.template subset to the Compose format</span>
 
 <span class="sd">        Does the work of mapping the Docker relevant sections of TOSCA into a</span>
@@ -114,8 +107,6 @@
 
 <span class="sd">        :raises: AdaptorCritical</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
-
 
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting translation...&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;version&quot;</span><span class="p">:</span><span class="s2">&quot;3.4&quot;</span><span class="p">}</span>
@@ -137,8 +128,10 @@
             <span class="k">elif</span> <span class="n">DOCKER_VOLUME</span> <span class="ow">in</span> <span class="n">tpl</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_get_properties</span><span class="p">(</span><span class="n">tpl</span><span class="p">,</span> <span class="s2">&quot;volumes&quot;</span><span class="p">)</span>
 
-        <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span>
-                              <span class="s2">&quot;files/output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span></div>
+        <span class="k">if</span> <span class="n">tmp</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="s2">&quot;files/output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="s2">&quot;files/output_configs/tmp_</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="DockerAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -193,9 +186,23 @@
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DockerAdaptor.update"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Translate the template into a tmp file, differentiate the tmp with the current config</span>
+<span class="sd">            if different move tmp file to old file, and execute.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;strating the update&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;creating temporary template&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
 
-        <span class="c1">#TODO create this function</span>
-        <span class="k">pass</span></div>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_differentiate</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;tmp file different than the config, moving the tmp file to the config and execute&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s2">&quot;files/output_configs/tmp_</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">),</span> <span class="s2">&quot;files/output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;tmp file is the same as the config file, then removing the tmp file&quot;</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="s2">&quot;files/output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+            <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
     <span class="k">def</span> <span class="nf">_get_outputs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Get outputs and their resultant attributes &quot;&quot;&quot;</span>
 
@@ -331,7 +338,10 @@
                                                   <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;constraints&quot;</span><span class="p">,[])</span>
         <span class="n">entry</span> <span class="o">=</span> <span class="s2">&quot;node.labels.host == </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">host</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">entry</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">node</span><span class="p">:</span>
-            <span class="n">node</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span></div>
+            <span class="n">node</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_differentiate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">filecmp</span><span class="o">.</span><span class="n">cmp</span><span class="p">(</span><span class="s2">&quot;files/output_configs/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">),</span><span class="s2">&quot;files/output_configs/tmp_</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span></div>
 </pre></div>
 
           </div>
@@ -370,7 +380,7 @@
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>
