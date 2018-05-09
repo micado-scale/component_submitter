@@ -4,7 +4,6 @@ from toscaparser.tosca_template import ToscaTemplate
 
 from micado_validator import MultiError
 import micado_validator as validator
-import time
 
 class TestValidation(unittest.TestCase):
     """ UnitTests for micado_validator """
