@@ -94,20 +94,17 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
         for node in self.tpl.nodetemplates:
             if DOCKER_CONTAINER in node.type:
-                self._get_properties(node, "services")
-                self._get_artifacts(node, self.tpl.repositories)
+                self._compose_properties(node, "services")
+                self._compose_artifacts(node, self.tpl.repositories)
+                self._compose_requirements(node)
+            elif DOCKER_NETWORK in node.type:
+                self._compose_properties(node, "networks")
+            elif DOCKER_VOLUME in node.type:
+                self._compose_properties(node, "volumes")
 
         if not self.compose_data.get("services"):
             logger.error("No TOSCA nodes of Docker type!")
             raise AdaptorCritical("No TOSCA nodes of Docker type!")
-
-        for node in self.tpl.nodetemplates:
-            if DOCKER_CONTAINER in node.type:
-                self._get_requirements(node)
-            elif DOCKER_NETWORK in node.type:
-                self._get_properties(node, "networks")
-            elif DOCKER_VOLUME in node.type:
-                self._get_properties(node, "volumes")
 
         if tmp is False:
             utils.dump_order_yaml(
@@ -232,7 +229,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         return filecmp.cmp(f'files/output_configs/{self.ID}.yaml',
                            f'files/output_configs/tmp_{self.ID}.yaml')
 
-    def _get_properties(self, node, key):
+    def _compose_properties(self, node, key):
         """ Get TOSCA properties """
         properties = node.get_properties()
         entry = {node.name: {}}
@@ -245,9 +242,9 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 entry[node.name][prop] = node.get_property_value(prop)
 
         # Write the compose data
-        self._create_compose_properties(key, entry)
+        self.compose_data.setdefault(key, {}).update(entry)
 
-    def _get_artifacts(self, node, repositories):
+    def _compose_artifacts(self, node, repositories):
         """ Get TOSCA artifacts """
         try:
             artifacts = node.entity_tpl.get("artifacts").values()
@@ -270,13 +267,13 @@ class DockerAdaptor(abco.ContainerAdaptor):
         else:
             repository = ""
 
-        image = artifact["file"]
-        image = f'{repository}{image}'
+        image = f'{repository}{artifact["file"]}'
 
         # Write the compose data
-        self._create_compose_image(node.name, image)
+        node = self.compose_data.setdefault("services", {}).setdefault(node.name, {})
+        node["image"] = image
 
-    def _get_requirements(self, node):
+    def _compose_requirements(self, node):
         """ Get TOSCA requirements """
         for requirement in node.requirements:
             req_vals = list(requirement.values())[0]
@@ -295,24 +292,14 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 connector = req_vals["relationship"]["properties"][ATTACH_PROP]
                 self._create_compose_volume(node.name, related_node, connector)
 
-    def _create_compose_image(self, node, image):
-        """ Create an image entry in the compose data under image: """
-        node = self.compose_data.setdefault("services", {}).setdefault(node, {})
-        if "image" not in node:
-            node["image"] = image
-
-    def _create_compose_properties(self, key, entry):
-        """ Create entries in the compose data under properties: """
-        self.compose_data.setdefault(key, {}).update(entry)
-
     def _create_compose_volume(self, node, volume, location):
         """ Create a volume entry in the compose data under volumes: """
         volume_key = self.compose_data.setdefault("volumes", {})
-        if volume not in volume_key:
-            volume_key[volume] = {}
+        volume_key.update({volume: {}})
 
         # Add the entry for the volume under the current node's key in compose
-        node = self.compose_data["services"][node].setdefault("volumes", [])
+        node = self.compose_data.setdefault("services", {}) \
+                                .setdefault(node, {}).setdefault("volumes", [])
         entry = f'{volume}:{location}'
         if entry not in node:
             node.append(entry)
@@ -320,25 +307,27 @@ class DockerAdaptor(abco.ContainerAdaptor):
     def _create_compose_connection(self, node, target, network):
         """ Create a network entry in the compose data under networks: """
         network_key = self.compose_data.setdefault("networks", {})
-        if network not in network_key:
-            network_key[network] = {"driver":"overlay"}
+        network_key.update({network: {"driver":"overlay"}})
 
         # Add the entry for the network under the current node's key in compose
-        node = self.compose_data["services"][node].setdefault("networks", [])
+        node = self.compose_data.setdefault("services", {}) \
+                                .setdefault(node, {}).setdefault("networks", [])
         if network not in node:
             node.append(network)
 
         # Add the entry for the network under the target node's key in compose
-        target = self.compose_data["services"][target].setdefault("networks", [])
+        target = self.compose_data.setdefault("services", {}) \
+                                  .setdefault(target, {}).setdefault("networks", [])
         if network not in target:
             target.append(network)
 
     def _create_compose_constraint(self, node, host):
         """ Create a constraint entry in the compose data """
         # Add the constraint under services key for the relevant node
-        node = self.compose_data["services"][node].setdefault("deploy", {}) \
-                                                  .setdefault("placement", {}) \
-                                                  .setdefault("constraints", [])
+        node = self.compose_data.setdefault("services", {}).setdefault(node, {}) \
+                                .setdefault("deploy", {}) \
+                                .setdefault("placement", {}) \
+                                .setdefault("constraints", [])
         entry = f'node.labels.host == {host}'
         if entry not in node:
             node.append(entry)
