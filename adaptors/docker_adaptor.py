@@ -29,6 +29,8 @@ DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_NETWORK, DOCKER_VOLUME, DOCKER_IMAGE,
                  "tosca.artifacts.Deployment.Image.Container.Docker",
                  "network", "location")
 
+COMPOSE_VERSION = "3.4"
+
 class DockerAdaptor(abco.ContainerAdaptor):
 
     """ The Docker adaptor class
@@ -90,7 +92,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         """
 
         logger.info("Starting translation to compose...")
-        self.compose_data = {"version":"3.4"}
+        self.compose_data = {"version": COMPOSE_VERSION}
 
         for node in self.tpl.nodetemplates:
             if DOCKER_CONTAINER in node.type:
@@ -212,8 +214,8 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 elif query == "port":
                     result = inspect.get("Endpoint").get("Ports")
 
-                logger.info("[OUTPUT] Service: <{}> Attr: <{}>\n  RESULT: {}"
-                            .format(service, query, result))
+                logger.info(f'[OUTPUT] Service: <{service}> Attr: <{query}>\n'
+                            f'    RESULT: {result}')
                 self.output.update({query:{"service": service, "result": result}})
 
         for output in self.tpl.outputs:
@@ -223,6 +225,8 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 logger.debug(f'Inspect service: {service}')
                 query = output.value.attribute_name
                 get_attribute(service, query)
+            else:
+                logger.warning(f'{node.name} is not a Docker container!')
 
     def _differentiate(self):
         """ Compare two compose files """
@@ -230,7 +234,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
                            f'files/output_configs/tmp_{self.ID}.yaml')
 
     def _compose_properties(self, node, key):
-        """ Get TOSCA properties """
+        """ Get TOSCA properties, write compose entries """
         properties = node.get_properties()
         entry = {node.name: {}}
 
@@ -245,13 +249,12 @@ class DockerAdaptor(abco.ContainerAdaptor):
         self.compose_data.setdefault(key, {}).update(entry)
 
     def _compose_artifacts(self, node, repositories):
-        """ Get TOSCA artifacts """
+        """ Get TOSCA artifacts, write compose entry"""
         try:
             artifacts = node.entity_tpl.get("artifacts").values()
         except AttributeError:
             raise AdaptorCritical("No artifacts found!")
 
-        artifact = None
         for artifact in artifacts:
             if DOCKER_IMAGE in artifact.get("type"):
                 break
@@ -274,7 +277,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         node["image"] = image
 
     def _compose_requirements(self, node):
-        """ Get TOSCA requirements """
+        """ Get TOSCA requirements, write compose entries """
         for requirement in node.requirements:
             req_vals = list(requirement.values())[0]
             related_node = req_vals["node"]
@@ -293,7 +296,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 self._create_compose_volume(node.name, related_node, connector)
 
     def _create_compose_volume(self, node, volume, location):
-        """ Create a volume entry in the compose data under volumes: """
+        """ Create a volume entry in the compose data under volumes """
         volume_key = self.compose_data.setdefault("volumes", {})
         volume_key.update({volume: {}})
 
@@ -305,7 +308,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
             node.append(entry)
 
     def _create_compose_connection(self, node, target, network):
-        """ Create a network entry in the compose data under networks: """
+        """ Create a network entry in the compose data under networks """
         network_key = self.compose_data.setdefault("networks", {})
         network_key.update({network: {"driver":"overlay"}})
 
