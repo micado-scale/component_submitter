@@ -8,3 +8,4 @@ install:
   - pip install ruamel.yaml
 script:
   - python -m unittest tests.test_validator.TestValidation
+  - python -m unittest tests.test_docker.TestDockerAdaptor
