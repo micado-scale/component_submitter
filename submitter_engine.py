@@ -69,7 +69,8 @@ class SubmitterEngine(object):
             launch method to accept another parameter to be able to choose which engine to
             launch
         """
-        logger.info("Launching the application located there {}".format(path_to_file))
+        logger.info("Launching the application located there {} and with params {}".format(path_to_file, parsed_params))
+
         template = self._micado_parser_upload(path_to_file, parsed_params)
         self.template = template
         tpl = self._mapper_instantiation(template)
@@ -258,10 +259,10 @@ class SubmitterEngine(object):
             adaptor.update()
             try:
                 #self.app_list.update(app_id, Step(adaptor).output)
-                self.app_list.update(app_id, adaptor.output)
+                logger.info(adaptor.output)
+                self.app_list[app_id] = adaptor.output
             except AttributeError as e:
                 logger.warning("the Adaptor doesn't provide a output attribute")
-        self._update_json()
 
 
 
