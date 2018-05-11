@@ -21,14 +21,19 @@ To launch an application you can use the curl command line:
 .. code-block:: bash
     :linenos:
 
-    curl -d "input=[Path to TOSCA Template]" -X POST http://[IP]:[Port]/engine/
+    curl -d input="[Path to TOSCA Template]" -X POST http://[IP]:[Port]/engine/
 
 To launch an application with no default value for the inputs use the curl command line:
 
 .. code-block:: bash
     :linenos:
 
-    curl -d "input=[Path to TOSCA Template]" -d "params={Input1: value a, Input2: value b}" -X POST http://[IP]:[Port]/engine/
+    curl -d input="[Path to TOSCA Template]" -d params='{"Input1": "value a", "Input2": "value b"}' -X POST http://[IP]:[Port]/engine/
+
+To update a wanted application you need to use this command with optional params:
+    :linenos:
+
+    curl -d id="[APP ID]" -d input="[Path to TOSCA template]" -d params='{"Input1": "value a", "Input2": "value b"}' -X POST http://[IP]:[Port]/udpate
 
 To undeploy a wanted application you need to feed it the id:
 
