@@ -3,7 +3,8 @@ key_config:
     - "tosca.nodes.MiCADO.Container.Application.Docker"
   DummyPkAdaptor:
     - "tosca.nodes.MiCADO.Container.Application.Docker"
-
+#  ScalingPolicyAdaptor:
+#    - "tosca.nodes.MiCADO.Container.Application.Docker"
   DockerAdaptor:
     #DockerAdaptor
     - "tosca.nodes.MiCADO.Container.Application.Docker"
