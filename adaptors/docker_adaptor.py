@@ -126,13 +126,13 @@ class DockerAdaptor(abco.ContainerAdaptor):
         """
         logger.info("Starting Docker execution...")
 
-        # Commented code makes dry-runs possible (no Docker in our test env)
+        # Dry runs in comments (no Docker in our test env)
         try:
             #subprocess.run(["docker", "stack", "deploy", "--compose-file",
-            #f'output_configs/{self.ID}.yaml', self.ID], check=True)
+            #f'output_configs/{self.ID}.yaml', self.ID[:8]], check=True)
             logger.info(f'subprocess.run([\"docker\", \"stack\", \"deploy\", '
                         f'\"--compose-file\", \"docker-compose.yaml\", '
-                        f'{self.ID}], check=True)')
+                        f'{self.ID[:8]}], check=True)')
         except subprocess.CalledProcessError:
             logger.error("Cannot execute Docker")
             raise AdaptorCritical("Cannot execute Docker")
@@ -148,9 +148,8 @@ class DockerAdaptor(abco.ContainerAdaptor):
         """
         logger.info("Undeploying the application")
 
-        # Commented code is so for dry-runs (no Docker in test-env)
         try:
-            #subprocess.run(["docker", "stack", "down", self.ID], check=True)
+            #subprocess.run(["docker", "stack", "down", self.ID[:8]], check=True)
             logger.debug(f'Undeploy application with ID: {self.ID}')
         except subprocess.CalledProcessError:
             logger.error("Cannot undeploy the stack")
@@ -221,7 +220,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         for output in self.tpl.outputs:
             node = output.value.get_referenced_node_template()
             if node.type == DOCKER_CONTAINER:
-                service = f'{self.ID}_{node.name}'
+                service = f'{self.ID[:8]}_{node.name}'
                 logger.debug(f'Inspect service: {service}')
                 query = output.value.attribute_name
                 get_attribute(service, query)
