@@ -129,7 +129,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         # Dry runs in comments (no Docker in our test env)
         try:
             #subprocess.run(["docker", "stack", "deploy", "--compose-file",
-            #f'output_configs/{self.ID}.yaml', self.ID[:8]], check=True)
+            #f'files/output_configs/{self.ID}.yaml', self.ID[:8]], check=True)
             logger.info(f'subprocess.run([\"docker\", \"stack\", \"deploy\", '
                         f'\"--compose-file\", \"docker-compose.yaml\", '
                         f'{self.ID[:8]}], check=True)')

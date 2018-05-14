@@ -70,24 +70,27 @@ class ScalingPolicyAdaptor(abco.PolicyKeeperAdaptor):
                 if self.ID[:8] in key:
                     self.sp_data["services"].pop(key)
                     if update:
-                        self.cleanup(key)
+                        self._force_removal(key)
         # hacky
         except RuntimeError:
             for key in self.sp_data["services"].keys():
                 if self.ID[:8] in key:
                     self.sp_data["services"].pop(key)
                     if update:
-                        self.cleanup(key)
+                        self._force_removal(key)
 
         utils.dump_order_yaml(self.sp_data, PATH_TO_POLICY)
 
-    def cleanup(self, key):
+    def _force_removal(self, key):
         """ Force deletion of *.rules files """
         logger.info(f'cleaning up rules file, named {key}')
         try:
             os.remove(f'{PATH_TO_PROM}{key}.rules')
         except OSError as e:
             logger.warning(e)
+
+    def cleanup(self):
+        """ Not implemented """
 
     def update(self):
         """ Update the scaling_policy file with new data """
