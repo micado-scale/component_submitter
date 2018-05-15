@@ -193,9 +193,6 @@ class DockerAdaptor(abco.ContainerAdaptor):
             except OSError as e:
                 logger.warning(e)
 
-        self._get_outputs()
-
-
     def _get_outputs(self):
         """ Get outputs and their resultant attributes """
         def get_attribute(service, query):
@@ -235,17 +232,17 @@ class DockerAdaptor(abco.ContainerAdaptor):
     def _compose_properties(self, node, key):
         """ Get TOSCA properties, write compose entries """
         properties = node.get_properties()
-        entry = {node.name: {}}
+        entry = {}
 
         for prop in properties:
             try:
-                entry[node.name][prop] = node.get_property_value(prop).result()
+                entry[prop] = node.get_property_value(prop).result()
             except AttributeError as e:
                 logger.debug(f'Error caught {e}, trying without .result()')
-                entry[node.name][prop] = node.get_property_value(prop)
+                entry[prop] = node.get_property_value(prop)
 
         # Write the compose data
-        self.compose_data.setdefault(key, {}).update(entry)
+        self.compose_data.setdefault(key, {}).setdefault(node.name, {}).update(entry)
 
     def _compose_artifacts(self, node, repositories):
         """ Get TOSCA artifacts, write compose entry"""
