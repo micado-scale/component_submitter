@@ -25,10 +25,10 @@ class MultiError(ValidationError):
     def __init__(self, error_set, msg=None):
         super().__init__()
         msg = msg if msg else ""
-        self.msg = f'\n--{msg}--'
+        self.msg = "\n--{}--".format(msg)
         for error in error_set:
-            self.msg += f'\n  {error}'
-        self.msg += f'\n----{"-"*len(msg)}'
+            self.msg += "\n  {}".format(error)
+        self.msg += "\n----{}".format("-"*len(msg))
 
     def __str__(self):
         """Overload __str__ to return msg when printing/logging"""
@@ -79,7 +79,7 @@ def validation(tpl):
         raise MultiError(sorted(errors))#, "Validation Errors!")
     else:
         logger.info("ToscaTemplate object passed compatibility validation.")
-        return f'ToscaTemplate passed compatibility validation'
+        return "ToscaTemplate passed compatibility validation"
 
 
 def validate_repositories(node, repositories):
@@ -95,7 +95,7 @@ def validate_repositories(node, repositories):
 
     repositories = _key_search("repository", node.entity_tpl)
     return {
-        f'[NODE: {node.name}] Repository <{repo}> not defined!'
+        "[NODE: {}] Repository <{}> not defined!".format(node.name, repo)
         for repo in repositories if repo not in repository_names
         }
 
@@ -116,13 +116,13 @@ def validate_requirements(node):
     msg = "Too many requirements per list item!"
 
     if len(type_reqs) != len(type_req_names):
-        return {f'[CUSTOM TYPE: {node.type}] {msg}'}
+        return {"[CUSTOM TYPE: {}] {}".format(node.type, msg)}
 
     elif len(node_reqs) != len(node_req_names):
-        return {f'[NODE: {node.name}] {msg}'}
+        return {"[NODE: {}] {}".format(node.name, msg)}
 
     return {
-        f'[NODE: {node.name}] Requirement <{req}> not defined!'
+        "[NODE: {}] Requirement <{}> not defined!".format(node.name, req)
         for req in node_req_names if req not in type_req_names
         }
 
@@ -145,8 +145,8 @@ def validate_relationships(node):
                      for type_req in type_reqs]
 
         errors.update({
-            f'[NODE: {node.name}] '
-            f'Relationship <{relationship}> not supported!'
+            "[NODE: {}] "
+            "Relationship <{}> not supported!".format(node.name, relationship)
             for relationship in relationships
             if relationship not in str(supported_relationships)
         })
@@ -164,8 +164,8 @@ def validate_relationship_properties(node):
     for req, prop, relation in _get_required_properties(node):
         if not _has_property(req, prop, relation):
             errors.update({
-                f'[NODE: {node.name}] Relationship <{relation}> '
-                f'missing property <{prop}>'
+                "[NODE: {}] Relationship <{}> "
+                "missing property <{}>".format(node.name, relation, prop)
                 })
     return errors
 
