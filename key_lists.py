@@ -3,7 +3,8 @@ import yaml
 import re
 import collections
 import utils
-CONFIG_FILE = "system/key_config.yml"
+from os import path
+CONFIG_FILE = "{}/system/key_config.yml".format(path.dirname(__file__))
 import logging
 
 logger=logging.getLogger("submitter."+__name__)

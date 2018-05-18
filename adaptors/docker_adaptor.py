@@ -75,6 +75,9 @@ class DockerAdaptor(abco.ContainerAdaptor):
         logger.debug("Initialising the Docker adaptor with ID & TPL...")
         self.compose_data = {}
         self.ID = adaptor_id
+        self.path = "{}/../files/output_configs/{}.yaml".format(os.path.dirname(__file__), self.ID)
+        self.tmp_path = "{}/../files/output_configs/tmp_{}.yaml".format(
+                                            os.path.dirname(__file__), self.ID)
         self.tpl = template
         self.output = dict()
         logger.info("DockerAdaptor ready to go!")
@@ -110,10 +113,10 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
         if tmp is False:
             utils.dump_order_yaml(
-                self.compose_data, "files/output_configs/{}.yaml".format(self.ID))
+                self.compose_data, self.path)
         else:
             utils.dump_order_yaml(
-                self.compose_data, "files/output_configs/tmp_{}.yaml".format(self.ID))
+                self.compose_data, self.tmp_path)
 
 
     def execute(self):
@@ -126,9 +129,10 @@ class DockerAdaptor(abco.ContainerAdaptor):
         """
         logger.info("Starting Docker execution...")
 
+
         try:
             subprocess.run(["docker", "stack", "deploy", "--compose-file",
-            "files/output_configs/{}.yaml".format(self.ID), self.ID[:8]], check=True)
+            self.path, self.ID[:8]], check=True)
         except subprocess.CalledProcessError:
             logger.error("Cannot execute Docker")
             raise AdaptorCritical("Cannot execute Docker")
@@ -162,7 +166,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         """
         logger.info("Cleanup config for ID {}".format(self.ID))
         try:
-            os.remove("files/output_configs/{}.yaml".format(self.ID))
+            os.remove(self.path)
         except OSError as e:
             logger.warning(e)
 
@@ -179,13 +183,12 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
         if not self._differentiate():
             logger.debug("tmp file different, replacing old config and executing")
-            os.rename("files/output_configs/tmp_{}.yaml".format(self.ID),
-                      "files/output_configs/{}.yaml".format(self.ID))
+            os.rename(self.tmp_path, self.path)
             self.execute()
         else:
             try:
                 logger.debug("tmp file is the same, removing the tmp file")
-                os.remove("files/output_configs/tmp_{}.yaml".format(self.ID))
+                os.remove(self.tmp_path)
             except OSError as e:
                 logger.warning(e)
 
@@ -221,8 +224,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
     def _differentiate(self):
         """ Compare two compose files """
-        return filecmp.cmp("files/output_configs/{}.yaml".format(self.ID),
-                           "files/output_configs/tmp_{}.yaml".format(self.ID))
+        return filecmp.cmp(self.path, self.tmp_path)
 
     def _compose_properties(self, node, key):
         """ Get TOSCA properties, write compose entries """
