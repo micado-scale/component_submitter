@@ -3,7 +3,11 @@ import yaml
 import re
 import collections
 import utils
-CONFIG_FILE = "system/key_config.yml"
+from os import path
+basepath = path.dirname(__file__)
+CONFIG_FILE = "{}/system/key_config.yml".format(basepath)
+
+#CONFIG_FILE="/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/system/key_config.yml"
 import logging
 
 logger=logging.getLogger("submitter."+__name__)
