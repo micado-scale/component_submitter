@@ -7,13 +7,13 @@ import logging
 import ast
 
 
-def __init__():
+def setup_app(app):
 
     global logger, submitter
 
     logger =  logging.getLogger("submitter."+__name__)
     submitter = SubmitterEngine()
-
+setup_app(app)
 
 class RequestError(Exception):
     status_code = 400
