@@ -16,7 +16,7 @@ from random import randint
 import logging
 """ set up of Logging """
 LEVEL = logging.DEBUG
-logging.basicConfig(filename="/tmp/submitter.log", level=LEVEL,
+logging.basicConfig(filename="submitter.log", level=LEVEL,
                 format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger=logging.getLogger("submitter."+__name__)
 
