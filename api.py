@@ -124,4 +124,4 @@ def list_app():
 
 if __name__ == "__main__":
     __init__()
-    app.run(debug=True, port=5050, threaded=True)
+    app.run(debug=True, port=5050, threaded=True, host='0.0.0.0')
