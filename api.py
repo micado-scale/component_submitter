@@ -118,8 +118,8 @@ def update():
 @app.route('/list_app', methods=['GET'])
 def list_app():
     response = []
-    for key, value in submitter.id_dict.items():
-        response.append(key)
+    for key, value in submitter.app_list.items():
+        response.append("id: {}, outputs: {}".format(key,value))
     return "<h1>here is the id list of applications \n {}\n</h1>\n".format(response)
 
 if __name__ == "__main__":
