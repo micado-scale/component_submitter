@@ -1,0 +1,562 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>component_submitter package &#8212; MiCADO Submitter 0.1 documentation</title>
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/_static/basic.css" type="text/css" />
+    <script type="text/javascript" src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="component_submitter.abstracts package" href="component_submitter.abstracts.html" />
+    <link rel="prev" title="MiCADO Submitter Code" href="../code.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="component_submitter.abstracts.html" title="component_submitter.abstracts package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../code.html" title="MiCADO Submitter Code"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../code.html" accesskey="U">MiCADO Submitter Code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="component-submitter-package">
+<h1>component_submitter package<a class="headerlink" href="#component-submitter-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="component_submitter.abstracts.html">component_submitter.abstracts package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#module-component_submitter.abstracts.base_adaptor">component_submitter.abstracts.base_adaptor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#module-component_submitter.abstracts.cloudorchestrator">component_submitter.abstracts.cloudorchestrator module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#module-component_submitter.abstracts.container_orchestrator">component_submitter.abstracts.container_orchestrator module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#module-component_submitter.abstracts.exceptions">component_submitter.abstracts.exceptions module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#module-component_submitter.abstracts.policykeeper">component_submitter.abstracts.policykeeper module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#module-component_submitter.abstracts.securityenforcer">component_submitter.abstracts.securityenforcer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#module-component_submitter.abstracts">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="component_submitter.adaptors.html">component_submitter.adaptors package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.docker_adaptor">component_submitter.adaptors.docker_adaptor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="component_submitter.adaptors.html#micado-submitter-engine-docker-adaptor">MiCADO Submitter Engine Docker Adaptor</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_occopus_adaptor">component_submitter.adaptors.dummy_occopus_adaptor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_pk_adaptor">component_submitter.adaptors.dummy_pk_adaptor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_se_adaptor">component_submitter.adaptors.dummy_se_adaptor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-component_submitter.api">
+<span id="component-submitter-api-module"></span><h2>component_submitter.api module<a class="headerlink" href="#module-component_submitter.api" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="component_submitter.api.RequestError">
+<em class="property">exception </em><code class="descclassname">component_submitter.api.</code><code class="descname">RequestError</code><span class="sig-paren">(</span><em>message</em>, <em>status_code=None</em>, <em>payload=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#RequestError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.RequestError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+<dl class="attribute">
+<dt id="component_submitter.api.RequestError.status_code">
+<code class="descname">status_code</code><em class="property"> = 400</em><a class="headerlink" href="#component_submitter.api.RequestError.status_code" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.api.RequestError.to_dict">
+<code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#RequestError.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.RequestError.to_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.api.engine">
+<code class="descclassname">component_submitter.api.</code><code class="descname">engine</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#engine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.engine" title="Permalink to this definition">¶</a></dt>
+<dd><p>API functions to launch a application</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Params intput:</th><td class="field-body">path to the file wanted</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Params params:</th><td class="field-body">dictionary with the update of input.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.api.handle_request_error">
+<code class="descclassname">component_submitter.api.</code><code class="descname">handle_request_error</code><span class="sig-paren">(</span><em>error</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#handle_request_error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.handle_request_error" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.api.keyboardInterrupt">
+<code class="descclassname">component_submitter.api.</code><code class="descname">keyboardInterrupt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#keyboardInterrupt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.keyboardInterrupt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.api.list_app">
+<code class="descclassname">component_submitter.api.</code><code class="descname">list_app</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#list_app"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.list_app" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.api.undeploy">
+<code class="descclassname">component_submitter.api.</code><code class="descname">undeploy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.undeploy" title="Permalink to this definition">¶</a></dt>
+<dd><p>API function to undeploy the application with a specific ID
+:params id_app: id of the app wanted to undeploy
+:type id_app: string</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.api.unhandle_request_error">
+<code class="descclassname">component_submitter.api.</code><code class="descname">unhandle_request_error</code><span class="sig-paren">(</span><em>error</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#unhandle_request_error"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.unhandle_request_error" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.api.update">
+<code class="descclassname">component_submitter.api.</code><code class="descname">update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>API function to deploy the application with a specific ID</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-component_submitter.utils">
+<span id="component-submitter-utils-module"></span><h2>component_submitter.utils module<a class="headerlink" href="#module-component_submitter.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="component_submitter.utils.dump_order_yaml">
+<code class="descclassname">component_submitter.utils.</code><code class="descname">dump_order_yaml</code><span class="sig-paren">(</span><em>data</em>, <em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#dump_order_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.dump_order_yaml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dump the dictionary to a Docker-Compose file</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.utils.get_yaml_data">
+<code class="descclassname">component_submitter.utils.</code><code class="descname">get_yaml_data</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#get_yaml_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.get_yaml_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve the yaml dictionary form a yaml file and return it</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.utils.id_generator">
+<code class="descclassname">component_submitter.utils.</code><code class="descname">id_generator</code><span class="sig-paren">(</span><em>size=8</em>, <em>chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#id_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.id_generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an ID</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-component_submitter.key_lists">
+<span id="component-submitter-key-lists-module"></span><h2>component_submitter.key_lists module<a class="headerlink" href="#module-component_submitter.key_lists" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="component_submitter.key_lists.KeyLists">
+<em class="property">class </em><code class="descclassname">component_submitter.key_lists.</code><code class="descname">KeyLists</code><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="component_submitter.key_lists.KeyLists.get_KeyLists">
+<code class="descname">get_KeyLists</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.get_KeyLists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.get_KeyLists" title="Permalink to this definition">¶</a></dt>
+<dd><p>retrieve the whole dictionary</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.key_lists.KeyLists.get_dict">
+<code class="descname">get_dict</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.get_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.get_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>retrieve the dictionary wanted</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.key_lists.KeyLists.get_list_adaptors">
+<code class="descname">get_list_adaptors</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.get_list_adaptors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.get_list_adaptors" title="Permalink to this definition">¶</a></dt>
+<dd><p>return list of adaptors to use</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.key_lists.KeyLists.get_node_from_type">
+<code class="descname">get_node_from_type</code><span class="sig-paren">(</span><em>type</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.get_node_from_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.get_node_from_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>retrieve wanted node through its type</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.key_lists.KeyLists.set_dictionary">
+<code class="descname">set_dictionary</code><span class="sig-paren">(</span><em>template</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.set_dictionary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.set_dictionary" title="Permalink to this definition">¶</a></dt>
+<dd><p>setting the dictionary, first going to call method to read config
+and implement the dictionary related to it.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-component_submitter.mapper">
+<span id="component-submitter-mapper-module"></span><h2>component_submitter.mapper module<a class="headerlink" href="#module-component_submitter.mapper" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="component_submitter.mapper.Mapper">
+<em class="property">class </em><code class="descclassname">component_submitter.mapper.</code><code class="descname">Mapper</code><span class="sig-paren">(</span><em>topology</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/mapper.html#Mapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.mapper.Mapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Mapper class that is creating a KeyList dictionary</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-component_submitter.micado_parser">
+<span id="component-submitter-micado-parser-module"></span><h2>component_submitter.micado_parser module<a class="headerlink" href="#module-component_submitter.micado_parser" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="component_submitter.micado_parser.MiCADOParser">
+<em class="property">class </em><code class="descclassname">component_submitter.micado_parser.</code><code class="descname">MiCADOParser</code><a class="reference internal" href="../_modules/component_submitter/micado_parser.html#MiCADOParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_parser.MiCADOParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>MiCADO class that is going to take care of parsing the topology template, check if the
+file is correct and Readable by MiCADO submitter. The set_template method is returning
+the topology template object.</p>
+<dl class="method">
+<dt id="component_submitter.micado_parser.MiCADOParser.set_template">
+<code class="descname">set_template</code><span class="sig-paren">(</span><em>path</em>, <em>parsed_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_parser.html#MiCADOParser.set_template"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_parser.MiCADOParser.set_template" title="Permalink to this definition">¶</a></dt>
+<dd><p>set_template is the method that will parse the tosca template and return the
+object topology object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Params:</th><td class="field-body">path, parsed_params</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Type:</th><td class="field-body">string, dictionary</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">template</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body">Exception</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line">parsed_params: dictionary containing the input to change</div>
+<div class="line">path: local or remote path to the file to parse (it needs to be reachable.)</div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-component_submitter.micado_validator">
+<span id="component-submitter-micado-validator-module"></span><h2>component_submitter.micado_validator module<a class="headerlink" href="#module-component_submitter.micado_validator" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="micado-submission-engine-tosca-validator">
+<h3>MiCADO Submission Engine TOSCA Validator<a class="headerlink" href="#micado-submission-engine-tosca-validator" title="Permalink to this headline">¶</a></h3>
+<p>Validate ToscaTemplate objects to ensure syntactic and semantic compatibility
+with custom defined and TOSCA normative types.</p>
+<p>Further validates a ToscaTemplate which has already passed validation steps
+set out by the OpenStack ToscaParser. Currently validation checks exist for
+repositories and the requirements and relationships of custom defined types.</p>
+<dl class="exception">
+<dt id="component_submitter.micado_validator.MultiError">
+<em class="property">exception </em><code class="descclassname">component_submitter.micado_validator.</code><code class="descname">MultiError</code><span class="sig-paren">(</span><em>error_set</em>, <em>msg=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#MultiError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.MultiError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#component_submitter.micado_validator.ValidationError" title="component_submitter.micado_validator.ValidationError"><code class="xref py py-class docutils literal notranslate"><span class="pre">component_submitter.micado_validator.ValidationError</span></code></a></p>
+<p>Errors occured during validation…</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="component_submitter.micado_validator.ValidationError">
+<em class="property">exception </em><code class="descclassname">component_submitter.micado_validator.</code><code class="descname">ValidationError</code><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#ValidationError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.ValidationError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+<p>Base error for validation</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.micado_validator.validate_relationship_properties">
+<code class="descclassname">component_submitter.micado_validator.</code><code class="descname">validate_relationship_properties</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#validate_relationship_properties"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.validate_relationship_properties" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate relationship properties</p>
+<p>Checks that relationships defined properties required by their definition
+in TOSCA normative or custom types. Returns errors if not.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.micado_validator.validate_relationships">
+<code class="descclassname">component_submitter.micado_validator.</code><code class="descname">validate_relationships</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#validate_relationships"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.validate_relationships" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate relationships</p>
+<p>Checks that relationships used in node definitions correctly reference
+relationships defined in TOSCA normative or custom types. Returns errors
+if not.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.micado_validator.validate_repositories">
+<code class="descclassname">component_submitter.micado_validator.</code><code class="descname">validate_repositories</code><span class="sig-paren">(</span><em>node</em>, <em>repositories</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#validate_repositories"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.validate_repositories" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate repository names</p>
+<p>Checks to see if repositories have been defined at the top level, and if
+nodes reference those repositories correctly. Returns errors if not.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.micado_validator.validate_requirements">
+<code class="descclassname">component_submitter.micado_validator.</code><code class="descname">validate_requirements</code><span class="sig-paren">(</span><em>node</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#validate_requirements"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.validate_requirements" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate requirements and their syntax</p>
+<p>Checks that requirements in custom_types and in node definitions are
+defined as one-item lists and that node definition requirements correctly
+reference requirements defined in custom_types. Returns errors if not.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.micado_validator.validation">
+<code class="descclassname">component_submitter.micado_validator.</code><code class="descname">validation</code><span class="sig-paren">(</span><em>tpl</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#validation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.validation" title="Permalink to this definition">¶</a></dt>
+<dd><p>The validation process</p>
+<p>Runs validation steps on the given TOSCA Template, and builds an error
+list. Raises a MultiError on failed validation. On success, says so.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>tpl</strong> (<em>ToscaTemplate &lt;toscaparser.tosca_template.ToscaTemplate&gt;</em>) – The ToscaTemplate to validate</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body">TypeError, MultiError</td>
+</tr>
+</tbody>
+</table>
+<dl class="docutils">
+<dt>Usage:</dt>
+<dd><div class="first highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">micado_validator</span> <span class="k">import</span> <span class="n">Validator</span>
+</pre></div>
+</div>
+<blockquote>
+<div>Successful validation:</div></blockquote>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Validator</span><span class="p">()</span><span class="o">.</span><span class="n">validation</span><span class="p">(</span><span class="o">&lt;</span><span class="n">toscaparser</span><span class="o">.</span><span class="n">tosca_template</span><span class="o">.</span><span class="n">ToscaTemplate</span><span class="o">&gt;</span><span class="p">)</span>
+<span class="go">&#39;ToscaTemplate passed compatibility validation&#39;</span>
+</pre></div>
+</div>
+<blockquote>
+<div>Errors during validation:</div></blockquote>
+<div class="last highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Validator</span><span class="p">(</span><span class="o">&lt;</span><span class="n">toscaparser</span><span class="o">.</span><span class="n">tosca_template</span><span class="o">.</span><span class="n">ToscaTemplate</span><span class="o">&gt;</span><span class="p">)</span>
+<span class="go">micado_validator.MultiError:</span>
+<span class="go">----</span>
+<span class="go">(...list of errors...)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+<div class="section" id="module-component_submitter.plugins_gestion">
+<span id="component-submitter-plugins-gestion-module"></span><h2>component_submitter.plugins_gestion module<a class="headerlink" href="#module-component_submitter.plugins_gestion" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="component_submitter.plugins_gestion.PluginsGestion">
+<em class="property">class </em><code class="descclassname">component_submitter.plugins_gestion.</code><code class="descname">PluginsGestion</code><a class="reference internal" href="../_modules/component_submitter/plugins_gestion.html#PluginsGestion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.plugins_gestion.PluginsGestion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="component_submitter.plugins_gestion.PluginsGestion.get_plugin">
+<code class="descname">get_plugin</code><span class="sig-paren">(</span><em>plugin_name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/plugins_gestion.html#PluginsGestion.get_plugin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.plugins_gestion.PluginsGestion.get_plugin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given the name of a plugin, returns the plugin’s class and an instance of the plugin,
+or (None, None) if the plugin isn’t listed in the available plugins.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-component_submitter.step">
+<span id="component-submitter-step-module"></span><h2>component_submitter.step module<a class="headerlink" href="#module-component_submitter.step" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="component_submitter.step.Step">
+<em class="property">class </em><code class="descclassname">component_submitter.step.</code><code class="descname">Step</code><span class="sig-paren">(</span><em>object</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="method">
+<dt id="component_submitter.step.Step.cleanup">
+<code class="descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.cleanup" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.step.Step.execute">
+<code class="descname">execute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.execute" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.step.Step.translate">
+<code class="descname">translate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.translate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.step.Step.undeploy">
+<code class="descname">undeploy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.undeploy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.step.Step.update">
+<code class="descname">update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-component_submitter.submitter_engine">
+<span id="component-submitter-submitter-engine-module"></span><h2>component_submitter.submitter_engine module<a class="headerlink" href="#module-component_submitter.submitter_engine" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="component_submitter.submitter_engine.SubmitterEngine">
+<em class="property">class </em><code class="descclassname">component_submitter.submitter_engine.</code><code class="descname">SubmitterEngine</code><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>SubmitterEngine class that is the main one that is used to treat with the application.</p>
+<dl class="method">
+<dt id="component_submitter.submitter_engine.SubmitterEngine.launch">
+<code class="descname">launch</code><span class="sig-paren">(</span><em>path_to_file</em>, <em>parsed_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.launch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.launch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Launch method, that will call the in-method egine to execute the application
+Creating empty list for the whole class adaptor and executed adaptor
+:params: path_to_file, parsed_params
+:types: string, dictionary</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">For the time being we only have one “workflow engine” but we could extend this
+launch method to accept another parameter to be able to choose which engine to
+launch</p>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.submitter_engine.SubmitterEngine.undeploy">
+<code class="descname">undeploy</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.undeploy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Undeploy method will remove the application from the infrastructure.
+:params: id
+:type: string</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="component_submitter.submitter_engine.SubmitterEngine.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>id_app</em>, <em>path_to_file</em>, <em>parsed_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update method that will be updating the application we want to update.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Params id:</th><td class="field-body">id of the application we want to update</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Params type:</th><td class="field-body">string</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Params path_to_file:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">path to the template file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Params type:</th><td class="field-body">string</td>
+</tr>
+<tr class="field-odd field"><th class="field-name" colspan="2">Params parse_params:</th></tr>
+<tr class="field-odd field"><td>&#160;</td><td class="field-body">dictionary containing the value we want to use as the value of the input section</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Params type:</th><td class="field-body">dictionary</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="data">
+<dt id="component_submitter.submitter_engine.logger">
+<code class="descclassname">component_submitter.submitter_engine.</code><code class="descname">logger</code><em class="property"> = &lt;Logger submitter.component_submitter.submitter_engine (DEBUG)&gt;</em><a class="headerlink" href="#component_submitter.submitter_engine.logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>define the Handler which write message to sys.stderr</p>
+</dd></dl>
+
+</div>
+<div class="section" id="component-submitter-test-submitter-engine-module">
+<h2>component_submitter.test_submitter_engine module<a class="headerlink" href="#component-submitter-test-submitter-engine-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-component_submitter">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-component_submitter" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">component_submitter package</a><ul>
+<li><a class="reference internal" href="#subpackages">Subpackages</a></li>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-component_submitter.api">component_submitter.api module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.utils">component_submitter.utils module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.key_lists">component_submitter.key_lists module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.mapper">component_submitter.mapper module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.micado_parser">component_submitter.micado_parser module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.micado_validator">component_submitter.micado_validator module</a><ul>
+<li><a class="reference internal" href="#micado-submission-engine-tosca-validator">MiCADO Submission Engine TOSCA Validator</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-component_submitter.plugins_gestion">component_submitter.plugins_gestion module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.step">component_submitter.step module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.submitter_engine">component_submitter.submitter_engine module</a></li>
+<li><a class="reference internal" href="#component-submitter-test-submitter-engine-module">component_submitter.test_submitter_engine module</a></li>
+<li><a class="reference internal" href="#module-component_submitter">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../code.html"
+                        title="previous chapter">MiCADO Submitter Code</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="component_submitter.abstracts.html"
+                        title="next chapter">component_submitter.abstracts package</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/source/component_submitter.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="component_submitter.abstracts.html" title="component_submitter.abstracts package"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../code.html" title="MiCADO Submitter Code"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../code.html" >MiCADO Submitter Code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

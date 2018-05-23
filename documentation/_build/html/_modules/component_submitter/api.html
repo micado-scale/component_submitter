@@ -1,0 +1,208 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>component_submitter.api &#8212; MiCADO Submitter 0.1 documentation</title>
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/_static/basic.css" type="text/css" />
+    <script type="text/javascript" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for component_submitter.api</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">request</span><span class="p">,</span> <span class="n">url_for</span><span class="p">,</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">render_template</span>
+<span class="kn">from</span> <span class="nn">submitter_engine</span> <span class="k">import</span> <span class="n">SubmitterEngine</span>
+<span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorCritical</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">ast</span>
+
+
+<span class="k">def</span> <span class="nf">__init__</span><span class="p">():</span>
+
+    <span class="k">global</span> <span class="n">logger</span><span class="p">,</span> <span class="n">submitter</span>
+
+    <span class="n">logger</span> <span class="o">=</span>  <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;submitter.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="n">submitter</span> <span class="o">=</span> <span class="n">SubmitterEngine</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="RequestError"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.RequestError">[docs]</a><span class="k">class</span> <span class="nc">RequestError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="n">status_code</span> <span class="o">=</span> <span class="mi">400</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">payload</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="ne">Exception</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="k">if</span> <span class="n">status_code</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="n">status_code</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">payload</span> <span class="o">=</span> <span class="n">payload</span>
+
+<div class="viewcode-block" id="RequestError.to_dict"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.RequestError.to_dict">[docs]</a>    <span class="k">def</span> <span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">rv</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">payload</span> <span class="ow">or</span> <span class="p">())</span>
+        <span class="n">rv</span><span class="p">[</span><span class="s1">&#39;message&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span>
+        <span class="k">return</span> <span class="n">rv</span></div></div>
+
+
+
+<div class="viewcode-block" id="keyboardInterrupt"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.keyboardInterrupt">[docs]</a><span class="k">def</span> <span class="nf">keyboardInterrupt</span><span class="p">():</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Ctrl+C - Exiting.&#39;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">manager</span><span class="o">.</span><span class="n">process_table</span><span class="o">.</span><span class="n">iterkeys</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Infrastructure left running: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="unhandle_request_error"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.unhandle_request_error">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">errorhandler</span><span class="p">(</span><span class="ne">Exception</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">unhandle_request_error</span><span class="p">(</span><span class="n">error</span><span class="p">):</span>
+    <span class="kn">import</span> <span class="nn">traceback</span> <span class="k">as</span> <span class="nn">tb</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;An unhandle exception occured:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="p">))</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)))</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">500</span>
+    <span class="k">return</span> <span class="n">response</span></div>
+
+<div class="viewcode-block" id="handle_request_error"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.handle_request_error">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">errorhandler</span><span class="p">(</span><span class="n">RequestError</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">handle_request_error</span><span class="p">(</span><span class="n">error</span><span class="p">):</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;an exception occured </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="p">))</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">error</span><span class="o">.</span><span class="n">to_dict</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">response</span></div>
+
+
+
+<div class="viewcode-block" id="engine"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.engine">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/engine/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">engine</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; API functions to launch a application</span>
+
+<span class="sd">        :params intput: path to the file wanted</span>
+<span class="sd">        :type input: string</span>
+
+<span class="sd">        :params params: dictionary with the update of input.</span>
+<span class="sd">        :type params: dictionary</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;serving request </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="p">))</span>
+    <span class="c1">#test = request.get_json()</span>
+
+
+    <span class="n">path_to_file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;path_to_file: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">))</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;params is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">params</span><span class="p">))</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;exception is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span><span class="o">=</span><span class="n">path_to_file</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">parsed_params</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span><span class="o">=</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="n">parsed_params</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="s2">&quot;&lt;h1&gt;</span><span class="se">\n</span><span class="s2">the id of the launch application is: </span><span class="si">{}</span><span class="s2"> </span><span class="se">\n</span><span class="s2">&lt;/h1&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="undeploy"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.undeploy">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/undeploy/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">undeploy</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; API function to undeploy the application with a specific ID</span>
+<span class="sd">        :params id_app: id of the app wanted to undeploy</span>
+<span class="sd">        :type id_app: string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">id_app</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s2">&quot;id_app&quot;</span><span class="p">]</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">undeploy</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;h1&gt;correctly undeployed&lt;/h1&gt;</span><span class="se">\n</span><span class="s2">&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;&lt;h1&gt;</span><span class="si">{}</span><span class="s2">&lt;/h1&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="update"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.update">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/update/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">update</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; API function to deploy the application with a specific ID &quot;&quot;&quot;</span>
+    <span class="n">id_app</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;id is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">))</span>
+    <span class="n">path_to_file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;path_to_file is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">))</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;params is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">params</span><span class="p">))</span>
+        <span class="n">parsed_params</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;exception is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">path_to_file</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="s2">&quot;&lt;h1&gt; the application with the id: </span><span class="si">{}</span><span class="s2"> as been updated&lt;/h1&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="list_app"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.list_app">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/list_app&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">list_app</span><span class="p">():</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">submitter</span><span class="o">.</span><span class="n">id_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s2">&quot;&lt;h1&gt;here is the id list of applications </span><span class="se">\n</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&lt;/h1&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="fm">__init__</span><span class="p">()</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span> <span class="n">threaded</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>
