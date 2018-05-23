@@ -7,14 +7,14 @@ import logging
 import ast
 
 
-def setup_app(app):
+def __init__():
 
     global logger, submitter
 
     logger =  logging.getLogger("submitter."+__name__)
     submitter = SubmitterEngine()
-setup_app(app)
 
+__init__()
 class RequestError(Exception):
     status_code = 400
 
@@ -79,27 +79,24 @@ def engine():
 
     else:
         parsed_params = ast.literal_eval(params)
-        response = submitter.launch(path_to_file=path_to_file, parsed_params=parsed_params)
+        id_app = submitter.launch(path_to_file=path_to_file, parsed_params=parsed_params)
+    response = jsonify(dict(message="app:{}".format(id_app)))
+    response.status_code = 200
+    return response
 
-    return "<h1>\nthe id of the launch application is: {} \n</h1>\n".format(response)
-
-@app.route('/undeploy/', methods=['POST'])
-def undeploy():
+@app.route('/undeploy/<id_app>', methods=['DELETE'])
+def undeploy(id_app):
     """ API function to undeploy the application with a specific ID
-        :params id_app: id of the app wanted to undeploy
-        :type id_app: string
     """
-    id_app = request.form["id_app"]
     response = submitter.undeploy(id_app)
     if response is None:
-        return "<h1>correctly undeployed</h1>\n"
+        return jsonify(dict(message="undeployed {} correctly".format(id_app), status_code=200))
     else:
-        return "<h1>{}</h1>\n".format(response)
+        return jsonify(dict(message="something undexpected happened", status_code=500))
 
-@app.route('/update/', methods=['POST'])
-def update():
+@app.route('/update/<id_app>', methods=['PUT'])
+def update(id_app):
     """ API function to deploy the application with a specific ID """
-    id_app = request.form['id']
     logger.info("id is: {}".format(id_app))
     path_to_file = request.form['input']
     logger.info("path_to_file is: {}".format(path_to_file))
@@ -110,18 +107,34 @@ def update():
     except Exception as e:
         logger.info("exception is: {}".format(e))
         response = submitter.update(id_app, path_to_file)
+        if response is None:
+            return jsonify(dict(message="correctly updated", status_code=200))
+        else:
+            return jsonify(dict(message="update failed", status_cod=500))
     else:
         response = submitter.update(id_app, path_to_file, parsed_params)
+        if response is None:
+            return jsonify(dict(message="correctly updated", status_code=200))
+        else:
+            return jsonify(dict(message="update failed", status_cod=500))
 
-    return "<h1> the application with the id: {} as been updated</h1>".format(id_app)
+
+
+@app.route('/app/<id_app>', methods=['GET'])
+def info_app(id_app):
+    response = jsonify(dict(message="{}".format(submitter.app_list[id_app])))
+    response.status_code = 500
+
+
+    return response
 
 @app.route('/list_app', methods=['GET'])
 def list_app():
     response = []
     for key, value in submitter.app_list.items():
-        response.append("id: {}, outputs: {}".format(key,value))
+        response.append("id: {}, outputs: {}\n".format(key,value))
     return "<h1>here is the id list of applications \n {}\n</h1>\n".format(response)
 
 if __name__ == "__main__":
     __init__()
-    app.run(debug=True, port=5050, threaded=True, host='0.0.0.0')
+    app.run(debug=True, port=5000, threaded=True)
