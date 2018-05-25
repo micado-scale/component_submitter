@@ -16,16 +16,18 @@ class KeyLists():
   def __init__(self):
 
       logger.debug("initialisation of KeyLists class")
-      self.keys = dict()
+      whole_file = self._reading_config()
+      self.adaptor_config = whole_file["Adaptor_config"]
+      self.config = whole_file["config"]
       #self.template = template
-      #self._set_dictionary()
+      #self.set_dictionary()
       #self._update_dictionary()
 
   def get_list_adaptors(self):
       """return list of adaptors to use"""
       logger.debug("get the list of adaptors")
       adaptor_list=[]
-      for key, value in self._reading_config()["key_config"].items():
+      for key, value in self._reading_config()["Adaptor_config"].items():
           adaptor_list.append(key)
 
       logger.debug("adaptors:  {}".format(adaptor_list))
@@ -80,64 +82,91 @@ class KeyLists():
               pass
       return output
 
-
-
   def set_dictionary(self, template):
-      """setting the dictionary, first going to call method to read config
-        and implement the dictionary related to it."""
       logger.debug("set dictionary")
-      tmp_dic=self._reading_config()['key_config']
+      tmp_dic = self._reading_config()['Adaptor_config']
       for key, value in tmp_dic.items():
-          if isinstance(value, list):
-              self.keys.setdefault(key)
-              _interm_dict=dict()
-              for type in value:
-                  if self._check_re(type, template):
-                      for t in self._list_for_re(type):
-                          _interm_dict.setdefault(t)
-                  else:
-                      _interm_dict.setdefault(type)
-              self.keys.__setitem__(key,_interm_dict)
-          else:
-              if self._check_re(key):
-                  for type in self._list_for_re(key):
-                      self.keys.setdefault(type)
-              else:
-                  self.keys.setdefault(key)
-      self._update_dictionary(template)
+          if isinstance(value, dict):
+              for key_inter, value_inter in value.items():
+                  if "types" in key_inter and isinstance(value_inter, list):
+                      _list_inter = list()
+                      for item in value_inter:
+                          if self._check_re(item, template):
+                              for item_inter in self._list_for_re(item, template):
+                                  logger.debug("item_inter {}".format(item_inter))
+                                  obj = self._look_through_template(item_inter, template)
+                                  logger.debug("\t\tobject: {}".format(obj))
+                                  if obj is not None:
+                                      _list_inter.append({item_inter: obj})
+                          else:
+                              obj = self._look_through_template(item, template)
+                              if obj is not None:
+                                  _list_inter.append({item: obj})
+                      if _list_inter:
+                         tmp_dic[key][key_inter]=_list_inter
+                         tmp_dic[key]['dry_run'] = self.config['dry_run']
+      self.key_config = tmp_dic
 
-  def _update_dictionary(self, template):
-      """updating the dictionary with value related to the template"""
+
+  # def set_dictionary(self, template):
+  #     """setting the dictionary, first going to call method to read config
+  #       and implement the dictionary related to it."""
+  #     logger.debug("set dictionary")
+  #     tmp_dic=self._reading_config()['key_config']
+  #     for key, value in tmp_dic.items():
+  #         if isinstance(value, list):
+  #             self.key_config.setdefault(key)
+  #             _interm_dict=dict()
+  #             for type in value:
+  #                 if self._check_re(type, template):
+  #                     for t in self._list_for_re(type):
+  #                         _interm_dict.setdefault(t)
+  #                 else:
+  #                     _interm_dict.setdefault(type)
+  #             self.key_config.__setitem__(key,_interm_dict)
+  #         else:
+  #             if self._check_re(key, template):
+  #                 for type in self._list_for_re(key):
+  #                     self.key_config.setdefault(type)
+  #             else:
+  #                 self.key_config.setdefault(key)
+  #     #self._update_dictionary(template)
+
+  def _look_through_template(self, key, template):
+      """look through template"""
       logger.debug("update dictionary")
-      for inbeded_dict in self.keys:
-          for node in template.nodetemplates:
-              if self._key_exist(inbeded_dict, node.type):
-                  self._update_embeded(node.type, node, inbeded_dict)
+      for node in template.nodetemplates:
+          if key in node.type:
+              return node
+      for policy in template.policies:
+          if key in policy.type:
+              return policy
+      return None
 
   def _update_embeded(self, key, value, embeded):
       """methode to update the embedded dictionary"""
       logger.debug("update embedded dictionary")
-      for k, v in self.keys.items():
+      for k, v in self.key_config.items():
           if k is embeded and isinstance(v, collections.Mapping):
               for i in v:
                   if key in i and v[i] is None:
-                      self.keys[k][i]=value
+                      self.key_config[k][i]=value
                   elif key in i and isinstance(v[i],list):
                       _element = v[i]
                       _element.append(value)
-                      self.keys[k][i]=_element
+                      self.key_config[k][i]=_element
                   elif key in i and v[i] is not None:
-                      self.keys[k][i]=[v[i],value]
+                      self.key_config[k][i]=[v[i],value]
 
 
   def _key_exist(self, *keys_to_check):
       """method to know if the key exist in the config file"""
       logger.debug("check if the key exist")
-      if type(self.keys) is not dict:
-          raise AttributeError('self.keys is expected to be a dict')
+      if type(self.key_config) is not dict:
+          raise AttributeError('self.key_config is expected to be a dict')
       if len(keys_to_check) == 0:
           raise AttributeError('key is supposed to be non nul')
-      _element= self.keys
+      _element= self.key_config
       for key in keys_to_check:
           try:
               _element=_element[key]
@@ -148,17 +177,17 @@ class KeyLists():
   def get_KeyLists(self):
       """retrieve the whole dictionary"""
       logger.debug("get KeyList invoked")
-      return self.keys
+      return self.key_config
 
   def get_dict(self, key):
       """retrieve the dictionary wanted"""
       logger.debug("get dict invoked")
-      return self.keys[key]
+      return self.key_config[key]
 
   def get_node_from_type(self, type):
       """retrieve wanted node through its type"""
       logger.debug("get node or nodes having type %s" % type)
-      for key, value in self.keys.items():
+      for key, value in self.key_config.items():
           if key is type and not isinstance(value, collections.Mapping):
               return value
           elif isinstance(value, collections.Mapping):

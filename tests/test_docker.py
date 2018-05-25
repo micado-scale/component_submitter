@@ -3,6 +3,7 @@ import unittest
 from toscaparser.tosca_template import ToscaTemplate
 
 from adaptors.docker_adaptor import DockerAdaptor
+from key_lists import KeyLists
 
 class TestDockerAdaptor(unittest.TestCase):
     """ UnitTests for docker adaptor """
@@ -10,7 +11,8 @@ class TestDockerAdaptor(unittest.TestCase):
     def setUp(self):
         """ Prep a good TOSCA template """
         self.tpl = ToscaTemplate("tests/templates/good_tosca.yaml")
-        self.adapt = DockerAdaptor("main_adapt", self.tpl)
+        self.config = KeyLists().adaptor_config['DockerAdaptor']
+        self.adapt = DockerAdaptor("main_adapt", self.config, self.tpl)
         self.compose_data = {}
 
     def test_compose_properties_services(self):
@@ -66,7 +68,7 @@ class TestDockerAdaptor(unittest.TestCase):
         self.adapt._compose_requirements(node)
         self.assertDictEqual(self.adapt.compose_data, dic)
 
-    #test when implmented    
+    #test when implmented
     def not_test_compose_requirements_hosts(self):
         node = self.tpl.nodetemplates[2]
         dic = {"services": {"db": {"deploy": {"placement":

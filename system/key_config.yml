@@ -1,22 +1,17 @@
-key_config:
-  DummySeAdaptor:
-    - "tosca.nodes.MiCADO.Container.Application.Docker"
-  DummyPkAdaptor:
-    - "tosca.nodes.MiCADO.Container.Application.Docker"
-#  ScalingPolicyAdaptor:
-#    - "tosca.nodes.MiCADO.Container.Application.Docker"
-  DockerAdaptor:
-    #DockerAdaptor
-    - "tosca.nodes.MiCADO.Container.Application.Docker"
-#  cloud_orchestrator:
-#    - "tosca.nodes.MiCADO.*"
-#    - "tosca.nodes.MiCADO.Occopus.CloudSigma.Compute"
-#    - "tosca.nodes.MiCADO.Occopus.Nova.Compute"
-#    - "tosca.nodes.MiCADO.Occopus.CloudBroker.Compute"
-#    - "tosca.nodes.MiCADO.Occopus.EC2.Compute"
+config:
+  dry_run: True
+  path_log: "/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/submitter.log"
 
-#  policies_engine:
-#    - "tosca.nodes.MiCADO.*"
-#    - "tosca.nodes.MiCADO.Container.Application.Docker"
-#  security_enforcer:
-#    - "some security Enforcer"
+Adaptor_config:
+ DummySeAdaptor:
+   types:
+     - "tosca.policies.Scaling.*"
+   endoint: "endpoint"
+   dry_run: True
+
+
+ DockerAdaptor:
+   types:
+     - "tosca.nodes.MiCADO.Container.Application.Docker"
+   endoint: "endpoint"
+   dry_run: True
