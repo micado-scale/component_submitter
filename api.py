@@ -75,7 +75,7 @@ def engine():
 
     except Exception as e:
         logger.info("exception is: {}".format(e))
-        response = submitter.launch(path_to_file=path_to_file)
+        id_app = submitter.launch(path_to_file=path_to_file)
 
     else:
         parsed_params = ast.literal_eval(params)

@@ -6,10 +6,11 @@ logger=logging.getLogger("adaptor."+__name__)
 
 class DummyOccopusAdaptor(abco.CloudAdaptor):
 
-    def __init__(self, adaptor_id, template = None):
+    def __init__(self, adaptor_id, config, template = None):
         super().__init__()
 
         self.ID = adaptor_id
+        self.config = config
         self.template = template
         logger.info("OccoAdaptor initialised")
 
