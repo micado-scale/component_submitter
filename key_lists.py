@@ -17,8 +17,10 @@ class KeyLists():
 
       logger.debug("initialisation of KeyLists class")
       whole_file = self._reading_config()
-      self.adaptor_config = whole_file["Adaptor_config"]
+
       self.config = whole_file["config"]
+      self.set_dictionary()
+
       #self.template = template
       #self.set_dictionary()
       #self._update_dictionary()
@@ -82,11 +84,11 @@ class KeyLists():
               pass
       return output
 
-  def set_dictionary(self, template):
+  def set_dictionary(self, template=None):
       logger.debug("set dictionary")
       tmp_dic = self._reading_config()['Adaptor_config']
       for key, value in tmp_dic.items():
-          if isinstance(value, dict):
+          if isinstance(value, dict) and template is not None:
               for key_inter, value_inter in value.items():
                   _for_dic = dict()
                   if "types" in key_inter and isinstance(value_inter, list):
@@ -108,6 +110,19 @@ class KeyLists():
                          _for_dic['dry_run'] = self.config['dry_run']
                          _for_dic['volume'] = self.config['volume']
                          tmp_dic[key] = _for_dic
+
+          elif isinstance(value, dict) and template is None:
+              for key_inter, value_inter in value.items():
+                  _for_dic = dict()
+                  if "types" in key_inter and isinstance(value_inter, list):
+                      _list_inter = list()
+                      for item in value_inter:
+                          _list_inter.append(item)
+                  _for_dic[key_inter] = _list_inter
+                  _for_dic['dry_run'] = self.config['dry_run']
+                  _for_dic['volume'] = self.config['volume']
+                  tmp_dic[key] = _for_dic
+
       self.adaptor_config = tmp_dic
 
 
