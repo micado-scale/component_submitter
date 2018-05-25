@@ -88,6 +88,7 @@ class KeyLists():
       for key, value in tmp_dic.items():
           if isinstance(value, dict):
               for key_inter, value_inter in value.items():
+                  _for_dic = dict()
                   if "types" in key_inter and isinstance(value_inter, list):
                       _list_inter = list()
                       for item in value_inter:
@@ -103,9 +104,11 @@ class KeyLists():
                               if obj is not None:
                                   _list_inter.append({item: obj})
                       if _list_inter:
-                         tmp_dic[key][key_inter]=_list_inter
-                         tmp_dic[key]['dry_run'] = self.config['dry_run']
-      self.key_config = tmp_dic
+                         _for_dic[key_inter] = _list_inter
+                         _for_dic['dry_run'] = self.config['dry_run']
+                         _for_dic['volume'] = self.config['volume']
+                         tmp_dic[key] = _for_dic
+      self.adaptor_config = tmp_dic
 
 
   # def set_dictionary(self, template):
