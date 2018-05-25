@@ -67,7 +67,6 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
         logger.debug("Initialising the Docker adaptor with ID & TPL...")
         self.config = config
-        logger.debug("\t\t\t config is: {}".format(config['dry_run']))
         self.compose_data = {}
         self.ID = adaptor_id
         self.path = "{}/../files/output_configs/{}.yaml".format(os.path.dirname(__file__), self.ID)
