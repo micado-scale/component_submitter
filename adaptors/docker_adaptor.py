@@ -66,12 +66,14 @@ class DockerAdaptor(abco.ContainerAdaptor):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")
 
         logger.debug("Initialising the Docker adaptor with ID & TPL...")
+
         self.config = config
         self.compose_data = {}
+        logger.debug("\t\t\t\t\t {}".format(config))
         self.ID = adaptor_id
-        self.path = "{}/../files/output_configs/{}.yaml".format(os.path.dirname(__file__), self.ID)
-        self.tmp_path = "{}/../files/output_configs/tmp_{}.yaml".format(
-                                            os.path.dirname(__file__), self.ID)
+        self.path = "{}{}.yaml".format(self.config['volume'], self.ID)
+        self.tmp_path = "{}tmp_{}.yaml".format(
+                                            self.config['volume'], self.ID)
         self.tpl = template
         self.output = dict()
         logger.info("DockerAdaptor ready to go!")

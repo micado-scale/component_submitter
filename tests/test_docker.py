@@ -46,7 +46,7 @@ class TestDockerAdaptor(unittest.TestCase):
     def test_compose_properties_inputs_parsed(self):
         tpl = ToscaTemplate(
             "tests/templates/good_tosca.yaml", {"exposed_ports":["5959:5959"]})
-        adapt = DockerAdaptor("other_adapt", tpl)
+        adapt = DockerAdaptor("other_adapt",self.config, tpl)
         node = tpl.nodetemplates[2]
         key = "services"
         dic = {key: {"db":{"ports":["5959:5959"]}}}
