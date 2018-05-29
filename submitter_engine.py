@@ -96,7 +96,7 @@ class SubmitterEngine(object):
         """
         logger.info("proceding to the undeployment of the application")
         config = self._mapper_instantiation()
-        adaptors = self._instantiate_adaptors(id_app, configs)
+        adaptors = self._instantiate_adaptors(id_app, config)
         logger.debug("{}".format(adaptors))
 
 
@@ -128,7 +128,7 @@ class SubmitterEngine(object):
         template = self._micado_parser_upload(path_to_file, parsed_params)
         config = self._mapper_instantiation(template)
 
-        object_adaptors = self._instantiate_adaptors(id_app, template, config)
+        object_adaptors = self._instantiate_adaptors(id_app, config, template)
         logger.debug("list of adaptor created: {}".format(object_adaptors))
         self._update(object_adaptors, id_app)
 
@@ -194,18 +194,20 @@ class SubmitterEngine(object):
 
         if template is not None:
             for adaptor in self.adaptors_class_name:
-                logger.debug("instantiate {}".format(adaptor))
+                logger.debug("instantiate {}, template".format(adaptor))
                 adaptor_id="{}_{}".format(app_id, adaptor.__name__)
-                obj = adaptor(adaptor_id,config[adaptor.__name__], template = template)
+                obj = adaptor(adaptor_id, config[adaptor.__name__], template = template)
                 adaptors.append(obj)
             return adaptors
 
         elif template is None:
             for adaptor in self.adaptors_class_name:
-                logger.debug("instantiate {}".format(adaptor))
+                logger.debug("instantiate {}, no template".format(adaptor))
                 adaptor_id="{}_{}".format(app_id, adaptor.__name__)
                 obj = adaptor(adaptor_id,config[adaptor.__name__])
                 adaptors.append(obj)
+                logger.debug("done instntiation of {}".format(adaptor))
+
             return adaptors
 
 
