@@ -5,11 +5,12 @@ logger=logging.getLogger("adaptor."+__name__)
 
 class DummyPkAdaptor(abco.PolicyKeeperAdaptor):
 
-    def __init__(self, adaptor_id,  template = None):
+    def __init__(self, adaptor_id, config,  template = None):
 
         super().__init__()
         self.ID = adaptor_id
         self.templates = template
+        self.config = config
         logger.info("PKAdaptor initialised")
 
     def translate(self):

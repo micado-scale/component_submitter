@@ -54,13 +54,26 @@ an application described by a TOSCA templates on the MiCADO infrastructure.</p>
 </pre></div>
 </td></tr></table></div>
 <p>To launch an application you can use the curl command line:</p>
-<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -d <span class="s2">&quot;input=[Path to TOSCA Template]&quot;</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/engine/
+<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -d <span class="nv">input</span><span class="o">=</span><span class="s2">&quot;[Path to TOSCA Template]&quot;</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/engine/
 </pre></div>
 </td></tr></table></div>
 <p>To launch an application with no default value for the inputs use the curl command line:</p>
-<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -d <span class="s2">&quot;input=[Path to TOSCA Template]&quot;</span> -d <span class="s2">&quot;params={Input1: value a, Input2: value b}&quot;</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/engine/
+<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -d <span class="nv">input</span><span class="o">=</span><span class="s2">&quot;[Path to TOSCA Template]&quot;</span> -d <span class="nv">params</span><span class="o">=</span><span class="s1">&#39;{&quot;Input1&quot;: &quot;value a&quot;, &quot;Input2&quot;: &quot;value b&quot;}&#39;</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/engine/
 </pre></div>
 </td></tr></table></div>
+<dl class="docutils">
+<dt>To update a wanted application you need to use this command with optional params:</dt>
+<dd><table class="first docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">linenos:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<p class="last">curl -d id=”[APP ID]” -d input=”[Path to TOSCA template]” -d params=’{“Input1”: “value a”, “Input2”: “value b”}’ -X POST <a class="reference external" href="http://[IP]:[Port]/udpate">http://[IP]:[Port]/udpate</a></p>
+</dd>
+</dl>
 <p>To undeploy a wanted application you need to feed it the id:</p>
 <div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -d <span class="s2">&quot;id_app=[ID]&quot;</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/undeploy/
 </pre></div>
@@ -163,7 +176,7 @@ the actual value you want to use as input.</p>
     </div>
     <div class="footer" role="contentinfo">
         &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.3.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
     </div>
   </body>
 </html>

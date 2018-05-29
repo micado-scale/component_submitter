@@ -16,8 +16,8 @@ from random import randint
 import logging
 """ set up of Logging """
 LEVEL = logging.DEBUG
-logging.basicConfig(filename="submitter.log", level=LEVEL,
-                format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+
+logging.basicConfig(filename=Mapper().config['path_log'], level=LEVEL, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger=logging.getLogger("submitter."+__name__)
 
 """define the Handler which write message to sys.stderr"""
@@ -70,15 +70,15 @@ class SubmitterEngine(object):
             launch method to accept another parameter to be able to choose which engine to
             launch
         """
-        logger.info("Launching the application located there {}".format(path_to_file))
+        logger.info("Launching the application located there {} and with params {}".format(path_to_file, parsed_params))
+
         template = self._micado_parser_upload(path_to_file, parsed_params)
-        self.template = template
-        tpl = self._mapper_instantiation(template)
+        config = self._mapper_instantiation(template)
 
 
         id_app = utils.id_generator()
 
-        object_adaptors = self._instantiate_adaptors(id_app, template)
+        object_adaptors = self._instantiate_adaptors(id_app, config, template)
         logger.debug("list of objects adaptor: {}".format(object_adaptors))
         #self._save_file(id_app, path_to_file)
         self.app_list.update({id_app: ""})
@@ -95,8 +95,10 @@ class SubmitterEngine(object):
         :type: string
         """
         logger.info("proceding to the undeployment of the application")
-        adaptors = self._instantiate_adaptors(id_app)
+        config = self._mapper_instantiation()
+        adaptors = self._instantiate_adaptors(id_app, configs)
         logger.debug("{}".format(adaptors))
+
 
         for adaptor in reversed(adaptors):
             self._undeploy(adaptor)
@@ -124,9 +126,9 @@ class SubmitterEngine(object):
 
         logger.info("proceding to the update of the application {}".format(id_app))
         template = self._micado_parser_upload(path_to_file, parsed_params)
-        key_lists = self._mapper_instantiation(template)
+        config = self._mapper_instantiation(template)
 
-        object_adaptors = self._instantiate_adaptors(id_app, template)
+        object_adaptors = self._instantiate_adaptors(id_app, template, config)
         logger.debug("list of adaptor created: {}".format(object_adaptors))
         self._update(object_adaptors, id_app)
 
@@ -159,12 +161,11 @@ class SubmitterEngine(object):
         return template
 
 
-    def _mapper_instantiation(self, template):
+    def _mapper_instantiation(self, template = None):
         """ Retrieve the keylist from mapper """
         logger.debug("instantiation of mapper and retrieve keylists")
         mapper = Mapper(template)
-        keylists = mapper.keylists
-        return mapper.topology
+        return mapper.adaptor_config
 
     def _get_adaptors_class(self):
         """ Retrieve the list of the differrent class adaptors """
@@ -177,7 +178,7 @@ class SubmitterEngine(object):
             self.adaptors_class_name.append(adaptor)
         logger.debug("list of adaptors instantiated: {}".format(self.adaptors_class_name))
 
-    def _instantiate_adaptors(self, app_id, template = None):
+    def _instantiate_adaptors(self, app_id, config, template = None):
         """ Instantiate the list of adaptors from the adaptors class list
 
             :params app_id: id of the application
@@ -195,7 +196,7 @@ class SubmitterEngine(object):
             for adaptor in self.adaptors_class_name:
                 logger.debug("instantiate {}".format(adaptor))
                 adaptor_id="{}_{}".format(app_id, adaptor.__name__)
-                obj = adaptor(adaptor_id, template = template)
+                obj = adaptor(adaptor_id,config[adaptor.__name__], template = template)
                 adaptors.append(obj)
             return adaptors
 
@@ -203,7 +204,7 @@ class SubmitterEngine(object):
             for adaptor in self.adaptors_class_name:
                 logger.debug("instantiate {}".format(adaptor))
                 adaptor_id="{}_{}".format(app_id, adaptor.__name__)
-                obj = adaptor(adaptor_id, template = template)
+                obj = adaptor(adaptor_id,config[adaptor.__name__])
                 adaptors.append(obj)
             return adaptors
 
@@ -259,10 +260,10 @@ class SubmitterEngine(object):
             adaptor.update()
             try:
                 #self.app_list.update(app_id, Step(adaptor).output)
-                self.app_list.update(app_id, adaptor.output)
+                logger.info(adaptor.output)
+                self.app_list[app_id] = adaptor.output
             except AttributeError as e:
                 logger.warning("the Adaptor doesn't provide a output attribute")
-        self._update_json()
 
 
 
