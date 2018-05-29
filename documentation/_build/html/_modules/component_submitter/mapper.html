@@ -48,14 +48,22 @@
 
 <div class="viewcode-block" id="Mapper"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.mapper.Mapper">[docs]</a><span class="k">class</span> <span class="nc">Mapper</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Mapper class that is creating a KeyList dictionary&quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">topology</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">topology</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;in init of Mapper&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">topology</span> <span class="o">=</span> <span class="n">topology</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;look for get_input in the template&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_find_get_input</span><span class="p">(</span><span class="n">topology</span><span class="o">.</span><span class="n">tpl</span><span class="p">)</span>
-        <span class="c1">#self._orchestrator_selection()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">keylists</span> <span class="o">=</span> <span class="n">KeyLists</span><span class="p">()</span><span class="o">.</span><span class="n">set_dictionary</span><span class="p">(</span><span class="n">topology</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">topology</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">topology</span> <span class="o">=</span> <span class="n">topology</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;look for get_input in the template&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_find_get_input</span><span class="p">(</span><span class="n">topology</span><span class="o">.</span><span class="n">tpl</span><span class="p">)</span>
+            <span class="c1">#self._orchestrator_selection()</span>
+            <span class="n">KL</span> <span class="o">=</span> <span class="n">KeyLists</span><span class="p">()</span>
+            <span class="n">KL</span><span class="o">.</span><span class="n">set_dictionary</span><span class="p">(</span><span class="n">topology</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">adaptor_config</span> <span class="o">=</span> <span class="n">KL</span><span class="o">.</span><span class="n">adaptor_config</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">KL</span><span class="o">.</span><span class="n">config</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">adaptor_config</span> <span class="o">=</span> <span class="n">KeyLists</span><span class="p">()</span><span class="o">.</span><span class="n">adaptor_config</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">KeyLists</span><span class="p">()</span><span class="o">.</span><span class="n">config</span>
 
 
     <span class="k">def</span> <span class="nf">_find_get_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">template</span><span class="p">):</span>
