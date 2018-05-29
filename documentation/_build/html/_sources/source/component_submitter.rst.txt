@@ -84,13 +84,6 @@ component\_submitter.submitter\_engine module
     :undoc-members:
     :show-inheritance:
 
-component\_submitter.test\_submitter\_engine module
----------------------------------------------------
-
-.. automodule:: component_submitter.test_submitter_engine
-    :members:
-    :undoc-members:
-    :show-inheritance:
 
 
 Module contents
