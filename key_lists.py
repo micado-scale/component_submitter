@@ -108,8 +108,9 @@ class KeyLists():
                       if _list_inter:
                          _for_dic[key_inter] = _list_inter
                          _for_dic['dry_run'] = self.config['dry_run']
-                         _for_dic['volume'] = self.config['volume']
                          tmp_dic[key] = _for_dic
+                  else:
+                       tmp_dic[key][key_inter] = value_inter
 
           elif isinstance(value, dict) and template is None:
               for key_inter, value_inter in value.items():
@@ -118,11 +119,14 @@ class KeyLists():
                       _list_inter = list()
                       for item in value_inter:
                           _list_inter.append(item)
-                  _for_dic[key_inter] = _list_inter
-                  _for_dic['dry_run'] = self.config['dry_run']
-                  _for_dic['volume'] = self.config['volume']
-                  tmp_dic[key] = _for_dic
+                      logger.debug("key_inter is: {}".format(_list_inter))
+                      _for_dic[key_inter] = _list_inter
+                      _for_dic['dry_run'] = self.config['dry_run']
+                      tmp_dic[key] = _for_dic
+                  else:
+                      tmp_dic[key][key_inter] = value_inter
 
+      logger.debug("the config is: {}".format(tmp_dic))
       self.adaptor_config = tmp_dic
 
 
