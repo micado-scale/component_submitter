@@ -1,7 +1,8 @@
 import os
 import imp, inspect, sys
 from abstracts import *
-PATH="./adaptors/"
+from os import path
+PATH="{}/adaptors/".format(path.dirname(__file__))
 import logging
 logger=logging.getLogger("submitter."+__name__)
 
