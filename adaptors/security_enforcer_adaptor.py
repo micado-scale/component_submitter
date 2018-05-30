@@ -56,7 +56,8 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
         self.tpl = template
         self.ID = adaptor_id
         self.config = config
-        self.policies = self.tpl.policies
+        if template is not None:
+            self.policies = self.tpl.policies
         logger.debug("Initialising the SE adaptor with the ID and TPL")
 
     def translate(self):
@@ -80,7 +81,7 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
                         response = requests.post("{}/create_secret".format(self.config['endpoint']), data = data_keys)
                         for target in policy.targets:
                             logger.info("link the secret")
-                            data_keys = {'secret':key, 'service':target}
+                            data_keys = {'secret':key, 'service':"{}_{}".format(self.IDtarget, target)}
                             response = requests.post("{}/add_secret".format(self.config['endpoint']), data = data_keys)
 
     def undeploy(self):
