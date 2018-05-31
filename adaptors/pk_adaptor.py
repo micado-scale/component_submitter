@@ -19,7 +19,7 @@ yaml.top_level_colon_align = True
 
 logger = logging.getLogger("adaptor."+__name__)
 
-# Hard-coded things for PK
+# Hard-coded things for Pk
 PK = (STACK, DATA, SOURCES, CONSTANTS, QUERIES, ALERTS, SCALING, NODES, SERVICES) = \
                 ("stack", "data", "sources", "constants", "queries", "alerts", "scaling", "nodes", "services")
 
@@ -74,16 +74,19 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
 
     def execute(self):
         logger.info("Starting PKexecution")
-        headers = {'content-type': 'application/yaml'}
-        pk_address = "localhost:12345"
-        with open(self.path) as data:
-            yaml.load(data)
-            r = requests.post("http://{0}/policy/start".format(pk_address), data=data, headers=headers)
+        headers = {'Content-Type': 'application/x-yaml'}
+        # Hard-coded Pk address
+        pk_address = "policykeeper:12345"
+        with open(self.path, 'rb') as data:
+            requests.post("http://{0}/policy/start".format(pk_address), data=data, headers=headers)
 
 
     def undeploy(self):
-
         logger.info("Undeploy/remove the policy in pk service with id {}".format(self.ID))
+        # Hard-coded Pk address
+        pk_address = "policykeeper:12345"
+        requests.post("http://{0}/policy/stop".format(pk_address))
+
 
     def cleanup(self):
 
@@ -149,6 +152,6 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
             yaml.round_trip_dump(self.pk_data, ofile)
 
     def _differentiate(self):
-        # Compare two pk file
+        # Compare two Pk file
         return filecmp.cmp(self.path, self.tmp_path)
 

@@ -7,3 +7,4 @@ template = ToscaTemplate("tests/templates/TOSCA-FILE2.yaml")
 adaptor = PkAdaptor("pk_test", template)
 
 adaptor.translate()
+adaptor.execute()
