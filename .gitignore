@@ -111,5 +111,5 @@ files/templates/*.yml
 adaptors/security_enforcer_adaptor.py
 # DS store
 .DS_Store
-
+.idea
 system/ids.json

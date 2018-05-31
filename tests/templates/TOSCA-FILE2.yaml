@@ -1,0 +1,196 @@
+tosca_definitions_version: tosca_simple_yaml_1_0
+
+imports:
+  - https://raw.githubusercontent.com/jaydesl/COLARepo/master/nodes/custom_types.yaml
+  - custom_policy.yaml
+
+repositories:
+  docker_hub: https://hub.docker.com/
+
+topology_template:
+  node_templates:
+    rabbitmq:
+      type: tosca.nodes.MiCADO.Container.Application.Docker
+      properties:
+        ports:
+         - "15672:15672"
+         - "5672:5672"
+        environment:
+          RABBITMQ_DEFAULT_USER: guest
+          RABBITMQ_DEFAULT_PASS: guest
+        deploy:
+          restart_policy:
+            condition: any
+      artifacts:
+       image:
+         type: tosca.artifacts.Deployment.Image.Container.Docker
+         file: rabbitmq:3-management
+         repository: docker_hub
+    redis:
+      type: tosca.nodes.MiCADO.Container.Application.Docker
+      properties:
+        ports:
+         - "6379:6379"
+        command: redis-server --appendonly yes
+        deploy:
+          restart_policy:
+            condition: any
+      artifacts:
+       image:
+         type: tosca.artifacts.Deployment.Image.Container.Docker
+         file: redis
+         repository: docker_hub
+
+    worker:
+      type: tosca.nodes.MiCADO.Container.Application.Docker
+      properties:
+        environment:
+         BROKER: amqp://guest:guest@rabbitmq:5672
+         RESULT_BACKEND: redis://redis:6379
+        deploy:
+          restart_policy:
+            condition: any
+
+        # "depends_on:" is deprecated. Docker recommends building fail-safes
+        # into applications
+
+        volumes:
+          - /usr/bin/docker:/usr/bin/docker
+          - /var/run/docker.sock:/var/run/docker.sock
+
+      # The Docker image is defined here
+      artifacts:
+       image:
+         type: tosca.artifacts.Deployment.Image.Container.Docker
+         file: sanyi86/cqueue_worker
+         repository: docker_hub
+
+      # "links:" is deprecated. Instead Docker reccommends using a network
+      # to permit the same functionality. Here we express networks in TOSCA
+      requirements:
+       - service:
+          node: redis
+          relationship:
+           type: tosca.relationships.ConnectsTo
+           properties:
+             network_name: default
+       - service:
+          node: rabbitmq
+          relationship:
+           type: tosca.relationships.ConnectsTo
+           properties:
+             network_name: default
+
+    frontend:
+      type: tosca.nodes.MiCADO.Container.Application.Docker
+      properties:
+        ports:
+          - "8080:8080"
+        environment:
+         BROKER: amqp://guest:guest@rabbitmq:5672
+         RESULT_BACKEND: redis://redis:6379
+        deploy:
+          restart_policy:
+            condition: any
+
+        # "depends_on:" is deprecated. Docker recommends building fail-safes
+        # into applications
+
+      # The Docker image is defined here
+      artifacts:
+       image:
+         type: tosca.artifacts.Deployment.Image.Container.Docker
+         file: sanyi86/cqueue_frontend
+         repository: docker_hub
+
+      # "links:" is deprecated. Instead Docker reccommends using a network
+      # to permit the same functionality. Here we express networks in TOSCA
+      requirements:
+       - service:
+          node: rabbitmq
+          relationship:
+           type: tosca.relationships.ConnectsTo
+           properties:
+             network_name: default
+
+    rabbitmq_exporter:
+      type: tosca.nodes.MiCADO.Container.Application.Docker
+      properties:
+        ports:
+          - "8090:8090"
+        environment:
+          RABBIT_URL: "http://rabbitmq:15672"
+          PUBLISH_PORT: "8090"
+          RABBIT_EXPORTERS: "queue"
+
+        deploy:
+          restart_policy:
+            condition: any
+
+        # "depends_on:" is deprecated. Docker recommends building fail-safes
+        # into applications
+
+      # The Docker image is defined here
+      artifacts:
+       image:
+         type: tosca.artifacts.Deployment.Image.Container.Docker
+         file: kbudde/rabbitmq-exporter
+         repository: docker_hub
+
+      # "links:" is deprecated. Instead Docker reccommends using a network
+      # to permit the same functionality. Here we express networks in TOSCA
+      requirements:
+       - service:
+          node: rabbitmq
+          relationship:
+           type: tosca.relationships.ConnectsTo
+           properties:
+             network_name: default
+
+    default:
+      type: tosca.nodes.MiCADO.network.Network.Docker
+      properties:
+        driver: "overlay"
+        attachable: "true"
+
+    # I'm defining a dummy virtual machine here so we can target it with policies
+    VIRTUAL_MACHINE_NODE:
+       type: tosca.nodes.MiCADO.Occopus.CloudSigma.Compute
+       properties:
+          cloud:
+            interface_cloud: cloudsigma
+            endpoint_cloud: https://zrh.cloudsigma.com/api/2.0
+
+       capabilities:
+          host:
+            properties:
+              num_cpus: 2
+              disk_size: 10 GB
+              mem_size: 2 GB
+              libdrive_id: "libdrive_id goes here"
+
+  policies:
+      - scalability:
+          type: tosca.policies.Scaling.cQueue.CPULoad
+          targets: [ VIRTUAL_MACHINE_NODE ]
+          properties:
+            stage: Execution
+            priority: 100
+            min_instances: 1
+            max_instances: 5
+      - scalability:
+          type: tosca.policies.Scaling.cQueue.Completion
+          targets: [ worker ]
+          properties:
+            stage: Execution
+            priority: 100
+            min_instances: 1
+            max_instances: 10
+      - scalability:
+          type: tosca.policies.Scaling.cQueue.Completion
+          targets: [ frontend ]
+          properties:
+            stage: Execution
+            priority: 100
+            min_instances: 1
+            max_instances: 3
