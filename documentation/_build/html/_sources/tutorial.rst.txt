@@ -23,6 +23,7 @@ To launch an application from an url you can use the curl command line:
 
     curl -d input="[Path to TOSCA Template]" -X POST http://[IP]:[Port]/v1.0/app/launch/url/
 
+
 To launch an application from an url and modifying the default value for the inputs use the curl command line:
 
 .. code-block:: bash
@@ -31,7 +32,7 @@ To launch an application from an url and modifying the default value for the inp
     curl -d input="[Path to TOSCA Template]" -d params='{"Input1": "value a", "Input2": "value b"}' -X POST http://[IP]:[Port]/v1.0/app/launch/url/
 
 
-To launch an application from an file that you pass to the api you can use the curl command line:
+To launch an application from a file that you pass to the api you can use the curl command line:
 
 .. code-block:: bash
     :linenos:
@@ -41,6 +42,8 @@ To launch an application from an file that you pass to the api you can use the c
 
 
 To update a wanted application you need to use this command with optional params:
+
+.. code-block:: bash
     :linenos:
 
     curl -d -d input="[Path to TOSCA template]" -d params='{"Input1": "value a", "Input2": "value b"}' -X PUT http://[IP]:[Port]/v1.0/app/udpate/[ID_APP]
