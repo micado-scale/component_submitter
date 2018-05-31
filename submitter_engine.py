@@ -58,7 +58,7 @@ class SubmitterEngine(object):
 
 
 
-    def launch(self, path_to_file, parsed_params=None):
+    def launch(self, path_to_file, parsed_params=None, id_app=None):
         """
         Launch method, that will call the in-method egine to execute the application
         Creating empty list for the whole class adaptor and executed adaptor
@@ -75,8 +75,8 @@ class SubmitterEngine(object):
         template = self._micado_parser_upload(path_to_file, parsed_params)
         config = self._mapper_instantiation(template)
 
-
-        id_app = utils.id_generator()
+        if id_app is None:
+            id_app = utils.id_generator()
 
         object_adaptors = self._instantiate_adaptors(id_app, config, template)
         logger.debug("list of objects adaptor: {}".format(object_adaptors))
