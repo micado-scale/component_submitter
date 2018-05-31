@@ -98,8 +98,15 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="component_submitter.api.engine">
-<code class="descclassname">component_submitter.api.</code><code class="descname">engine</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#engine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.engine" title="Permalink to this definition">¶</a></dt>
+<dt id="component_submitter.api.engine_file">
+<code class="descclassname">component_submitter.api.</code><code class="descname">engine_file</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#engine_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.engine_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>API functions to launch a application</p>
+<p>stream.read() file</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.api.engine_url">
+<code class="descclassname">component_submitter.api.</code><code class="descname">engine_url</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#engine_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.engine_url" title="Permalink to this definition">¶</a></dt>
 <dd><p>API functions to launch a application</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -414,7 +421,7 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
 <p>SubmitterEngine class that is the main one that is used to treat with the application.</p>
 <dl class="method">
 <dt id="component_submitter.submitter_engine.SubmitterEngine.launch">
-<code class="descname">launch</code><span class="sig-paren">(</span><em>path_to_file</em>, <em>parsed_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.launch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.launch" title="Permalink to this definition">¶</a></dt>
+<code class="descname">launch</code><span class="sig-paren">(</span><em>path_to_file</em>, <em>parsed_params=None</em>, <em>id_app=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.launch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.launch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Launch method, that will call the in-method egine to execute the application
 Creating empty list for the whole class adaptor and executed adaptor
 :params: path_to_file, parsed_params
