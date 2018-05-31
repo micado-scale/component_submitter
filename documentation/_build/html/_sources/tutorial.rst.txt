@@ -16,45 +16,55 @@ You can launch the REST API by calling the following command:
     python api.py
 
 
-To launch an application you can use the curl command line:
+To launch an application from an url you can use the curl command line:
 
 .. code-block:: bash
     :linenos:
 
-    curl -d input="[Path to TOSCA Template]" -X POST http://[IP]:[Port]/engine/
+    curl -d input="[Path to TOSCA Template]" -X POST http://[IP]:[Port]/v1.0/app/launch/url/
 
-To launch an application with no default value for the inputs use the curl command line:
+To launch an application from an url and modifying the default value for the inputs use the curl command line:
 
 .. code-block:: bash
     :linenos:
 
-    curl -d input="[Path to TOSCA Template]" -d params='{"Input1": "value a", "Input2": "value b"}' -X POST http://[IP]:[Port]/engine/
+    curl -d input="[Path to TOSCA Template]" -d params='{"Input1": "value a", "Input2": "value b"}' -X POST http://[IP]:[Port]/v1.0/app/launch/url/
+
+
+To launch an application from an file that you pass to the api you can use the curl command line:
+
+.. code-block:: bash
+    :linenos:
+
+    curl --data-binary @[Path to the File] -X POST http://[IP]:[Port]/v1.0/app/launch/file/
+
+
 
 To update a wanted application you need to use this command with optional params:
     :linenos:
 
-    curl -d -d input="[Path to TOSCA template]" -d params='{"Input1": "value a", "Input2": "value b"}' -X PUT http://[IP]:[Port]/udpate/[ID_APP]
+    curl -d -d input="[Path to TOSCA template]" -d params='{"Input1": "value a", "Input2": "value b"}' -X PUT http://[IP]:[Port]/v1.0/app/udpate/[ID_APP]
 
 To undeploy a wanted application you need to feed it the id:
 
 .. code-block:: bash
     :linenos:
 
-    curl -X DELETE http://[IP]:[Port]/undeploy/[ID_APP]
+    curl -X DELETE http://[IP]:[Port]/v1.0/app/undeploy/[ID_APP]
 
 To get the ids of the application deployed and its information related:
 
 .. code-block:: bash
     :linenos:
 
-    curl -X GET http://[IP]:[Port]/list_app/
+    curl -X GET http://[IP]:[Port]/v1.0/list_app/
 
 To get only the information for only one app:
 
 .. code-block:: bash
     :linenos:
 
-    curl -X GET http://[IP]:[Port]/app/[ID_APP]
+    curl -X GET http://[IP]:[Port]/v1.0/app/[ID_APP]
 
 Python Interpreter
 -------------------
