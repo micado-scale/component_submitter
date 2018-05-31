@@ -97,7 +97,7 @@
 
 
 
-<div class="viewcode-block" id="SubmitterEngine.launch"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.launch">[docs]</a>    <span class="k">def</span> <span class="nf">launch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="SubmitterEngine.launch"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.launch">[docs]</a>    <span class="k">def</span> <span class="nf">launch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">id_app</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Launch method, that will call the in-method egine to execute the application</span>
 <span class="sd">        Creating empty list for the whole class adaptor and executed adaptor</span>
@@ -114,8 +114,8 @@
         <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_micado_parser_upload</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">)</span>
         <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapper_instantiation</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
 
-
-        <span class="n">id_app</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">id_app</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">id_app</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
 
         <span class="n">object_adaptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_adaptors</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">template</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;list of objects adaptor: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">object_adaptors</span><span class="p">))</span>

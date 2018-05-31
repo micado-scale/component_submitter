@@ -3,7 +3,7 @@ config:
   path_log: "/var/lib/submitter/submitter.log"
 
 Adaptor_config:
- DummySeAdaptor:
+ SecurityEnforcerAdaptor:
    types:
      - "tosca.policies.Scaling.*"
    endoint: "endpoint"

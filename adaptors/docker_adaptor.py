@@ -11,7 +11,6 @@ import filecmp
 import logging
 
 from toscaparser.tosca_template import ToscaTemplate
-
 import utils
 from abstracts import container_orchestrator as abco
 from abstracts.exceptions import AdaptorCritical

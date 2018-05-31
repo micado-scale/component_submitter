@@ -108,7 +108,7 @@ files/output_configs/*.yml
 files/templates/*.yaml
 files/templates/*.yml
 
-adaptors/security_enforcer_adaptor.py
+# adaptors/security_enforcer_adaptor.py
 # DS store
 .DS_Store
 .idea
