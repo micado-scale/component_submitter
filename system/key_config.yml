@@ -1,8 +1,26 @@
-config:
+main_config:
   dry_run: True
   path_log: "/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/submitter.log"
 
-Adaptor_config:
+step:
+  translate:
+    - SecurityEnforcerAdaptor
+    - DockerAdaptor
+  execute:
+    - DockerAdaptor
+    - SecurityEnforcerAdaptor
+  update:
+    - DockerAdaptor
+    - SecurityEnforcerAdaptor
+  undeploy:
+    - SecurityEnforcerAdaptor
+    - DockerAdaptor
+  cleanup:
+    - DockerAdaptor
+    - SecurityEnforcerAdaptor
+
+
+adaptor_config:
  SecurityEnforcerAdaptor:
    types:
      - "tosca.policies.DockerSecretDistribution"

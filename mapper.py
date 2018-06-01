@@ -8,23 +8,18 @@ import utils
 logger=logging.getLogger("submitter."+__name__)
 
 class Mapper(object):
-    """Mapper class that is creating a KeyList dictionary"""
-    def __init__(self, topology=None):
+    """Mapper class that is modifying config dictionary"""
+    def __init__(self, config, topology):
 
         logger.debug("in init of Mapper")
 
-        if topology is not None:
-            self.topology = topology
-            logger.debug("look for get_input in the template")
-            self._find_get_input(topology.tpl)
+        self.topology = topology
+        logger.debug("look for get_input in the template")
+        self._find_get_input(topology.tpl)
             #self._orchestrator_selection()
-            KL = KeyLists()
-            KL.set_dictionary(topology)
-            self.adaptor_config = KL.adaptor_config
-            self.config = KL.config
-        else:
-            self.adaptor_config = KeyLists().adaptor_config
-            self.config = KeyLists().config
+        config.set_dictionary(topology)
+
+
 
 
     def _find_get_input(self,template):
@@ -33,15 +28,12 @@ class Mapper(object):
                 logger.debug("sub dictionary found, look through this to find \"get_input\"")
                 result = self._find_get_input(value)
                 if result is not None:
-                    logger.debug("\"get_input\" found replace it with value")
                     template[key] = self._get_input_value(result)
             elif isinstance(value, list):
-                logger.debug("list found {}, look through this to find \"get_input\"".format(value))
                 for i in value:
                     if isinstance(i, dict):
                         result = self._find_get_input(i)
                         if result is not None:
-                            logger.debug("\"get_input\" found replace it with value")
                             template[key][i] = self._get_input_value(result)
                     else:
                         logger.debug("this list doesn't contain any dictionary")

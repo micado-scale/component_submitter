@@ -12,13 +12,14 @@ import logging
 
 logger=logging.getLogger("submitter."+__name__)
 
-class KeyLists():
+class SubmitterConfig():
   def __init__(self):
 
-      logger.debug("initialisation of KeyLists class")
-      whole_file = self._reading_config()
+      logger.debug("initialisation of SubmitterConfig class")
+      config = self._reading_config()
+      self.main_config = config["main_config"]
+      self.step_config = config["step"]
 
-      self.config = whole_file["main_config"]
       self.set_dictionary()
 
       #self.template = template
@@ -107,7 +108,7 @@ class KeyLists():
                                   _list_inter.append({item: obj})
                       if _list_inter:
                          _for_dic[key_inter] = _list_inter
-                         _for_dic['dry_run'] = self.config['dry_run']
+                         _for_dic['dry_run'] = self.main_config['dry_run']
                          tmp_dic[key] = _for_dic
                   else:
                        tmp_dic[key][key_inter] = value_inter
@@ -121,7 +122,7 @@ class KeyLists():
                           _list_inter.append(item)
                       logger.debug("key_inter is: {}".format(_list_inter))
                       _for_dic[key_inter] = _list_inter
-                      _for_dic['dry_run'] = self.config['dry_run']
+                      _for_dic['dry_run'] = self.main_config['dry_run']
                       tmp_dic[key] = _for_dic
                   else:
                       tmp_dic[key][key_inter] = value_inter
@@ -196,15 +197,15 @@ class KeyLists():
               return False
       return True
 
-  def get_KeyLists(self):
+  def get_SubmitterConfig(self):
       """retrieve the whole dictionary"""
       logger.debug("get KeyList invoked")
-      return self.key_config
+      return self.config
 
   def get_dict(self, key):
       """retrieve the dictionary wanted"""
       logger.debug("get dict invoked")
-      return self.key_config[key]
+      return self.config["adaptor_config"][key]
 
   def get_node_from_type(self, type):
       """retrieve wanted node through its type"""
