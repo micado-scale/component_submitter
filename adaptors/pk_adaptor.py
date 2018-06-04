@@ -74,7 +74,7 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
                 requests.post("http://{0}/policy/start".format(self.config['endpoint']), data=data, headers=headers)
             except Exception as e:
                 logger.error(e)
-            logger.info("Policy with {0} id is sent.".format(self.id))
+            logger.info("Policy with {0} id is sent.".format(self.ID))
 
 
     def undeploy(self):
@@ -83,7 +83,7 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
             requests.post("http://{0}/policy/stop".format(self.config['endpoint']))
         except Exception as e:
             logger.error(e)
-        logger.info("Policy {0} removed.".format(self.id))
+        logger.info("Policy {0} removed.".format(self.ID))
 
 
     def cleanup(self):

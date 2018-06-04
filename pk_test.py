@@ -10,4 +10,4 @@ with open("system/key_config.yml") as stream:
 
 adaptor = PkAdaptor("pk_test", data["PkAdaptor"], template)
 adaptor.translate()
-#adaptor.execute()
+adaptor.execute()
