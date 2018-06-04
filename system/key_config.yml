@@ -5,7 +5,7 @@ config:
 Adaptor_config:
  SecurityEnforcerAdaptor:
    types:
-     - "tosca.policies.Scaling.*"
+     - "tosca.policies.Scaling.MiCADO.*"
    endpoint: "endpoint"
    volume: "/var/lib/submitter/security_workdir_example/"
 
@@ -21,3 +21,4 @@ PkAdaptor:
      - "tosca.policies.Scaling.MiCADO"
    endpoint: "policykeeper:12345"
    volume: "/var/lib/submitter/files/output_configs/"
+

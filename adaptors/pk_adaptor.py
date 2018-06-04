@@ -22,7 +22,7 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
         super().__init__()
         if template and not isinstance(template, ToscaTemplate):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")
-        logger.debug("Initialising the PK adaptor with ID & TPL...")
+        logger.info("Initialising the Pk adaptor with ID, config & TPL...")
         self.config = config
         self.pk_data = {}
         self.ID = adaptor_id
@@ -30,11 +30,11 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
         self.path = "{}{}.yaml".format(self.config['volume'], self.ID)
         self.tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
         self.tpl = template
-        logger.info("PKAdaptor initialised")
+        logger.info("Pk adaptor initialised")
 
     def translate(self, tmp=False):
 
-        logger.info("Starting PKtranslation")
+        logger.info("Starting PK translation")
         # Hard-coded file structure
         self.pk_data = {STACK: self.ID[:8],
                         SCALING: {}}
@@ -57,35 +57,45 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
                     service = {"name": target}
                     service.update(self._pk_scaling_properties(policy))
                     self.pk_data[SCALING][SERVICES].append(service)
+            logger.info("Policy of {0} is translated".format(target))
 
         if tmp is False:
             self._yaml_write(self.path)
+            logger.info("PK file created")
         else:
             self._yaml_write(self.tmp_path)
+            logger.info("Updated PK file created")
 
     def execute(self):
-        logger.info("Starting PKexecution")
+        logger.info("Starting Pk execution")
         headers = {'Content-Type': 'application/x-yaml'}
         with open(self.path, 'rb') as data:
-            requests.post("http://{0}/policy/start".format(self.config['endpoint']), data=data, headers=headers)
+            try:
+                requests.post("http://{0}/policy/start".format(self.config['endpoint']), data=data, headers=headers)
+            except Exception as e:
+                logger.error(e)
+            logger.info("Policy with {0} id is sent.".format(self.id))
 
 
     def undeploy(self):
-        logger.info("Undeploy/remove the policy in pk service with id {}".format(self.ID))
-        # Hard-coded Pk address
-        requests.post("http://{0}/policy/stop".format(self.config['endpoint']))
+        logger.info("Removing the policy in Pk service with id {0}".format(self.ID))
+        try:
+            requests.post("http://{0}/policy/stop".format(self.config['endpoint']))
+        except Exception as e:
+            logger.error(e)
+        logger.info("Policy {0} removed.".format(self.id))
 
 
     def cleanup(self):
 
-        logger.info("Cleanup config for ID {}".format(self.ID))
+        logger.info("Cleanup config for ID {0}".format(self.ID))
         try:
             os.remove(self.path)
         except OSError as e:
             logger.warning(e)
 
     def update(self):
-        logger.info("updating the component config {}".format(self.ID))
+        logger.info("Updating the component config {0}".format(self.ID))
         # If update
         logger.info("Starting the update...")
         logger.debug("Creating temporary template...")
@@ -137,8 +147,11 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
             self.pk_data[key][nested_key][k] = v
 
     def _yaml_write(self, path):
-        with open(path, 'w') as ofile:
-            yaml.round_trip_dump(self.pk_data, ofile, default_style='|', default_flow_style=False)
+        try:
+            with open(path, 'w') as ofile:
+                yaml.round_trip_dump(self.pk_data, ofile, default_style='|', default_flow_style=False)
+        except Exception as e:
+            logger.error(e)
 
     def _differentiate(self):
         # Compare two Pk file
