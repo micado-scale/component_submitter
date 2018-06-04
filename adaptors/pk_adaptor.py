@@ -1,21 +1,12 @@
-
-import subprocess
 import os
-import json
 import filecmp
 import logging
-
+import requests
 from toscaparser.tosca_template import ToscaTemplate
-
-import utils
 from abstracts import policykeeper as abco
 from abstracts.exceptions import AdaptorCritical
 
 import ruamel.yaml as yaml
-import requests
-
-# yaml.default_flow_style = False
-yaml.top_level_colon_align = True
 
 logger = logging.getLogger("adaptor."+__name__)
 
@@ -26,19 +17,19 @@ PK = (STACK, DATA, SOURCES, CONSTANTS, QUERIES, ALERTS, SCALING, NODES, SERVICES
 
 class PkAdaptor(abco.PolicyKeeperAdaptor):
 
-    def __init__(self, adaptor_id,  template=None):
+    def __init__(self, adaptor_id, config, template=None):
 
         super().__init__()
         if template and not isinstance(template, ToscaTemplate):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")
         logger.debug("Initialising the PK adaptor with ID & TPL...")
+        self.config = config
         self.pk_data = {}
         self.ID = adaptor_id
         # The path could be configured not hard-coded
-        self.path = "{}/../files/output_configs/{}.yaml".format(os.path.dirname(__file__), self.ID)
-        self.tmp_path = "{}/../files/output_configs/tmp_{}.yaml".format(os.path.dirname(__file__), self.ID)
+        self.path = "{}{}.yaml".format(self.config['volume'], self.ID)
+        self.tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
         self.tpl = template
-        self.output = dict()
         logger.info("PKAdaptor initialised")
 
     def translate(self, tmp=False):
@@ -75,17 +66,14 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
     def execute(self):
         logger.info("Starting PKexecution")
         headers = {'Content-Type': 'application/x-yaml'}
-        # Hard-coded Pk address
-        pk_address = "policykeeper:12345"
         with open(self.path, 'rb') as data:
-            requests.post("http://{0}/policy/start".format(pk_address), data=data, headers=headers)
+            requests.post("http://{0}/policy/start".format(self.config['endpoint']), data=data, headers=headers)
 
 
     def undeploy(self):
         logger.info("Undeploy/remove the policy in pk service with id {}".format(self.ID))
         # Hard-coded Pk address
-        pk_address = "policykeeper:12345"
-        requests.post("http://{0}/policy/stop".format(pk_address))
+        requests.post("http://{0}/policy/stop".format(self.config['endpoint']))
 
 
     def cleanup(self):
@@ -106,6 +94,7 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
         if not self._differentiate():
             logger.debug("tmp file different, replacing old config and executing")
             os.rename(self.tmp_path, self.path)
+            self.undeploy()
             self.execute()
         else:
             try:
@@ -149,7 +138,7 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
 
     def _yaml_write(self, path):
         with open(path, 'w') as ofile:
-            yaml.round_trip_dump(self.pk_data, ofile)
+            yaml.round_trip_dump(self.pk_data, ofile, default_style='|', default_flow_style=False)
 
     def _differentiate(self):
         # Compare two Pk file

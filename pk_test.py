@@ -1,10 +1,13 @@
 from toscaparser.tosca_template import ToscaTemplate
 from adaptors.pk_adaptor import PkAdaptor
-from adaptors.docker_adaptor import DockerAdaptor
+import ruamel.yaml as yaml
 
-template = ToscaTemplate("tests/templates/TOSCA-FILE2.yaml")
 
-adaptor = PkAdaptor("pk_test", template)
+template = ToscaTemplate("tests/templates/stressng.yaml")
 
+with open("system/key_config.yml") as stream:
+    data = yaml.safe_load(stream)
+
+adaptor = PkAdaptor("pk_test", data["PkAdaptor"], template)
 adaptor.translate()
-adaptor.execute()
+#adaptor.execute()
