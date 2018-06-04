@@ -98,8 +98,15 @@
 </dd></dl>
 
 <dl class="function">
-<dt id="component_submitter.api.engine">
-<code class="descclassname">component_submitter.api.</code><code class="descname">engine</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#engine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.engine" title="Permalink to this definition">¶</a></dt>
+<dt id="component_submitter.api.engine_file">
+<code class="descclassname">component_submitter.api.</code><code class="descname">engine_file</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#engine_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.engine_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>API functions to launch a application</p>
+<p>stream.read() file</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.api.engine_url">
+<code class="descclassname">component_submitter.api.</code><code class="descname">engine_url</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#engine_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.engine_url" title="Permalink to this definition">¶</a></dt>
 <dd><p>API functions to launch a application</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -119,6 +126,11 @@
 <dd></dd></dl>
 
 <dl class="function">
+<dt id="component_submitter.api.info_app">
+<code class="descclassname">component_submitter.api.</code><code class="descname">info_app</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#info_app"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.info_app" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="component_submitter.api.keyboardInterrupt">
 <code class="descclassname">component_submitter.api.</code><code class="descname">keyboardInterrupt</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#keyboardInterrupt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.keyboardInterrupt" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -130,10 +142,8 @@
 
 <dl class="function">
 <dt id="component_submitter.api.undeploy">
-<code class="descclassname">component_submitter.api.</code><code class="descname">undeploy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.undeploy" title="Permalink to this definition">¶</a></dt>
-<dd><p>API function to undeploy the application with a specific ID
-:params id_app: id of the app wanted to undeploy
-:type id_app: string</p>
+<code class="descclassname">component_submitter.api.</code><code class="descname">undeploy</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.undeploy" title="Permalink to this definition">¶</a></dt>
+<dd><p>API function to undeploy the application with a specific ID</p>
 </dd></dl>
 
 <dl class="function">
@@ -143,7 +153,7 @@
 
 <dl class="function">
 <dt id="component_submitter.api.update">
-<code class="descclassname">component_submitter.api.</code><code class="descname">update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.update" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">component_submitter.api.</code><code class="descname">update</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.update" title="Permalink to this definition">¶</a></dt>
 <dd><p>API function to deploy the application with a specific ID</p>
 </dd></dl>
 
@@ -201,10 +211,8 @@
 
 <dl class="method">
 <dt id="component_submitter.key_lists.KeyLists.set_dictionary">
-<code class="descname">set_dictionary</code><span class="sig-paren">(</span><em>template</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.set_dictionary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.set_dictionary" title="Permalink to this definition">¶</a></dt>
-<dd><p>setting the dictionary, first going to call method to read config
-and implement the dictionary related to it.</p>
-</dd></dl>
+<code class="descname">set_dictionary</code><span class="sig-paren">(</span><em>template=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.set_dictionary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.set_dictionary" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -213,7 +221,7 @@ and implement the dictionary related to it.</p>
 <span id="component-submitter-mapper-module"></span><h2>component_submitter.mapper module<a class="headerlink" href="#module-component_submitter.mapper" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="component_submitter.mapper.Mapper">
-<em class="property">class </em><code class="descclassname">component_submitter.mapper.</code><code class="descname">Mapper</code><span class="sig-paren">(</span><em>topology</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/mapper.html#Mapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.mapper.Mapper" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">component_submitter.mapper.</code><code class="descname">Mapper</code><span class="sig-paren">(</span><em>topology=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/mapper.html#Mapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.mapper.Mapper" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Mapper class that is creating a KeyList dictionary</p>
 </dd></dl>
@@ -413,7 +421,7 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
 <p>SubmitterEngine class that is the main one that is used to treat with the application.</p>
 <dl class="method">
 <dt id="component_submitter.submitter_engine.SubmitterEngine.launch">
-<code class="descname">launch</code><span class="sig-paren">(</span><em>path_to_file</em>, <em>parsed_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.launch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.launch" title="Permalink to this definition">¶</a></dt>
+<code class="descname">launch</code><span class="sig-paren">(</span><em>path_to_file</em>, <em>parsed_params=None</em>, <em>id_app=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.launch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.launch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Launch method, that will call the in-method egine to execute the application
 Creating empty list for the whole class adaptor and executed adaptor
 :params: path_to_file, parsed_params
@@ -469,9 +477,6 @@ launch</p>
 </dd></dl>
 
 </div>
-<div class="section" id="component-submitter-test-submitter-engine-module">
-<h2>component_submitter.test_submitter_engine module<a class="headerlink" href="#component-submitter-test-submitter-engine-module" title="Permalink to this headline">¶</a></h2>
-</div>
 <div class="section" id="module-component_submitter">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-component_submitter" title="Permalink to this headline">¶</a></h2>
 </div>
@@ -500,7 +505,6 @@ launch</p>
 <li><a class="reference internal" href="#module-component_submitter.plugins_gestion">component_submitter.plugins_gestion module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.step">component_submitter.step module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.submitter_engine">component_submitter.submitter_engine module</a></li>
-<li><a class="reference internal" href="#component-submitter-test-submitter-engine-module">component_submitter.test_submitter_engine module</a></li>
 <li><a class="reference internal" href="#module-component_submitter">Module contents</a></li>
 </ul>
 </li>

@@ -9,14 +9,22 @@ logger=logging.getLogger("submitter."+__name__)
 
 class Mapper(object):
     """Mapper class that is creating a KeyList dictionary"""
-    def __init__(self, topology):
+    def __init__(self, topology=None):
 
         logger.debug("in init of Mapper")
-        self.topology = topology
-        logger.debug("look for get_input in the template")
-        self._find_get_input(topology.tpl)
-        #self._orchestrator_selection()
-        self.keylists = KeyLists().set_dictionary(topology)
+
+        if topology is not None:
+            self.topology = topology
+            logger.debug("look for get_input in the template")
+            self._find_get_input(topology.tpl)
+            #self._orchestrator_selection()
+            KL = KeyLists()
+            KL.set_dictionary(topology)
+            self.adaptor_config = KL.adaptor_config
+            self.config = KL.config
+        else:
+            self.adaptor_config = KeyLists().adaptor_config
+            self.config = KeyLists().config
 
 
     def _find_get_input(self,template):

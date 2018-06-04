@@ -5,6 +5,8 @@ import os
 app = Flask(__name__)
 import logging
 import ast
+import utils
+import yaml
 
 
 def __init__():
@@ -53,8 +55,8 @@ def handle_request_error(error):
 
 
 
-@app.route('/engine/', methods=['POST'])
-def engine():
+@app.route('/v1.0/app/launch/url/', methods=['POST'])
+def engine_url():
     """ API functions to launch a application
 
         :params intput: path to the file wanted
@@ -64,18 +66,20 @@ def engine():
         :type params: dictionary
     """
     logger.debug("serving request {}".format(request.method))
-    #test = request.get_json()
 
+    try:
+        path_to_file = request.form["input"]
+        logger.debug("path_to_file: {}".format(path_to_file))
+    except Exception as e:
+        logger.info("no input params has been sent, checking if file present in the request")
 
-    path_to_file = request.form["input"]
-    logger.debug("path_to_file: {}".format(path_to_file))
     try:
         params = request.form['params']
         logger.info("params is {}".format(params))
 
     except Exception as e:
         logger.info("exception is: {}".format(e))
-        response = submitter.launch(path_to_file=path_to_file)
+        id_app = submitter.launch(path_to_file=path_to_file)
 
     else:
         parsed_params = ast.literal_eval(params)
@@ -84,7 +88,23 @@ def engine():
     response.status_code = 200
     return response
 
-@app.route('/undeploy/<id_app>', methods=['DELETE'])
+@app.route('/v1.0/app/launch/file/', methods=['POST'])
+def engine_file():
+    """ API functions to launch a application
+
+        stream.read() file
+
+    """
+    template_yaml = request.stream.read()
+    id_app = utils.id_generator()
+    utils.dump_order_yaml(yaml.safe_load(template_yaml), "files/templates/{}.yaml".format(id_app))
+    path_to_file = "files/templates/{}.yaml".format(id_app)
+    id_app = submitter.launch(path_to_file = path_to_file, id_app=id_app)
+    response = jsonify(dict(message="app:{}".format(id_app)))
+    response.status_code = 200
+    return response
+
+@app.route('/v1.0/app/undeploy/<id_app>', methods=['DELETE'])
 def undeploy(id_app):
     """ API function to undeploy the application with a specific ID
     """
@@ -94,7 +114,7 @@ def undeploy(id_app):
     else:
         return jsonify(dict(message="something undexpected happened", status_code=500))
 
-@app.route('/update/<id_app>', methods=['PUT'])
+@app.route('/v1.0/app/update/<id_app>', methods=['PUT'])
 def update(id_app):
     """ API function to deploy the application with a specific ID """
     logger.info("id is: {}".format(id_app))
@@ -120,7 +140,7 @@ def update(id_app):
 
 
 
-@app.route('/app/<id_app>', methods=['GET'])
+@app.route('/v1.0/app/<id_app>', methods=['GET'])
 def info_app(id_app):
     response = jsonify(dict(message="{}".format(submitter.app_list[id_app])))
     response.status_code = 500
@@ -128,7 +148,7 @@ def info_app(id_app):
 
     return response
 
-@app.route('/list_app', methods=['GET'])
+@app.route('/v1.0/list_app', methods=['GET'])
 def list_app():
     response = []
     for key, value in submitter.app_list.items():

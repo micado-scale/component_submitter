@@ -55,7 +55,8 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="sd">&quot;&quot;&quot; set up of Logging &quot;&quot;&quot;</span>
 <span class="n">LEVEL</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span>
-<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;submitter.log&quot;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">LEVEL</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> - </span><span class="si">%(name)s</span><span class="s2"> - </span><span class="si">%(levelname)s</span><span class="s2"> - </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">Mapper</span><span class="p">()</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;path_log&#39;</span><span class="p">],</span> <span class="n">level</span><span class="o">=</span><span class="n">LEVEL</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> - </span><span class="si">%(name)s</span><span class="s2"> - </span><span class="si">%(levelname)s</span><span class="s2"> - </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;submitter.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
 
 <span class="sd">&quot;&quot;&quot;define the Handler which write message to sys.stderr&quot;&quot;&quot;</span>
@@ -96,7 +97,7 @@
 
 
 
-<div class="viewcode-block" id="SubmitterEngine.launch"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.launch">[docs]</a>    <span class="k">def</span> <span class="nf">launch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="SubmitterEngine.launch"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.launch">[docs]</a>    <span class="k">def</span> <span class="nf">launch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">id_app</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Launch method, that will call the in-method egine to execute the application</span>
 <span class="sd">        Creating empty list for the whole class adaptor and executed adaptor</span>
@@ -111,13 +112,12 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Launching the application located there </span><span class="si">{}</span><span class="s2"> and with params </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">))</span>
 
         <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_micado_parser_upload</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="n">template</span>
-        <span class="n">tpl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapper_instantiation</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapper_instantiation</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">id_app</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">id_app</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
 
-        <span class="n">id_app</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
-
-        <span class="n">object_adaptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_adaptors</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">template</span><span class="p">)</span>
+        <span class="n">object_adaptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_adaptors</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">template</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;list of objects adaptor: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">object_adaptors</span><span class="p">))</span>
         <span class="c1">#self._save_file(id_app, path_to_file)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">id_app</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">})</span>
@@ -134,8 +134,10 @@
 <span class="sd">        :type: string</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;proceding to the undeployment of the application&quot;</span><span class="p">)</span>
-        <span class="n">adaptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_adaptors</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapper_instantiation</span><span class="p">()</span>
+        <span class="n">adaptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_adaptors</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptors</span><span class="p">))</span>
+
 
         <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">adaptors</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_undeploy</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span>
@@ -163,9 +165,9 @@
 
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;proceding to the update of the application </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">))</span>
         <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_micado_parser_upload</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">)</span>
-        <span class="n">key_lists</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapper_instantiation</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mapper_instantiation</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
 
-        <span class="n">object_adaptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_adaptors</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">template</span><span class="p">)</span>
+        <span class="n">object_adaptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_adaptors</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">template</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;list of adaptor created: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">object_adaptors</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_update</span><span class="p">(</span><span class="n">object_adaptors</span><span class="p">,</span> <span class="n">id_app</span><span class="p">)</span></div>
 
@@ -198,12 +200,11 @@
         <span class="k">return</span> <span class="n">template</span>
 
 
-    <span class="k">def</span> <span class="nf">_mapper_instantiation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_mapper_instantiation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Retrieve the keylist from mapper &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;instantiation of mapper and retrieve keylists&quot;</span><span class="p">)</span>
         <span class="n">mapper</span> <span class="o">=</span> <span class="n">Mapper</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
-        <span class="n">keylists</span> <span class="o">=</span> <span class="n">mapper</span><span class="o">.</span><span class="n">keylists</span>
-        <span class="k">return</span> <span class="n">mapper</span><span class="o">.</span><span class="n">topology</span>
+        <span class="k">return</span> <span class="n">mapper</span><span class="o">.</span><span class="n">adaptor_config</span>
 
     <span class="k">def</span> <span class="nf">_get_adaptors_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Retrieve the list of the differrent class adaptors &quot;&quot;&quot;</span>
@@ -216,7 +217,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">adaptors_class_name</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;list of adaptors instantiated: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adaptors_class_name</span><span class="p">))</span>
 
-    <span class="k">def</span> <span class="nf">_instantiate_adaptors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_id</span><span class="p">,</span> <span class="n">template</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_instantiate_adaptors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_id</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">template</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Instantiate the list of adaptors from the adaptors class list</span>
 
 <span class="sd">            :params app_id: id of the application</span>
@@ -232,18 +233,20 @@
 
         <span class="k">if</span> <span class="n">template</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">adaptors_class_name</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;instantiate </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;instantiate </span><span class="si">{}</span><span class="s2">, template&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="p">))</span>
                 <span class="n">adaptor_id</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app_id</span><span class="p">,</span> <span class="n">adaptor</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
-                <span class="n">obj</span> <span class="o">=</span> <span class="n">adaptor</span><span class="p">(</span><span class="n">adaptor_id</span><span class="p">,</span> <span class="n">template</span> <span class="o">=</span> <span class="n">template</span><span class="p">)</span>
+                <span class="n">obj</span> <span class="o">=</span> <span class="n">adaptor</span><span class="p">(</span><span class="n">adaptor_id</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="n">adaptor</span><span class="o">.</span><span class="vm">__name__</span><span class="p">],</span> <span class="n">template</span> <span class="o">=</span> <span class="n">template</span><span class="p">)</span>
                 <span class="n">adaptors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">adaptors</span>
 
         <span class="k">elif</span> <span class="n">template</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">adaptors_class_name</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;instantiate </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;instantiate </span><span class="si">{}</span><span class="s2">, no template&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="p">))</span>
                 <span class="n">adaptor_id</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app_id</span><span class="p">,</span> <span class="n">adaptor</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
-                <span class="n">obj</span> <span class="o">=</span> <span class="n">adaptor</span><span class="p">(</span><span class="n">adaptor_id</span><span class="p">,</span> <span class="n">template</span> <span class="o">=</span> <span class="n">template</span><span class="p">)</span>
+                <span class="n">obj</span> <span class="o">=</span> <span class="n">adaptor</span><span class="p">(</span><span class="n">adaptor_id</span><span class="p">,</span><span class="n">config</span><span class="p">[</span><span class="n">adaptor</span><span class="o">.</span><span class="vm">__name__</span><span class="p">])</span>
                 <span class="n">adaptors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;done instntiation of </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="p">))</span>
+
             <span class="k">return</span> <span class="n">adaptors</span>
 
 
