@@ -3,22 +3,21 @@ config:
   path_log: "/var/lib/submitter/submitter.log"
 
 Adaptor_config:
- SecurityEnforcerAdaptor:
-   types:
-     - "tosca.policies.Scaling.MiCADO.*"
-   endpoint: "endpoint"
-   volume: "/var/lib/submitter/security_workdir_example/"
+  SecurityEnforcerAdaptor:
+    types:
+      - "tosca.policies.Scaling.MiCADO.*"
+    endpoint: "endpoint"
+    volume: "/var/lib/submitter/security_workdir_example/"
 
 
- DockerAdaptor:
-   types:
-     - "tosca.nodes.MiCADO.Container.Application.Docker"
-   endpoint: "endpoint"
-   volume: "/var/lib/submitter/files/output_configs/"
+  DockerAdaptor:
+    types:
+      - "tosca.nodes.MiCADO.Container.Application.Docker"
+    endpoint: "endpoint"
+    volume: "/var/lib/submitter/files/output_configs/"
 
-PkAdaptor:
-   types:
-     - "tosca.policies.Scaling.MiCADO"
-   endpoint: "policykeeper:12345"
-   volume: "/var/lib/submitter/files/output_configs/"
-
+  PkAdaptor:
+    types:
+      - "tosca.policies.Scaling.MiCADO"
+    endpoint: "policykeeper:12345"
+    volume: "/var/lib/submitter/files/output_configs/"
