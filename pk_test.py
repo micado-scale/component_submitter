@@ -8,6 +8,6 @@ template = ToscaTemplate("tests/templates/stressng.yaml")
 with open("system/key_config.yml") as stream:
     data = yaml.safe_load(stream)
 
-adaptor = PkAdaptor("pk_test", data["PkAdaptor"], template)
+adaptor = PkAdaptor("pk_test", data["Adaptor_config"]["PkAdaptor"], template)
 adaptor.translate()
 adaptor.execute()

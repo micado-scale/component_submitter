@@ -5,7 +5,6 @@ import requests
 from toscaparser.tosca_template import ToscaTemplate
 from abstracts import policykeeper as abco
 from abstracts.exceptions import AdaptorCritical
-
 import ruamel.yaml as yaml
 
 logger = logging.getLogger("adaptor."+__name__)
@@ -26,9 +25,11 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
         self.config = config
         self.pk_data = {}
         self.ID = adaptor_id
-        # The path could be configured not hard-coded
-        self.path = "{}{}.yaml".format(self.config['volume'], self.ID)
-        self.tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
+        try:
+            self.path = "{}{}.yaml".format(self.config['volume'], self.ID)
+            self.tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
+        except Exception as e:
+            logger.error(e)
         self.tpl = template
         logger.info("Pk adaptor initialised")
 
@@ -69,12 +70,15 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
     def execute(self):
         logger.info("Starting Pk execution")
         headers = {'Content-Type': 'application/x-yaml'}
-        with open(self.path, 'rb') as data:
-            try:
-                requests.post("http://{0}/policy/start".format(self.config['endpoint']), data=data, headers=headers)
-            except Exception as e:
-                logger.error(e)
-            logger.info("Policy with {0} id is sent.".format(self.ID))
+        try:
+            with open(self.path, 'rb') as data:
+                try:
+                    requests.post("http://{0}/policy/start".format(self.config['endpoint']), data=data, headers=headers)
+                except Exception as e:
+                    logger.error(e)
+                logger.info("Policy with {0} id is sent.".format(self.ID))
+        except Exception as e:
+            logger.error(e)
 
 
     def undeploy(self):
