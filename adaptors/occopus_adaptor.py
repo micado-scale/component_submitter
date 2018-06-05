@@ -156,12 +156,12 @@ class OccopusAdaptor(abco.CloudAdaptor):
                     #with open(self.infra_def_path_output, 'rb') as data:
                     #    requests.post("http://{0}/infrastructures/"
                     # .format(self.occopus_address), data=data, headers=headers)
-                    logger.info(self.occopus.exec_run("occopus-build {} -i {} --auth_data_path {}"
+                    buildinfo = self.occopus.exec_run("occopus-build {} -i {} --auth_data_path {}"
                                                       .format(self.occo_infra_path,
                                                               self.worker_infra_name,
-                                                              self.auth_data_file)))
-                    logger.info(requests.post(
-                        "http://{0}/infrastructures/{1}/attach".format(self.occopus_address, self.worker_infra_name)))
+                                                              self.auth_data_file))
+                    logger.info(requests.post("http://{0}/infrastructures/{1}/attach"
+                                              .format(self.occopus_address, self.worker_infra_name)))
                     logger.info("Occopus build has been successful")
                 except Exception as e:
                     logger.error("{0}. Error caught in deploy phase".format(str(e)))
@@ -234,7 +234,6 @@ class OccopusAdaptor(abco.CloudAdaptor):
                 entry[prop] = node.get_property_value(prop).result()
                 node.get_property_value()
             except AttributeError as e:
-                logger.debug("Error caught {}, trying without .result()".format(e))
                 entry[prop] = node.get_property_value(prop)
         self.node_data.setdefault(key, {}).setdefault("type", entry["cloud"]["interface_cloud"])
         self.node_data.setdefault(key, {}).setdefault("endpoint", entry["cloud"]["endpoint_cloud"])
