@@ -25,7 +25,7 @@ class OccopusAdaptor(abco.CloudAdaptor):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")
         self.config = config
         self.node_name = "node_def:worker"
-        self.worker_infra_name = "MICADO-worker"
+        self.worker_infra_name = "micado_worker_infra"
         self.min_instances = 1
         self.max_instances = 1
         self.ID = adaptor_id
