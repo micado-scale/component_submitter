@@ -1,8 +1,11 @@
-from flask import request, url_for, Flask, jsonify, render_template
+from flask import request, url_for, Flask, jsonify, render_template, flash, redirect
 from submitter_engine import SubmitterEngine
 from abstracts.exceptions import AdaptorCritical
+from werkzeug import secure_filename
 import os
 app = Flask(__name__)
+UPLOAD_FOLDER="/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/files/tests/"
+app.config['UPLOAD_FOLDER']=UPLOAD_FOLDER
 import logging
 import ast
 import utils
@@ -67,11 +70,14 @@ def engine_url():
     """
     logger.debug("serving request {}".format(request.method))
 
+
+    path_to_file = request.form["input"]
+    logger.debug("path_to_file: {}".format(path_to_file))
     try:
-        path_to_file = request.form["input"]
-        logger.debug("path_to_file: {}".format(path_to_file))
+        id_app =  request.form["id"]
     except Exception as e:
-        logger.info("no input params has been sent, checking if file present in the request")
+        logger.info("no id params has been sent, setting it to None")
+        id_app = None
 
     try:
         params = request.form['params']
@@ -79,11 +85,11 @@ def engine_url():
 
     except Exception as e:
         logger.info("exception is: {}".format(e))
-        id_app = submitter.launch(path_to_file=path_to_file)
+        id_app = submitter.launch(path_to_file=path_to_file, id_app=id_app)
 
     else:
         parsed_params = ast.literal_eval(params)
-        id_app = submitter.launch(path_to_file=path_to_file, parsed_params=parsed_params)
+        id_app = submitter.launch(path_to_file=path_to_file, parsed_params=parsed_params, id_app=id_app)
     response = jsonify(dict(message="app:{}".format(id_app)))
     response.status_code = 200
     return response
@@ -95,14 +101,54 @@ def engine_file():
         stream.read() file
 
     """
-    template_yaml = request.stream.read()
-    id_app = utils.id_generator()
-    utils.dump_order_yaml(yaml.safe_load(template_yaml), "files/templates/{}.yaml".format(id_app))
+    # try:
+    #     f = request.files
+    #     logger.debug(f)
+    #
+    # except Exception as e:
+    #     logger.debug(e)
+    #     return e.message
+    # #f.save(secure_filename(f.filename))
+    # return 'file uploaded successfully'
+    #logger.debug("template: {}".format(template_yaml))
+    f = request.files['file']
+    try:
+         id_app= request.form['id']
+    except Exception:
+         id_app = utils.id_generator()
+
+    try:
+         params= request.form['params']
+    except Exception:
+         parsed_params = None
+    else:
+        parsed_params = ast.literal_eval(params)
+
+    f.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
     path_to_file = "files/templates/{}.yaml".format(id_app)
-    id_app = submitter.launch(path_to_file = path_to_file, id_app=id_app)
+
+    id_app = submitter.launch(path_to_file = path_to_file, parsed_params=parsed_params, id_app=id_app)
     response = jsonify(dict(message="app:{}".format(id_app)))
     response.status_code = 200
     return response
+    #return "True"
+# @app.route('/v1.0/app/launch/file/', methods=['POST'])
+# def engine_file_no_id():
+#     f = request.files['file']
+#
+#
+#     logger.debug(f)
+#     return "true"
+# #    parsed_params = request.form['params']
+#     #app_id = request.form['id']
+#     #template_yaml = request.stream.read()
+#     #logger.debug(template_yaml)
+#     #app_id = utils.id_generator()
+#     #utils.dump_order_yaml(yaml.safe_load(template_yaml), "files/templates/{}.yaml".format(app_id))
+#     #logger.debug("template is: {}".format(app_id))
+#     #return "True"
+#
+
 
 @app.route('/v1.0/app/undeploy/<id_app>', methods=['DELETE'])
 def undeploy(id_app):
