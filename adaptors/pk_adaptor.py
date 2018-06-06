@@ -37,7 +37,7 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
 
         logger.info("Starting PK translation")
         # Hard-coded file structure
-        self.pk_data = {STACK: self.ID[:8],
+        self.pk_data = {STACK: self.ID.split("_")[0],
                         SCALING: {}}
 
         i = 0
