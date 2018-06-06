@@ -153,7 +153,7 @@ def update_url(id_app):
         else:
             return jsonify(dict(message="update failed", status_cod=500))
 
-@app.rout('/v1.0/app/update/file/<id_app>', methods=['PUT'])
+@app.route('/v1.0/app/update/file/<id_app>', methods=['PUT'])
 def update_file(id_app):
     """ API function to update the application with a specific ID from a file"""
     template = request.files['file']
