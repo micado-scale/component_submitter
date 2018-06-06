@@ -1,13 +1,15 @@
 config:
-  dry_run: False
-  path_log: "/var/lib/submitter/submitter.log"
-
+  dry_run: True
+#  path_log: "/var/lib/submitter/submitter.log"
+  path_log: "submitter.log"
 Adaptor_config:
+
   SecurityEnforcerAdaptor:
     types:
       - "tosca.policies.Scaling.MiCADO.*"
     endpoint: "endpoint"
     volume: "/var/lib/submitter/security_workdir_example/"
+
 
   DockerAdaptor:
     types:

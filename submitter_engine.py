@@ -77,7 +77,9 @@ class SubmitterEngine(object):
 
         if id_app is None:
             id_app = utils.id_generator()
-
+        elif id_app in self.app_list:
+            raise Exception("This ID is already used by another application, please use another one")
+            
         object_adaptors = self._instantiate_adaptors(id_app, config, template)
         logger.debug("list of objects adaptor: {}".format(object_adaptors))
         #self._save_file(id_app, path_to_file)
