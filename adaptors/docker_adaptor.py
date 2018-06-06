@@ -122,11 +122,11 @@ class DockerAdaptor(abco.ContainerAdaptor):
         try:
             if self.config['dry_run'] is False:
                 subprocess.run(["docker", "stack", "deploy", "--compose-file",
-                self.path, self.ID[:8]], stderr=subprocess.PIPE, check=True)
+                self.path, self.ID.split("_")[0]], stderr=subprocess.PIPE, check=True)
             else:
                 logger.info(f'subprocess.run([\"docker\", \"stack\", \"deploy\", '
                         f'\"--compose-file\", \"docker-compose.yaml\", '
-                        f'{self.ID[:8]}], check=True)')
+                        f'{self.ID.split("_")[0]}], check=True)')
 
         except subprocess.CalledProcessError as e:
             # FIXME: no-so-nice hack to force updates to correct own sequences
@@ -135,7 +135,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 logger.error("Trying update again")
                 try:
                     subprocess.run(["docker", "stack", "deploy", "--compose-file",
-                    self.path, self.ID[:8]], check=True)
+                    self.path, self.ID.split("_")[0]], check=True)
                 except subprocess.CalledProcessError:
                     raise AdaptorCritical("Cannot execute Docker")
                     logger.error("Cannot execute Docker")
@@ -144,7 +144,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
                 logger.error("Cannot execute Docker")
         except KeyError:
             subprocess.run(["docker", "stack", "deploy", "--compose-file",
-            self.path, self.ID[:8]], check=True)
+            self.path, self.ID.split("_")[0]], check=True)
 
         logger.info("Docker running, trying to get outputs...")
         self._get_outputs()
@@ -158,7 +158,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
 
         try:
             if self.config['dry_run'] is False:
-                subprocess.run(["docker", "stack", "down", self.ID[:8]], check=True)
+                subprocess.run(["docker", "stack", "down", self.ID.split("_")[0]], check=True)
                 logger.debug("Undeploy application with ID: {}".format(self.ID))
             else:
                 logger.debug(f'Undeploy application with ID: {self.ID}')
@@ -167,7 +167,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
             logger.error("Cannot undeploy the stack")
             raise AdaptorCritical("Cannot undeploy the stack")
         except KeyError:
-            subprocess.run(["docker", "stack", "down", self.ID[:8]], check=True)
+            subprocess.run(["docker", "stack", "down", self.ID.split("_")[0]], check=True)
             logger.debug("Undeploy application with ID: {}".format(self.ID))
         logger.info("Stack is down...")
 
@@ -234,7 +234,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
         for output in self.tpl.outputs:
             node = output.value.get_referenced_node_template()
             if node.type == DOCKER_CONTAINER:
-                service = "{}_{}".format(self.ID[:8], node.name)
+                service = "{}_{}".format(self.ID.split("_")[0], node.name)
                 logger.debug("Inspect service: {}".format(service))
                 query = output.value.attribute_name
                 get_attribute(service, query)
