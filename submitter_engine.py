@@ -5,7 +5,6 @@ import sys
 from micado_validator import MultiError
 from abstracts.exceptions import AdaptorCritical, AdaptorError
 import utils
-from key_lists import KeyLists
 import json
 import ruamel.yaml as yaml
 import os
@@ -109,7 +108,6 @@ class SubmitterEngine(object):
         self._update_json()
 
 
-###TODO keep updating the submitter engine
     def update(self, id_app, path_to_file, parsed_params = None):
         """
         Update method that will be updating the application we want to update.
@@ -163,15 +161,14 @@ class SubmitterEngine(object):
 
 
     def _mapper_instantiation(self, config, template = None):
-        """ Retrieve the keylist from mapper """
-        logger.debug("instantiation of mapper and retrieve keylists")
+        """ Retrieve the Config from mapper """
+        logger.debug("instantiation of mapper and retrieve Config")
         mapper = Mapper(config, template)
         return mapper.adaptor_config
 
     def _get_adaptors_class(self):
         """ Retrieve the list of the differrent class adaptors """
         logger.debug("retreive the adaptors class")
-#        Keys=KeyLists().get_list_adaptors()
         adaptor_list = self.object_config.get_list_adaptors()
         PG=PluginsGestion()
         for k in adaptor_list:

@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 #from occopus.occopus import Occopus
-from key_lists import KeyLists
 from toscaparser.functions import GetInput
 import logging
 import utils
