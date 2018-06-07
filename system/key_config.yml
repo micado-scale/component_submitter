@@ -4,13 +4,6 @@ config:
   path_log: "submitter.log"
 Adaptor_config:
 
-  SecurityEnforcerAdaptor:
-    types:
-      - "tosca.policies.Scaling.MiCADO.*"
-    endpoint: "endpoint"
-    volume: "/var/lib/submitter/security_workdir_example/"
-
-
   DockerAdaptor:
     types:
       - "tosca.nodes.MiCADO.Container.Application.Docker"
