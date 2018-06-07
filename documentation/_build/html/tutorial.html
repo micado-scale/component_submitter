@@ -53,20 +53,52 @@ an application described by a TOSCA templates on the MiCADO infrastructure.</p>
 <div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span>python api.py
 </pre></div>
 </td></tr></table></div>
-<p>To launch an application from an url you can use the curl command line:</p>
-<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -d <span class="nv">input</span><span class="o">=</span><span class="s2">&quot;[Path to TOSCA Template]&quot;</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/launch/url/
+<p>To launch an application from an url you can use one of the following curl command line:</p>
+<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6
+7</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -d <span class="nv">input</span><span class="o">=</span><span class="s2">&quot;[url to TOSCA Template]&quot;</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/launch/url/
+
+curl -d <span class="nv">input</span><span class="o">=</span><span class="s2">&quot;[url to TOSCA Template]&quot;</span> -d <span class="nv">id</span><span class="o">=[</span>ID<span class="o">]</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/launch/url/
+
+curl -d <span class="nv">input</span><span class="o">=</span><span class="s2">&quot;[url to TOSCA Template]&quot;</span> -d <span class="nv">params</span><span class="o">=</span><span class="s1">&#39;{&quot;Input1&quot;: &quot;value a&quot;, &quot;Input2&quot;: &quot;value b&quot;}&#39;</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/launch/url/
+
+curl -d <span class="nv">input</span><span class="o">=</span><span class="s2">&quot;[url to TOSCA Template]&quot;</span> -d <span class="nv">id</span><span class="o">=[</span>SOMEID<span class="o">]</span> -d <span class="nv">params</span><span class="o">=</span><span class="s1">&#39;{&quot;Input1&quot;: &quot;value a&quot;, &quot;Input2&quot;: &quot;value b&quot;}&#39;</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/launch/url/
 </pre></div>
 </td></tr></table></div>
-<p>To launch an application from an url and modifying the default value for the inputs use the curl command line:</p>
-<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -d <span class="nv">input</span><span class="o">=</span><span class="s2">&quot;[Path to TOSCA Template]&quot;</span> -d <span class="nv">params</span><span class="o">=</span><span class="s1">&#39;{&quot;Input1&quot;: &quot;value a&quot;, &quot;Input2&quot;: &quot;value b&quot;}&#39;</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/launch/url/
+<p>To launch an application from a file that you pass to the api you can use one of the following curl command line:</p>
+<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3
+4
+5
+6
+7</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -F <span class="nv">file</span><span class="o">=</span>@<span class="o">[</span>Path to the File<span class="o">]</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/launch/file/
+
+curl -F <span class="nv">file</span><span class="o">=</span>@<span class="o">[</span>Path to the File<span class="o">]</span> -F <span class="nv">params</span><span class="o">=</span><span class="s1">&#39;{&quot;Input1&quot;: &quot;value a&quot;, &quot;Input2&quot;: &quot;value b&quot;}&#39;</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/launch/file/
+
+curl -F <span class="nv">file</span><span class="o">=</span>@<span class="o">[</span>Path to the File<span class="o">]</span> -F <span class="nv">id</span><span class="o">=[</span>SOMEID<span class="o">]</span> -F <span class="nv">params</span><span class="o">=</span><span class="s1">&#39;{&quot;Input1&quot;: &quot;value a&quot;, &quot;Input2&quot;: &quot;value b&quot;}&#39;</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/launch/file/
+
+curl -F <span class="nv">file</span><span class="o">=</span>@<span class="o">[</span>Path to the File<span class="o">]</span> -F <span class="nv">id</span><span class="o">=[</span>SOMEID<span class="o">]</span>  -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/launch/file/
 </pre></div>
 </td></tr></table></div>
-<p>To launch an application from a file that you pass to the api you can use the curl command line:</p>
-<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl --data-binary @<span class="o">[</span>Path to the File<span class="o">]</span> -X POST http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/launch/file/
+<p>To update from an url a wanted application you can use one of this following curl command:</p>
+<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -d <span class="nv">input</span><span class="o">=</span><span class="s2">&quot;[url to TOSCA template]&quot;</span> -d <span class="nv">params</span><span class="o">=</span><span class="s1">&#39;{&quot;Input1&quot;: &quot;value a&quot;, &quot;Input2&quot;: &quot;value b&quot;}&#39;</span> -X PUT http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/udpate/file/<span class="o">[</span>ID_APP<span class="o">]</span>
+
+curl -d <span class="nv">input</span><span class="o">=</span><span class="s2">&quot;[url to TOSCA template]&quot;</span> -X PUT http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/udpate/file/<span class="o">[</span>ID_APP<span class="o">]</span>
 </pre></div>
 </td></tr></table></div>
-<p>To update a wanted application you need to use this command with optional params:</p>
-<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -d -d <span class="nv">input</span><span class="o">=</span><span class="s2">&quot;[Path to TOSCA template]&quot;</span> -d <span class="nv">params</span><span class="o">=</span><span class="s1">&#39;{&quot;Input1&quot;: &quot;value a&quot;, &quot;Input2&quot;: &quot;value b&quot;}&#39;</span> -X PUT http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/udpate/<span class="o">[</span>ID_APP<span class="o">]</span>
+<p>To update from a file a wanted application you can use one of this following curl command:</p>
+<div class="highlight-bash notranslate"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre>1
+2
+3</pre></div></td><td class="code"><div class="highlight"><pre><span></span>curl -F <span class="nv">file</span><span class="o">=</span>@<span class="s2">&quot;[Path to the file]&quot;</span> -d <span class="nv">params</span><span class="o">=</span><span class="s1">&#39;{&quot;Input1&quot;: &quot;value a&quot;, &quot;Input2&quot;: &quot;value b&quot;}&#39;</span> -X PUT http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/udpate/file/<span class="o">[</span>ID_APP<span class="o">]</span>
+
+curl -F <span class="nv">file</span><span class="o">=</span>@<span class="s2">&quot;[Path to the file]&quot;</span> -X PUT http://<span class="o">[</span>IP<span class="o">]</span>:<span class="o">[</span>Port<span class="o">]</span>/v1.0/app/udpate/file/<span class="o">[</span>ID_APP<span class="o">]</span>
 </pre></div>
 </td></tr></table></div>
 <p>To undeploy a wanted application you need to feed it the id:</p>

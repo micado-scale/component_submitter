@@ -1,0 +1,180 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>component_submitter.tests.test_docker &#8212; MiCADO Submitter 0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/_static/basic.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for component_submitter.tests.test_docker</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">unittest</span>
+
+<span class="kn">from</span> <span class="nn">toscaparser.tosca_template</span> <span class="k">import</span> <span class="n">ToscaTemplate</span>
+
+<span class="kn">from</span> <span class="nn">adaptors.docker_adaptor</span> <span class="k">import</span> <span class="n">DockerAdaptor</span>
+<span class="kn">from</span> <span class="nn">key_lists</span> <span class="k">import</span> <span class="n">KeyLists</span>
+
+<div class="viewcode-block" id="TestDockerAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor">[docs]</a><span class="k">class</span> <span class="nc">TestDockerAdaptor</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; UnitTests for docker adaptor &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestDockerAdaptor.setUp"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Prep a good TOSCA template &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span> <span class="o">=</span> <span class="n">ToscaTemplate</span><span class="p">(</span><span class="s2">&quot;tests/templates/good_tosca.yaml&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">KeyLists</span><span class="p">()</span><span class="o">.</span><span class="n">adaptor_config</span><span class="p">[</span><span class="s1">&#39;DockerAdaptor&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span> <span class="o">=</span> <span class="n">DockerAdaptor</span><span class="p">(</span><span class="s2">&quot;main_adapt&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="TestDockerAdaptor.test_compose_properties_services"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor.test_compose_properties_services">[docs]</a>    <span class="k">def</span> <span class="nf">test_compose_properties_services</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;services&quot;</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;jobber&quot;</span><span class="p">:{</span><span class="s2">&quot;entrypoint&quot;</span><span class="p">:</span><span class="s2">&quot;echo entry&quot;</span><span class="p">,</span><span class="s2">&quot;command&quot;</span><span class="p">:</span><span class="s2">&quot;sleep 10&quot;</span><span class="p">}}}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">_compose_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertDictEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">dic</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestDockerAdaptor.test_compose_properties_networks"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor.test_compose_properties_networks">[docs]</a>    <span class="k">def</span> <span class="nf">test_compose_properties_networks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;networks&quot;</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;stressynet&quot;</span><span class="p">:{</span><span class="s2">&quot;driver&quot;</span><span class="p">:</span><span class="s2">&quot;overlay&quot;</span><span class="p">}}}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">_compose_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertDictEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">dic</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestDockerAdaptor.test_compose_properties_volumes"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor.test_compose_properties_volumes">[docs]</a>    <span class="k">def</span> <span class="nf">test_compose_properties_volumes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;volumes&quot;</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;busydata&quot;</span><span class="p">:{}}}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">_compose_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertDictEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">dic</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestDockerAdaptor.test_compose_properties_inputs_default"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor.test_compose_properties_inputs_default">[docs]</a>    <span class="k">def</span> <span class="nf">test_compose_properties_inputs_default</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;services&quot;</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;db&quot;</span><span class="p">:{</span><span class="s2">&quot;ports&quot;</span><span class="p">:[</span><span class="s2">&quot;6379:6379&quot;</span><span class="p">]}}}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">_compose_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertDictEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">dic</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestDockerAdaptor.test_compose_properties_inputs_parsed"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor.test_compose_properties_inputs_parsed">[docs]</a>    <span class="k">def</span> <span class="nf">test_compose_properties_inputs_parsed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">tpl</span> <span class="o">=</span> <span class="n">ToscaTemplate</span><span class="p">(</span>
+            <span class="s2">&quot;tests/templates/good_tosca.yaml&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;exposed_ports&quot;</span><span class="p">:[</span><span class="s2">&quot;5959:5959&quot;</span><span class="p">]})</span>
+        <span class="n">adapt</span> <span class="o">=</span> <span class="n">DockerAdaptor</span><span class="p">(</span><span class="s2">&quot;other_adapt&quot;</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="n">tpl</span><span class="p">)</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;services&quot;</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;db&quot;</span><span class="p">:{</span><span class="s2">&quot;ports&quot;</span><span class="p">:[</span><span class="s2">&quot;5959:5959&quot;</span><span class="p">]}}}</span>
+        <span class="n">adapt</span><span class="o">.</span><span class="n">_compose_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertDictEqual</span><span class="p">(</span><span class="n">adapt</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">dic</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestDockerAdaptor.test_compose_requirements_attaches"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor.test_compose_requirements_attaches">[docs]</a>    <span class="k">def</span> <span class="nf">test_compose_requirements_attaches</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;services&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;jobber&quot;</span><span class="p">:{</span><span class="s2">&quot;volumes&quot;</span><span class="p">:[</span><span class="s2">&quot;busydata:/tmp&quot;</span><span class="p">]}},</span>
+               <span class="s2">&quot;volumes&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;busydata&quot;</span><span class="p">:</span> <span class="p">{}}}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">_compose_requirements</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertDictEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">dic</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestDockerAdaptor.test_compose_requirements_connects"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor.test_compose_requirements_connects">[docs]</a>    <span class="k">def</span> <span class="nf">test_compose_requirements_connects</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;services&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;updater&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;networks&quot;</span><span class="p">:[</span><span class="s2">&quot;stressnet&quot;</span><span class="p">]},</span>
+                            <span class="s2">&quot;db&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;networks&quot;</span><span class="p">:[</span><span class="s2">&quot;stressnet&quot;</span><span class="p">]}},</span>
+               <span class="s2">&quot;networks&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;stressnet&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;driver&quot;</span><span class="p">:</span> <span class="s2">&quot;overlay&quot;</span><span class="p">}}}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">_compose_requirements</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertDictEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">dic</span><span class="p">)</span></div>
+
+    <span class="c1">#test when implmented</span>
+<div class="viewcode-block" id="TestDockerAdaptor.not_test_compose_requirements_hosts"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor.not_test_compose_requirements_hosts">[docs]</a>    <span class="k">def</span> <span class="nf">not_test_compose_requirements_hosts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;services&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;db&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;deploy&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;placement&quot;</span><span class="p">:</span>
+                <span class="p">{</span><span class="s2">&quot;constraints&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;node.labels.host == MICADO-worker&quot;</span><span class="p">]}}}}}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">_compose_requirements</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertDictEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">dic</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestDockerAdaptor.test_create_compose_volume"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor.test_create_compose_volume">[docs]</a>    <span class="k">def</span> <span class="nf">test_create_compose_volume</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;volumes&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;volume&quot;</span><span class="p">:</span> <span class="p">{}},</span>
+               <span class="s2">&quot;services&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;node&quot;</span><span class="p">:{</span><span class="s2">&quot;volumes&quot;</span><span class="p">:[</span><span class="s2">&quot;volume:location&quot;</span><span class="p">]}}}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">_create_compose_volume</span><span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="s2">&quot;volume&quot;</span><span class="p">,</span> <span class="s2">&quot;location&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertDictEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">dic</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestDockerAdaptor.test_create_compose_connection"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor.test_create_compose_connection">[docs]</a>    <span class="k">def</span> <span class="nf">test_create_compose_connection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;networks&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;network&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;driver&quot;</span><span class="p">:</span><span class="s2">&quot;overlay&quot;</span><span class="p">}},</span>
+               <span class="s2">&quot;services&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;node&quot;</span><span class="p">:{</span><span class="s2">&quot;networks&quot;</span><span class="p">:[</span><span class="s2">&quot;network&quot;</span><span class="p">]},</span>
+                            <span class="s2">&quot;target&quot;</span><span class="p">:{</span><span class="s2">&quot;networks&quot;</span><span class="p">:[</span><span class="s2">&quot;network&quot;</span><span class="p">]}}}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">_create_compose_connection</span><span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="s2">&quot;target&quot;</span><span class="p">,</span> <span class="s2">&quot;network&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertDictEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">dic</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestDockerAdaptor.test_create_compose_constraint"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor.test_create_compose_constraint">[docs]</a>    <span class="k">def</span> <span class="nf">test_create_compose_constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">dic</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;services&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;node&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;deploy&quot;</span><span class="p">:</span>
+                <span class="p">{</span><span class="s2">&quot;placement&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;constraints&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;node.labels.host == host&quot;</span><span class="p">]}}}}}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">_create_compose_constraint</span><span class="p">(</span><span class="s2">&quot;node&quot;</span><span class="p">,</span> <span class="s2">&quot;host&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertDictEqual</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adapt</span><span class="o">.</span><span class="n">compose_data</span><span class="p">,</span> <span class="n">dic</span><span class="p">)</span></div></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>
