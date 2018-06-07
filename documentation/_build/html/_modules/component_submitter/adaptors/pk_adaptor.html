@@ -1,0 +1,244 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>component_submitter.adaptors.pk_adaptor &#8212; MiCADO Submitter 0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/_static/basic.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for component_submitter.adaptors.pk_adaptor</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">filecmp</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">from</span> <span class="nn">toscaparser.tosca_template</span> <span class="k">import</span> <span class="n">ToscaTemplate</span>
+<span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">policykeeper</span> <span class="k">as</span> <span class="n">abco</span>
+<span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorCritical</span>
+<span class="kn">import</span> <span class="nn">ruamel.yaml</span> <span class="k">as</span> <span class="nn">yaml</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;adaptor.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1"># Hard-coded things for Pk</span>
+<span class="n">PK</span> <span class="o">=</span> <span class="p">(</span><span class="n">STACK</span><span class="p">,</span> <span class="n">DATA</span><span class="p">,</span> <span class="n">SOURCES</span><span class="p">,</span> <span class="n">CONSTANTS</span><span class="p">,</span> <span class="n">QUERIES</span><span class="p">,</span> <span class="n">ALERTS</span><span class="p">,</span> <span class="n">SCALING</span><span class="p">,</span> <span class="n">NODES</span><span class="p">,</span> <span class="n">SERVICES</span><span class="p">)</span> <span class="o">=</span> \
+                <span class="p">(</span><span class="s2">&quot;stack&quot;</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;sources&quot;</span><span class="p">,</span> <span class="s2">&quot;constants&quot;</span><span class="p">,</span> <span class="s2">&quot;queries&quot;</span><span class="p">,</span> <span class="s2">&quot;alerts&quot;</span><span class="p">,</span> <span class="s2">&quot;scaling&quot;</span><span class="p">,</span> <span class="s2">&quot;nodes&quot;</span><span class="p">,</span> <span class="s2">&quot;services&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="PkAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.pk_adaptor.PkAdaptor">[docs]</a><span class="k">class</span> <span class="nc">PkAdaptor</span><span class="p">(</span><span class="n">abco</span><span class="o">.</span><span class="n">PolicyKeeperAdaptor</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adaptor_id</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">template</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">ToscaTemplate</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Template is not a valid TOSCAParser object&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Initialising the Pk adaptor with ID, config &amp; TPL...&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">adaptor_id</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;volume&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tmp_path</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">tmp_</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;volume&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span> <span class="o">=</span> <span class="n">template</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Pk adaptor initialised&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PkAdaptor.translate"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.pk_adaptor.PkAdaptor.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting PK translation&quot;</span><span class="p">)</span>
+        <span class="c1"># Hard-coded file structure</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span> <span class="o">=</span> <span class="p">{</span><span class="n">STACK</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+                        <span class="n">SCALING</span><span class="p">:</span> <span class="p">{}}</span>
+
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">node_name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">)</span> \
+                <span class="ow">and</span> <span class="s2">&quot;tosca.nodes.MiCADO.Occopus&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">):</span>
+            <span class="n">node_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+
+        <span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">policies</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">policy</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="n">node_name</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="p">[</span><span class="n">SCALING</span><span class="p">][</span><span class="n">NODES</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pk_scaling_properties</span><span class="p">(</span><span class="n">policy</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="p">[</span><span class="n">SCALING</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">SERVICES</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="p">[</span><span class="n">SCALING</span><span class="p">][</span><span class="n">SERVICES</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">service</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">target</span><span class="p">}</span>
+                    <span class="n">service</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pk_scaling_properties</span><span class="p">(</span><span class="n">policy</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="p">[</span><span class="n">SCALING</span><span class="p">][</span><span class="n">SERVICES</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">service</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Policy of </span><span class="si">{0}</span><span class="s2"> is translated&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">tmp</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_yaml_write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;PK file created&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_yaml_write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tmp_path</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Updated PK file created&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PkAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.pk_adaptor.PkAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Pk execution&quot;</span><span class="p">)</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Content-Type&#39;</span><span class="p">:</span> <span class="s1">&#39;application/x-yaml&#39;</span><span class="p">}</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">data</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;http://</span><span class="si">{0}</span><span class="s2">/policy/start&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;endpoint&#39;</span><span class="p">]),</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Policy with </span><span class="si">{0}</span><span class="s2"> id is sent.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PkAdaptor.undeploy"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.pk_adaptor.PkAdaptor.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Removing the policy in Pk service with id </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;http://</span><span class="si">{0}</span><span class="s2">/policy/stop&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;endpoint&#39;</span><span class="p">]))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Policy </span><span class="si">{0}</span><span class="s2"> removed.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="PkAdaptor.cleanup"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.pk_adaptor.PkAdaptor.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Cleanup config for ID </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PkAdaptor.update"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.pk_adaptor.PkAdaptor.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Updating the component config </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+        <span class="c1"># If update</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting the update...&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Creating temporary template...&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_differentiate</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;tmp file different, replacing old config and executing&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tmp_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">undeploy</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;tmp file is the same, removing the tmp file&quot;</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tmp_path</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_pk_scaling_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">policy</span><span class="p">):</span>
+        <span class="n">policy_prop</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">properties</span> <span class="o">=</span> <span class="n">policy</span><span class="o">.</span><span class="n">get_properties</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">prop</span> <span class="o">==</span> <span class="n">SOURCES</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pk_data_list</span><span class="p">(</span><span class="n">policy</span><span class="o">.</span><span class="n">get_property_value</span><span class="p">(</span><span class="n">prop</span><span class="p">),</span> <span class="n">DATA</span><span class="p">,</span> <span class="n">SOURCES</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">prop</span> <span class="o">==</span> <span class="n">CONSTANTS</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pk_data_map</span><span class="p">(</span><span class="n">policy</span><span class="o">.</span><span class="n">get_property_value</span><span class="p">(</span><span class="n">prop</span><span class="p">),</span> <span class="n">DATA</span><span class="p">,</span> <span class="n">CONSTANTS</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">prop</span> <span class="o">==</span> <span class="n">QUERIES</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pk_data_map</span><span class="p">(</span><span class="n">policy</span><span class="o">.</span><span class="n">get_property_value</span><span class="p">(</span><span class="n">prop</span><span class="p">),</span> <span class="n">DATA</span><span class="p">,</span> <span class="n">QUERIES</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">prop</span> <span class="o">==</span> <span class="n">ALERTS</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_pk_data_list</span><span class="p">(</span><span class="n">policy</span><span class="o">.</span><span class="n">get_property_value</span><span class="p">(</span><span class="n">prop</span><span class="p">),</span> <span class="n">DATA</span><span class="p">,</span> <span class="n">ALERTS</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">policy_prop</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span> <span class="o">=</span> <span class="n">policy</span><span class="o">.</span><span class="n">get_property_value</span><span class="p">(</span><span class="n">prop</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">policy_prop</span>
+
+    <span class="k">def</span> <span class="nf">_pk_data_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">nested_key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">nested_key</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">nested_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">nested_key</span><span class="p">]</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">nested_key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_pk_data_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">map</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">nested_key</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">nested_key</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">nested_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">nested_key</span><span class="p">][</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+    <span class="k">def</span> <span class="nf">_yaml_write</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">ofile</span><span class="p">:</span>
+                <span class="n">yaml</span><span class="o">.</span><span class="n">round_trip_dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pk_data</span><span class="p">,</span> <span class="n">ofile</span><span class="p">,</span> <span class="n">default_style</span><span class="o">=</span><span class="s1">&#39;|&#39;</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_differentiate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Compare two Pk file</span>
+        <span class="k">return</span> <span class="n">filecmp</span><span class="o">.</span><span class="n">cmp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tmp_path</span><span class="p">)</span></div>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

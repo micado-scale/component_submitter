@@ -16,37 +16,53 @@ You can launch the REST API by calling the following command:
     python api.py
 
 
-To launch an application from an url you can use the curl command line:
+To launch an application from an url you can use one of the following curl command line:
 
 .. code-block:: bash
     :linenos:
 
-    curl -d input="[Path to TOSCA Template]" -X POST http://[IP]:[Port]/v1.0/app/launch/url/
+    curl -d input="[url to TOSCA Template]" -X POST http://[IP]:[Port]/v1.0/app/launch/url/
 
+    curl -d input="[url to TOSCA Template]" -d id=[ID] -X POST http://[IP]:[Port]/v1.0/app/launch/url/
 
-To launch an application from an url and modifying the default value for the inputs use the curl command line:
+    curl -d input="[url to TOSCA Template]" -d params='{"Input1": "value a", "Input2": "value b"}' -X POST http://[IP]:[Port]/v1.0/app/launch/url/
 
-.. code-block:: bash
-    :linenos:
+    curl -d input="[url to TOSCA Template]" -d id=[SOMEID] -d params='{"Input1": "value a", "Input2": "value b"}' -X POST http://[IP]:[Port]/v1.0/app/launch/url/
 
-    curl -d input="[Path to TOSCA Template]" -d params='{"Input1": "value a", "Input2": "value b"}' -X POST http://[IP]:[Port]/v1.0/app/launch/url/
-
-
-To launch an application from a file that you pass to the api you can use the curl command line:
+To launch an application from a file that you pass to the api you can use one of the following curl command line:
 
 .. code-block:: bash
     :linenos:
 
-    curl --data-binary @[Path to the File] -X POST http://[IP]:[Port]/v1.0/app/launch/file/
+    curl -F file=@[Path to the File] -X POST http://[IP]:[Port]/v1.0/app/launch/file/
+
+    curl -F file=@[Path to the File] -F params='{"Input1": "value a", "Input2": "value b"}' -X POST http://[IP]:[Port]/v1.0/app/launch/file/
+
+    curl -F file=@[Path to the File] -F id=[SOMEID] -F params='{"Input1": "value a", "Input2": "value b"}' -X POST http://[IP]:[Port]/v1.0/app/launch/file/
+
+    curl -F file=@[Path to the File] -F id=[SOMEID]  -X POST http://[IP]:[Port]/v1.0/app/launch/file/
 
 
 
-To update a wanted application you need to use this command with optional params:
+To update from an url a wanted application you can use one of this following curl command:
 
 .. code-block:: bash
     :linenos:
 
-    curl -d -d input="[Path to TOSCA template]" -d params='{"Input1": "value a", "Input2": "value b"}' -X PUT http://[IP]:[Port]/v1.0/app/udpate/[ID_APP]
+    curl -d input="[url to TOSCA template]" -d params='{"Input1": "value a", "Input2": "value b"}' -X PUT http://[IP]:[Port]/v1.0/app/udpate/file/[ID_APP]
+
+    curl -d input="[url to TOSCA template]" -X PUT http://[IP]:[Port]/v1.0/app/udpate/file/[ID_APP]
+
+
+To update from a file a wanted application you can use one of this following curl command:
+
+.. code-block:: bash
+    :linenos:
+
+    curl -F file=@"[Path to the file]" -d params='{"Input1": "value a", "Input2": "value b"}' -X PUT http://[IP]:[Port]/v1.0/app/udpate/file/[ID_APP]
+
+    curl -F file=@"[Path to the file]" -X PUT http://[IP]:[Port]/v1.0/app/udpate/file/[ID_APP]
+
 
 To undeploy a wanted application you need to feed it the id:
 

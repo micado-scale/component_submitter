@@ -120,9 +120,9 @@ cleanup()
 This method should remove any files produced which were required by this component
 for the execution of this application, located under ``files/output_configs``.
 
------------------------
+=======================
 Other helpful things...
------------------------
+=======================
 
 component_submitter.utils
 -------------------------
