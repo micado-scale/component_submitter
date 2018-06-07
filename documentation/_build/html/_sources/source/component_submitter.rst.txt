@@ -8,6 +8,7 @@ Subpackages
 
     component_submitter.abstracts
     component_submitter.adaptors
+    component_submitter.tests
 
 Submodules
 ----------
@@ -20,10 +21,10 @@ component\_submitter.api module
     :undoc-members:
     :show-inheritance:
 
-component\_submitter.utils module
--------------------------------------
+component\_submitter.command\_line\_interface module
+----------------------------------------------------
 
-.. automodule:: component_submitter.utils
+.. automodule:: component_submitter.command_line_interface
     :members:
     :undoc-members:
     :show-inheritance:
@@ -84,6 +85,13 @@ component\_submitter.submitter\_engine module
     :undoc-members:
     :show-inheritance:
 
+component\_submitter.utils module
+---------------------------------
+
+.. automodule:: component_submitter.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 
 Module contents

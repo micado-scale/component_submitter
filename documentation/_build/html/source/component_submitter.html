@@ -68,9 +68,25 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_occopus_adaptor">component_submitter.adaptors.dummy_occopus_adaptor module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_pk_adaptor">component_submitter.adaptors.dummy_pk_adaptor module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_se_adaptor">component_submitter.adaptors.dummy_se_adaptor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.occopus_adaptor">component_submitter.adaptors.occopus_adaptor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.pk_adaptor">component_submitter.adaptors.pk_adaptor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.scalingpolicy_adaptor">component_submitter.adaptors.scalingpolicy_adaptor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="component_submitter.adaptors.html#micado-submitter-engine-scalingpolicy-adaptor">MiCADO Submitter Engine ScalingPolicy Adaptor</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.security_enforcer_adaptor">component_submitter.adaptors.security_enforcer_adaptor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="component_submitter.adaptors.html#micado-submitter-engine-security-enforcer-adaptor">MiCADO Submitter Engine Security Enforcer Adaptor</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="component_submitter.tests.html">component_submitter.tests package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.tests.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.tests.html#module-component_submitter.tests.test_docker">component_submitter.tests.test_docker module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.tests.html#module-component_submitter.tests.test_validator">component_submitter.tests.test_validator module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.tests.html#module-component_submitter.tests">Module contents</a></li>
 </ul>
 </li>
 </ul>
@@ -100,8 +116,7 @@
 <dl class="function">
 <dt id="component_submitter.api.engine_file">
 <code class="descclassname">component_submitter.api.</code><code class="descname">engine_file</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#engine_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.engine_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>API functions to launch a application</p>
-<p>stream.read() file</p>
+<dd><p>API functions to launch an application</p>
 </dd></dl>
 
 <dl class="function">
@@ -128,7 +143,8 @@
 <dl class="function">
 <dt id="component_submitter.api.info_app">
 <code class="descclassname">component_submitter.api.</code><code class="descname">info_app</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#info_app"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.info_app" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>API function to get the information on a given id</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="component_submitter.api.keyboardInterrupt">
@@ -138,7 +154,8 @@
 <dl class="function">
 <dt id="component_submitter.api.list_app">
 <code class="descclassname">component_submitter.api.</code><code class="descname">list_app</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#list_app"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.list_app" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>API function to list all the running aplications</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="component_submitter.api.undeploy">
@@ -152,32 +169,25 @@
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="component_submitter.api.update">
-<code class="descclassname">component_submitter.api.</code><code class="descname">update</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.update" title="Permalink to this definition">¶</a></dt>
-<dd><p>API function to deploy the application with a specific ID</p>
+<dt id="component_submitter.api.update_file">
+<code class="descclassname">component_submitter.api.</code><code class="descname">update_file</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#update_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.update_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>API function to update the application with a specific ID from a file</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.api.update_url">
+<code class="descclassname">component_submitter.api.</code><code class="descname">update_url</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#update_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.update_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>API function to update the application with a specific ID from a url</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-component_submitter.utils">
-<span id="component-submitter-utils-module"></span><h2>component_submitter.utils module<a class="headerlink" href="#module-component_submitter.utils" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="component_submitter.utils.dump_order_yaml">
-<code class="descclassname">component_submitter.utils.</code><code class="descname">dump_order_yaml</code><span class="sig-paren">(</span><em>data</em>, <em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#dump_order_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.dump_order_yaml" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dump the dictionary to a Docker-Compose file</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="component_submitter.utils.get_yaml_data">
-<code class="descclassname">component_submitter.utils.</code><code class="descname">get_yaml_data</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#get_yaml_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.get_yaml_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retrieve the yaml dictionary form a yaml file and return it</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="component_submitter.utils.id_generator">
-<code class="descclassname">component_submitter.utils.</code><code class="descname">id_generator</code><span class="sig-paren">(</span><em>size=8</em>, <em>chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#id_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.id_generator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate an ID</p>
-</dd></dl>
-
+<div class="section" id="module-component_submitter.command_line_interface">
+<span id="component-submitter-command-line-interface-module"></span><h2>component_submitter.command_line_interface module<a class="headerlink" href="#module-component_submitter.command_line_interface" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="micado-command-line-interface">
+<h3>MiCADO Command Line Interface<a class="headerlink" href="#micado-command-line-interface" title="Permalink to this headline">¶</a></h3>
+<p>Component to create the command line interface that will talk to the submitter
+to launch, update, undeploy the application</p>
+</div>
 </div>
 <div class="section" id="module-component_submitter.key_lists">
 <span id="component-submitter-key-lists-module"></span><h2>component_submitter.key_lists module<a class="headerlink" href="#module-component_submitter.key_lists" title="Permalink to this headline">¶</a></h2>
@@ -477,6 +487,27 @@ launch</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-component_submitter.utils">
+<span id="component-submitter-utils-module"></span><h2>component_submitter.utils module<a class="headerlink" href="#module-component_submitter.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="component_submitter.utils.dump_order_yaml">
+<code class="descclassname">component_submitter.utils.</code><code class="descname">dump_order_yaml</code><span class="sig-paren">(</span><em>data</em>, <em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#dump_order_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.dump_order_yaml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dump the dictionary to a Docker-Compose file</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.utils.get_yaml_data">
+<code class="descclassname">component_submitter.utils.</code><code class="descname">get_yaml_data</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#get_yaml_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.get_yaml_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve the yaml dictionary form a yaml file and return it</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.utils.id_generator">
+<code class="descclassname">component_submitter.utils.</code><code class="descname">id_generator</code><span class="sig-paren">(</span><em>size=8</em>, <em>chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#id_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.id_generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an ID</p>
+</dd></dl>
+
+</div>
 <div class="section" id="module-component_submitter">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-component_submitter" title="Permalink to this headline">¶</a></h2>
 </div>
@@ -494,7 +525,10 @@ launch</p>
 <li><a class="reference internal" href="#subpackages">Subpackages</a></li>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#module-component_submitter.api">component_submitter.api module</a></li>
-<li><a class="reference internal" href="#module-component_submitter.utils">component_submitter.utils module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.command_line_interface">component_submitter.command_line_interface module</a><ul>
+<li><a class="reference internal" href="#micado-command-line-interface">MiCADO Command Line Interface</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#module-component_submitter.key_lists">component_submitter.key_lists module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.mapper">component_submitter.mapper module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.micado_parser">component_submitter.micado_parser module</a></li>
@@ -505,6 +539,7 @@ launch</p>
 <li><a class="reference internal" href="#module-component_submitter.plugins_gestion">component_submitter.plugins_gestion module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.step">component_submitter.step module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.submitter_engine">component_submitter.submitter_engine module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.utils">component_submitter.utils module</a></li>
 <li><a class="reference internal" href="#module-component_submitter">Module contents</a></li>
 </ul>
 </li>

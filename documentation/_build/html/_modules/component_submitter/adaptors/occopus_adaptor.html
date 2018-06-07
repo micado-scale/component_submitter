@@ -1,0 +1,509 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>component_submitter.adaptors.occopus_adaptor &#8212; MiCADO Submitter 0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/_static/basic.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for component_submitter.adaptors.occopus_adaptor</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">filecmp</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">docker</span>
+<span class="kn">import</span> <span class="nn">ruamel.yaml</span> <span class="k">as</span> <span class="nn">yaml</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">utils</span>
+
+<span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">cloudorchestrator</span> <span class="k">as</span> <span class="n">abco</span>
+<span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorCritical</span>
+<span class="kn">from</span> <span class="nn">toscaparser.tosca_template</span> <span class="k">import</span> <span class="n">ToscaTemplate</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;adaptor.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="OccopusAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.occopus_adaptor.OccopusAdaptor">[docs]</a><span class="k">class</span> <span class="nc">OccopusAdaptor</span><span class="p">(</span><span class="n">abco</span><span class="o">.</span><span class="n">CloudAdaptor</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adaptor_id</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Constructor method of the Adaptor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">template</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">ToscaTemplate</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Template is not a valid TOSCAParser object&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_name</span> <span class="o">=</span> <span class="s2">&quot;node_def:worker&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">worker_infra_name</span> <span class="o">=</span> <span class="s2">&quot;micado_worker_infra&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_instances</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_instances</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">adaptor_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="n">template</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;volume&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_path_tmp</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">tmp_</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;volume&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_output</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}{}</span><span class="s2">-infra.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;volume&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_output_tmp</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">-infra.tmp.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;volume&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_input</span> <span class="o">=</span> <span class="s2">&quot;/var/lib/submitter/system/infrastructure_descriptor.yaml&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cloudinit_path</span> <span class="o">=</span> <span class="s2">&quot;/var/lib/submitter/system/cloud_init_worker.yaml&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cloudsigma</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ec2</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nova</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cloudbroker</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">created</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">occopus</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_docker</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">occopus_address</span> <span class="o">=</span> <span class="s2">&quot;occopus:5000&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">auth_data_file</span> <span class="o">=</span> <span class="s2">&quot;/var/lib/micado/occopus/data/auth_data.yaml&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">occo_node_path</span> <span class="o">=</span> <span class="s2">&quot;/var/lib/micado/occopus/submitter/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">occo_infra_path</span> <span class="o">=</span> <span class="s2">&quot;/var/lib/micado/occopus/submitter/</span><span class="si">{}</span><span class="s2">-infra.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Occopus Adaptor initialised&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="OccopusAdaptor.translate"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.occopus_adaptor.OccopusAdaptor.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Translate the self.tpl subset to Occopus node definition and infrastructure format</span>
+<span class="sd">        Does the work of mapping the Occopus relevant sections of TOSCA into a</span>
+<span class="sd">        dictionary, then dumping output to a .yaml files (infra and node def.) in output_configs/</span>
+<span class="sd">        :param tmp: It is helping variable for update method. More information under update method</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting OccoTranslation&quot;</span><span class="p">)</span>
+        <span class="n">ec2</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">nova</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">cloudbroker</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">cloudsigma</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;tosca.nodes.MiCADO.Occopus.CloudSigma.Compute&quot;</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;CloudSigma resource deteckted&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_interface</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_cloudsigma_host_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_policies</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_infra_def</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+                <span class="n">cloudsigma</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="s2">&quot;tosca.nodes.MiCADO.Occopus.EC2.Compute&quot;</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;EC2 resource deteckted&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_interface</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_ec2_host_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_policies</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_infra_def</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+                <span class="n">ec2</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="s2">&quot;tosca.nodes.MiCADO.Occopus.CloudBroker.Compute&quot;</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;CloudBroker resource deteckted&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_interface</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_cloudbroker_host_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_policies</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_infra_def</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+                <span class="n">cloudbroker</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="s2">&quot;tosca.nodes.MiCADO.Occopus.Nova.Compute&quot;</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Nova resource deteckted&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_interface</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_nova_host_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_policies</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_get_infra_def</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+                <span class="n">nova</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">cloudsigma</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cloudsigma</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_name</span><span class="p">:</span> <span class="p">[]}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cloudsigma</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">node_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tmp</span><span class="p">:</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cloudsigma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_path_tmp</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cloudsigma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">ec2</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ec2</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_name</span><span class="p">:</span> <span class="p">[]}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ec2</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">node_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tmp</span><span class="p">:</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ec2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_path_tmp</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ec2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">cloudbroker</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cloudbroker</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_name</span><span class="p">:</span> <span class="p">[]}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cloudbroker</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">node_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tmp</span><span class="p">:</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cloudsigma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_path_tmp</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cloudbroker</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">nova</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nova</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">node_name</span><span class="p">:</span> <span class="p">[]}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nova</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">node_name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tmp</span><span class="p">:</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cloudsigma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_path_tmp</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nova</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="OccopusAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.occopus_adaptor.OccopusAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Deploy Occopus infrastructure through Occopus rest API</span>
+<span class="sd">        First the node definition should import in the Occopus</span>
+<span class="sd">        contener and then the build process could go on REST API</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Occopus execution </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">created</span><span class="p">:</span>
+            <span class="n">run</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="n">run</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Occopus import starting...&quot;</span><span class="p">)</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">occopus</span><span class="o">.</span><span class="n">exec_run</span><span class="p">(</span><span class="s2">&quot;occopus-import </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">occo_node_path</span><span class="p">))</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Occopus import has been successful&quot;</span><span class="p">)</span>
+                    <span class="n">run</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">. Try </span><span class="si">{1}</span><span class="s2"> of 5.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span> <span class="n">i</span><span class="p">))</span>
+                    <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;Successfully imported&quot;</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Occopus build starting...&quot;</span><span class="p">)</span>
+                    <span class="c1">#headers = {&#39;Content-Type&#39;: &#39;application/x-yaml&#39;}</span>
+                    <span class="c1">#with open(self.infra_def_path_output, &#39;rb&#39;) as data:</span>
+                    <span class="c1">#    requests.post(&quot;http://{0}/infrastructures/&quot;</span>
+                    <span class="c1"># .format(self.occopus_address), data=data, headers=headers)</span>
+                    <span class="n">buildinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">occopus</span><span class="o">.</span><span class="n">exec_run</span><span class="p">(</span><span class="s2">&quot;occopus-build </span><span class="si">{}</span><span class="s2"> -i </span><span class="si">{}</span><span class="s2"> --auth_data_path </span><span class="si">{}</span><span class="s2">&quot;</span>
+                                                      <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">occo_infra_path</span><span class="p">,</span>
+                                                              <span class="bp">self</span><span class="o">.</span><span class="n">worker_infra_name</span><span class="p">,</span>
+                                                              <span class="bp">self</span><span class="o">.</span><span class="n">auth_data_file</span><span class="p">))</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;http://</span><span class="si">{0}</span><span class="s2">/infrastructures/</span><span class="si">{1}</span><span class="s2">/attach&quot;</span>
+                                              <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">occopus_address</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">worker_infra_name</span><span class="p">)))</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Occopus build has been successful&quot;</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">. Error caught in deploy phase&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Occopus import was unsuccessful!&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Occopus is not created!&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="OccopusAdaptor.undeploy"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.occopus_adaptor.OccopusAdaptor.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Undeploy Occopus infrastructure through Occopus rest API</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Undeploy </span><span class="si">{}</span><span class="s2"> infrastructure&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+        <span class="n">requests</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">&quot;http://</span><span class="si">{0}</span><span class="s2">/infrastructures/</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">occopus_address</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">worker_infra_name</span><span class="p">))</span></div>
+        <span class="c1"># self.occopus.exec_run(&quot;occopus-destroy --auth_data_path {0} -i {1}&quot;</span>
+        <span class="c1"># .format(self.auth_data_file, self.worker_infra_name))</span>
+
+<div class="viewcode-block" id="OccopusAdaptor.cleanup"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.occopus_adaptor.OccopusAdaptor.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Remove the generated files under &quot;files/output_configs/&quot;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Cleanup config for ID </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_output</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="OccopusAdaptor.update"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.occopus_adaptor.OccopusAdaptor.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check that if it&#39;s any change in the node definition or in the cloud init file.</span>
+<span class="sd">        If the node definition changed then rerun the build process. If the node definition</span>
+<span class="sd">        changed first undeploy the infrastructure and rebuild it with the modified parameter.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">min_instances</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_instances</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Updating the component config </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_differentiate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path_tmp</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Node tmp file different, replacing old config and executing&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_path_tmp</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_output_tmp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_output</span><span class="p">)</span>
+            <span class="c1"># Undeploy the infra and rebuild</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">undeploy</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Node definition changed&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_differentiate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_output</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_output_tmp</span><span class="p">):</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Infra tmp file different, replacing old config and executing&quot;</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_output_tmp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_output</span><span class="p">)</span>
+            <span class="c1"># Rerun Occopus build to refresh infra definition</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;there are no changes in the Occopus files&quot;</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Tmp file is the same, removing the tmp files&quot;</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path_tmp</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_output_tmp</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_node_data_get_interface</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get cloud relevant informations from tosca</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">properties</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get_properties</span><span class="p">()</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">properties</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">entry</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get_property_value</span><span class="p">(</span><span class="n">prop</span><span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+                <span class="n">node</span><span class="o">.</span><span class="n">get_property_value</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">entry</span><span class="p">[</span><span class="n">prop</span><span class="p">]</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get_property_value</span><span class="p">(</span><span class="n">prop</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;cloud&quot;</span><span class="p">][</span><span class="s2">&quot;interface_cloud&quot;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;endpoint&quot;</span><span class="p">,</span> <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;cloud&quot;</span><span class="p">][</span><span class="s2">&quot;endpoint_cloud&quot;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_node_data_get_context_section</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create the context section in node definition</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;contextualisation&quot;</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;type&quot;</span><span class="p">,</span> <span class="s2">&quot;cloudinit&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;contextualisation&quot;</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;context_template&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cloud_init</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">_node_data_get_cloudsigma_host_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get CloudSigma properties and create node definition</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">capabilites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_host_properties</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+        <span class="n">nics</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="nb">dict</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span>\
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;libdrive_id&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;libdrive_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span>\
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="p">{})</span>\
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;num_cpus&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;mem&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;mem_size&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span>\
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="p">{})</span>\
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;vnc_password&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;vnc_password&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">capabilites</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;public_key_id&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">pubkeys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+            <span class="n">pubkeys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;public_key_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s2">&quot;description&quot;</span><span class="p">][</span><span class="s2">&quot;pubkeys&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pubkeys</span>
+        <span class="k">if</span> <span class="n">capabilites</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;firewall_policy&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="nb">dict</span><span class="p">[</span><span class="s2">&quot;firewall_policy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;firewall_policy&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="nb">dict</span><span class="p">[</span><span class="s2">&quot;ip_v4_conf&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="nb">dict</span><span class="p">[</span><span class="s2">&quot;ip_v4_conf&quot;</span><span class="p">][</span><span class="s2">&quot;conf&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;dhcp&quot;</span>
+        <span class="n">nics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s2">&quot;description&quot;</span><span class="p">][</span><span class="s2">&quot;nics&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_context_section</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_node_data_get_ec2_host_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get EC2 properties and create node definition</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">capabilites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_host_properties</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;regionname&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;region_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;image_id&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;image_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;instance_type&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;instance_type&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_context_section</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">capabilites</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;key_name&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+              <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;key_name&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;key_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">capabilites</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;subnet_id&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+              <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;subnet_id&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;subnet_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">capabilites</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;security_groups_ids&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">security_groups</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+            <span class="n">security_groups</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;security_groups_ids&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s2">&quot;security_groups_ids&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">security_groups</span>
+
+    <span class="k">def</span> <span class="nf">_node_data_get_cloudbroker_host_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get CloudBroker properties and create node definition</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">capabilites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_host_properties</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;deployment_id&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;deployment_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;instance_type_id&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;instance_type_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;key_pair_id&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;key_pair_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">capabilites</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;opened_port&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+              <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="p">{})</span> \
+              <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;opened_port&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;opened_port&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_context_section</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_node_data_get_nova_host_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get NOVA properties and create node definition</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">capabilites</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_host_properties</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;project_id&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;project_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;image_id&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;image_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;network_id&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;network_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;flavor_name&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;flavor_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">capabilites</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;server_name&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+              <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;server_name&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;server_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">capabilites</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;key_name&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
+              <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;key_name&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;key_name&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">capabilites</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;security_groups&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s2">&quot;security_groups&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;security_groups&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_context_section</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_get_cloud_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get cloud-config from MICADO-ansible template</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">yaml</span><span class="o">.</span><span class="n">default_flow_style</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cloudinit_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">cloudinit</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">round_trip_load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">preserve_quotes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">cloudinit</span>
+
+    <span class="k">def</span> <span class="nf">_get_infra_def</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tmp</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Read infra def and modify the min max instances according to the Tosca policies.</span>
+<span class="sd">        If the template doesn&#39;t have polcy section or it is invalid then set a default value &quot;&quot;&quot;</span>
+        <span class="n">yaml</span><span class="o">.</span><span class="n">default_flow_style</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_input</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">infra_def</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">round_trip_load</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">preserve_quotes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">infra_def</span><span class="p">[</span><span class="s2">&quot;nodes&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;scaling&quot;</span><span class="p">][</span><span class="s2">&quot;min&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">min_instances</span>
+            <span class="n">infra_def</span><span class="p">[</span><span class="s2">&quot;nodes&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;scaling&quot;</span><span class="p">][</span><span class="s2">&quot;max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_instances</span>
+            <span class="n">infra_def</span><span class="p">[</span><span class="s2">&quot;variables&quot;</span><span class="p">][</span><span class="s2">&quot;master_host_ip&quot;</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">tmp</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_output_tmp</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">ofile</span><span class="p">:</span>
+                <span class="n">yaml</span><span class="o">.</span><span class="n">round_trip_dump</span><span class="p">(</span><span class="n">infra_def</span><span class="p">,</span> <span class="n">ofile</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_output</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">ofile</span><span class="p">:</span>
+                <span class="n">yaml</span><span class="o">.</span><span class="n">round_trip_dump</span><span class="p">(</span><span class="n">infra_def</span><span class="p">,</span> <span class="n">ofile</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_init_docker</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Initialize docker and get Occopus container &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">docker</span><span class="o">.</span><span class="n">from_env</span><span class="p">()</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">created</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">occopus</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">containers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;occopus&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">created</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">. Try </span><span class="si">{1}</span><span class="s2"> of 5.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span> <span class="n">i</span><span class="p">))</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_host_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Get host properties &quot;&quot;&quot;</span>
+        <span class="n">capabilites</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get_capabilities</span><span class="p">()</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="n">capabilites</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;host&quot;</span><span class="p">)</span>
+        <span class="n">entry2</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get_properties</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">entry2</span>
+
+    <span class="k">def</span> <span class="nf">_get_policies</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Get the TOSCA policies &quot;&quot;&quot;</span>
+        <span class="n">target_name</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">)</span> \
+                <span class="ow">and</span> <span class="s2">&quot;tosca.nodes.MiCADO.Occopus&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">):</span>
+            <span class="n">target_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">found</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">policies</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">policy</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="n">target_name</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;policy target found for Occopus&quot;</span><span class="p">)</span>
+                        <span class="n">properties</span> <span class="o">=</span> <span class="n">policy</span><span class="o">.</span><span class="n">get_properties</span><span class="p">()</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">min_instances</span> <span class="o">=</span> <span class="n">properties</span><span class="p">[</span><span class="s2">&quot;min_instances&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">max_instances</span> <span class="o">=</span> <span class="n">properties</span><span class="p">[</span><span class="s2">&quot;max_instances&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">_differentiate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Compare two files &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">filecmp</span><span class="o">.</span><span class="n">cmp</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">tmp_path</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

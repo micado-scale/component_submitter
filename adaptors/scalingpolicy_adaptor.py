@@ -1,6 +1,6 @@
 """
 MiCADO Submitter Engine ScalingPolicy Adaptor
---------------------------------------
+---------------------------------------------
 
 An adaptor for TOSCA to "scaling_policy.yaml" adaptor.
 """

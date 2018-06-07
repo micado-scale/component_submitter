@@ -20,18 +20,42 @@ component\_submitter.adaptors.dummy\_occopus\_adaptor module
     :undoc-members:
     :show-inheritance:
 
-component\_submitter.adaptors.dummy\_pk\_adaptor module
--------------------------------------------------------
-
-.. automodule:: component_submitter.adaptors.dummy_pk_adaptor
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 component\_submitter.adaptors.dummy\_se\_adaptor module
 -------------------------------------------------------
 
 .. automodule:: component_submitter.adaptors.dummy_se_adaptor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+component\_submitter.adaptors.occopus\_adaptor module
+-----------------------------------------------------
+
+.. automodule:: component_submitter.adaptors.occopus_adaptor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+component\_submitter.adaptors.pk\_adaptor module
+------------------------------------------------
+
+.. automodule:: component_submitter.adaptors.pk_adaptor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+component\_submitter.adaptors.scalingpolicy\_adaptor module
+-----------------------------------------------------------
+
+.. automodule:: component_submitter.adaptors.scalingpolicy_adaptor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+component\_submitter.adaptors.security\_enforcer\_adaptor module
+----------------------------------------------------------------
+
+.. automodule:: component_submitter.adaptors.security_enforcer_adaptor
     :members:
     :undoc-members:
     :show-inheritance:
