@@ -25,11 +25,10 @@ adaptor_config:
    types:
      - "tosca.policies.DockerSecretDistribution"
    endpoint: "http://127.0.0.1:5001/v1.0"
-   volume: "/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/files/output_configs/"
-
+#   volume: "/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/files/output_configs/"
+   volume: "/var/lib/micado/toscasubmitter/src/"
 
  DockerAdaptor:
    types:
      - "tosca.nodes.MiCADO.Container.Application.Docker"
-   endpoint: "endpoint"
-   volume: "/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/files/output_configs/"
+#   volume: "/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/files/output_configs/"
