@@ -119,19 +119,29 @@ class DockerAdaptor(abco.ContainerAdaptor):
         """
         logger.info("Starting Docker execution...")
 
-
         try:
             if self.config['dry_run'] is False:
                 subprocess.run(["docker", "stack", "deploy", "--compose-file",
-                self.path, self.ID[:8]], check=True)
+                self.path, self.ID[:8]], stderr=subprocess.PIPE, check=True)
             else:
                 logger.info(f'subprocess.run([\"docker\", \"stack\", \"deploy\", '
                         f'\"--compose-file\", \"docker-compose.yaml\", '
                         f'{self.ID[:8]}], check=True)')
 
-        except subprocess.CalledProcessError:
-            logger.error("Cannot execute Docker")
-            raise AdaptorCritical("Cannot execute Docker")
+        except subprocess.CalledProcessError as e:
+            # FIXME: no-so-nice hack to force updates to correct own sequences
+            logger.error("Got this error: {}".format(e.stderr))
+            if ("update out of sequence" in str(e.stderr, 'utf-8')):
+                logger.error("Trying update again")
+                try:
+                    subprocess.run(["docker", "stack", "deploy", "--compose-file",
+                    self.path, self.ID[:8]], check=True)
+                except subprocess.CalledProcessError:
+                    raise AdaptorCritical("Cannot execute Docker")
+                    logger.error("Cannot execute Docker")
+            else:
+                raise AdaptorCritical("Cannot execute Docker")
+                logger.error("Cannot execute Docker")
         except KeyError:
             subprocess.run(["docker", "stack", "deploy", "--compose-file",
             self.path, self.ID[:8]], check=True)
