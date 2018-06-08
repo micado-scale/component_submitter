@@ -1,6 +1,6 @@
 main_config:
   dry_run: True
-  path_log: "/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/submitter.log"
+  path_log: "/var/lib/submitter/submitter.log"
 
 step:
   translate:
@@ -25,11 +25,9 @@ adaptor_config:
    types:
      - "tosca.policies.DockerSecretDistribution"
    endpoint: "http://127.0.0.1:5001/v1.0"
-   volume: "/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/files/output_configs/"
 
 
  DockerAdaptor:
    types:
      - "tosca.nodes.MiCADO.Container.Application.Docker"
-   endpoint: "endpoint"
-   volume: "/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/files/output_configs/"
+   volume: "/var/lib/submitter/files/output_configs/"
