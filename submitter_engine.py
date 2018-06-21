@@ -74,7 +74,8 @@ class SubmitterEngine(object):
 
         template = self._micado_parser_upload(path_to_file, parsed_params)
         config = self._mapper_instantiation(template)
-
+        if self.app_list:
+            raise Exception("An application is already running, this MiCADO version doesn't support multiple application running in the same time")
         if id_app is None:
             id_app = utils.id_generator()
         elif id_app in self.app_list:
