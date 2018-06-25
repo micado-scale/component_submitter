@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 main_config:
   dry_run: True
+=======
+config:
+  dry_run: False
+>>>>>>> 8601ecd3cee3965393856c74caa502b5b304b3a8
   #path_log: "/var/lib/toscasubmitter/submitter.log"
   path_log: "submitter.log"
 step:
@@ -35,11 +40,18 @@ adaptor_config:
      - "tosca.policies.Scaling.*"
    endoint: "endpoint"
    volume: "/var/lib/submitter/security_workdir_example/"
+<<<<<<< HEAD
+=======
+
+>>>>>>> 8601ecd3cee3965393856c74caa502b5b304b3a8
  DockerAdaptor:
    types:
      - "tosca.nodes.MiCADO.Container.Application.Docker"
    endoint: "endpoint"
+<<<<<<< HEAD
 
+=======
+>>>>>>> 8601ecd3cee3965393856c74caa502b5b304b3a8
    volume: "/var/lib/submitter/files/output_configs/"
 
 
