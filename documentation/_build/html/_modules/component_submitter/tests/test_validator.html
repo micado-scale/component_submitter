@@ -1,0 +1,142 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>component_submitter.tests.test_validator &#8212; MiCADO Submitter 0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/_static/basic.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for component_submitter.tests.test_validator</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">unittest</span>
+
+<span class="kn">from</span> <span class="nn">toscaparser.tosca_template</span> <span class="k">import</span> <span class="n">ToscaTemplate</span>
+
+<span class="kn">from</span> <span class="nn">micado_validator</span> <span class="k">import</span> <span class="n">MultiError</span>
+<span class="kn">import</span> <span class="nn">micado_validator</span> <span class="k">as</span> <span class="nn">validator</span>
+
+<div class="viewcode-block" id="TestValidation"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_validator.TestValidation">[docs]</a><span class="k">class</span> <span class="nc">TestValidation</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; UnitTests for micado_validator &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestValidation.setUp"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_validator.TestValidation.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Setup Validator object and prep a bad TOSCA template &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bad_tpl</span> <span class="o">=</span> <span class="n">ToscaTemplate</span><span class="p">(</span><span class="s2">&quot;tests/templates/bad_tosca.yaml&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestValidation.test_good_validation_returns_good"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_validator.TestValidation.test_good_validation_returns_good">[docs]</a>    <span class="k">def</span> <span class="nf">test_good_validation_returns_good</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">good_tpl</span> <span class="o">=</span> <span class="n">ToscaTemplate</span><span class="p">(</span><span class="s2">&quot;tests/templates/good_tosca.yaml&quot;</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;ToscaTemplate passed compatibility validation&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">msg</span> <span class="ow">in</span> <span class="n">validator</span><span class="o">.</span><span class="n">validation</span><span class="p">(</span><span class="n">good_tpl</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestValidation.test_bad_validation_raises_error"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_validator.TestValidation.test_bad_validation_raises_error">[docs]</a>    <span class="k">def</span> <span class="nf">test_bad_validation_raises_error</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="n">MultiError</span><span class="p">):</span>
+            <span class="n">validator</span><span class="o">.</span><span class="n">validation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bad_tpl</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestValidation.test_repository_is_defined_validation"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_validator.TestValidation.test_repository_is_defined_validation">[docs]</a>    <span class="k">def</span> <span class="nf">test_repository_is_defined_validation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bad_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_node</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">bad_repo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bad_tpl</span><span class="o">.</span><span class="n">repositories</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;[NODE: NODE_A] Repository &lt;bad_repo_name&gt; not defined!&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">error</span> <span class="ow">in</span> <span class="n">validator</span><span class="o">.</span><span class="n">validate_repositories</span><span class="p">(</span><span class="n">bad_node</span><span class="p">,</span> <span class="n">bad_repo</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestValidation.test_custom_type_requirement_list_validation"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_validator.TestValidation.test_custom_type_requirement_list_validation">[docs]</a>    <span class="k">def</span> <span class="nf">test_custom_type_requirement_list_validation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bad_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_node</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;[CUSTOM TYPE: tosca.nodes.Broken.Requirements] &quot;</span>\
+                <span class="s2">&quot;Too many requirements per list item!&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">error</span> <span class="ow">in</span> <span class="n">validator</span><span class="o">.</span><span class="n">validate_requirements</span><span class="p">(</span><span class="n">bad_node</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestValidation.test_node_requirement_list_validation"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_validator.TestValidation.test_node_requirement_list_validation">[docs]</a>    <span class="k">def</span> <span class="nf">test_node_requirement_list_validation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bad_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_node</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;[NODE: NODE_C] Too many requirements per list item!&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">error</span> <span class="ow">in</span> <span class="n">validator</span><span class="o">.</span><span class="n">validate_requirements</span><span class="p">(</span><span class="n">bad_node</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestValidation.test_node_requirement_is_defined_validation"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_validator.TestValidation.test_node_requirement_is_defined_validation">[docs]</a>    <span class="k">def</span> <span class="nf">test_node_requirement_is_defined_validation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bad_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_node</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;[NODE: NODE_D] Requirement &lt;bad_req_name&gt; not defined!&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">error</span> <span class="ow">in</span> <span class="n">validator</span><span class="o">.</span><span class="n">validate_requirements</span><span class="p">(</span><span class="n">bad_node</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestValidation.test_relationship_is_defined_validation"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_validator.TestValidation.test_relationship_is_defined_validation">[docs]</a>    <span class="k">def</span> <span class="nf">test_relationship_is_defined_validation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bad_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_node</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;[NODE: NODE_E] Relationship &lt;bad_rel_name&gt; not supported!&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">error</span> <span class="ow">in</span> <span class="n">validator</span><span class="o">.</span><span class="n">validate_relationships</span><span class="p">(</span><span class="n">bad_node</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TestValidation.test_node_relationship_property_exists_validation"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_validator.TestValidation.test_node_relationship_property_exists_validation">[docs]</a>    <span class="k">def</span> <span class="nf">test_node_relationship_property_exists_validation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">bad_node</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_node</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+        <span class="n">error</span> <span class="o">=</span> <span class="s2">&quot;[NODE: NODE_F] Relationship &lt;tosca.relationships.AttachesTo&gt; &quot;</span>\
+                <span class="s2">&quot;missing property &lt;location&gt;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">error</span> <span class="ow">in</span> <span class="n">validator</span><span class="o">.</span><span class="n">validate_relationship_properties</span><span class="p">(</span><span class="n">bad_node</span><span class="p">))</span></div>
+
+    <span class="k">def</span> <span class="nf">_get_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bad_tpl</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">unittest</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

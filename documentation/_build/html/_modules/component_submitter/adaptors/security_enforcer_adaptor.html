@@ -1,0 +1,176 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>component_submitter.adaptors.security_enforcer_adaptor &#8212; MiCADO Submitter 0.1 documentation</title>
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/_static/basic.css" type="text/css" />
+    <script type="text/javascript" src="../../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for component_submitter.adaptors.security_enforcer_adaptor</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">MiCADO Submitter Engine Security Enforcer Adaptor</span>
+<span class="sd">--------------------------------------------------</span>
+
+<span class="sd">A TOSCA to Security Enforcer adaptor.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">toscaparser.tosca_template</span> <span class="k">import</span> <span class="n">ToscaTemplate</span>
+
+<span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">base_adaptor</span> <span class="k">as</span> <span class="n">abco</span>
+<span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorCritical</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="n">TYPES</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;tosca.policies.DockerSecretDistribution&quot;</span><span class="p">]</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;adaptors.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SecurityEnforcerAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.security_enforcer_adaptor.SecurityEnforcerAdaptor">[docs]</a><span class="k">class</span> <span class="nc">SecurityEnforcerAdaptor</span><span class="p">(</span><span class="n">abco</span><span class="o">.</span><span class="n">Adaptor</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot; The Security Enforcer adaptor class</span>
+
+<span class="sd">    carries out the process of retreiving the security information of the</span>
+<span class="sd">    TOSCA template described in the policy section, and pass it out to</span>
+<span class="sd">    the Security Enforcer.</span>
+
+<span class="sd">    Implements abstract methods ``__init__()``, ``translate()``, ``execute()``,</span>
+<span class="sd">    ``undeploy()`` and ``cleanup()``. Accepts as parameters an **adaptor_id**</span>
+<span class="sd">    (required) and a **template** (optional). The ``translate()`` and ``update()``</span>
+<span class="sd">    methods require both an **adaptor_id** and **template**. The ``execute()``,</span>
+<span class="sd">    ``undeploy()`` and ``cleanup()`` methods require only the **adaptor_id** .</span>
+
+<span class="sd">    :param string adaptor_id: The generated ID of the current application stack</span>
+<span class="sd">    :param template: The ADT / ToscaTemplate of the current application stack</span>
+<span class="sd">    :type template: ToscaTemplate &lt;toscaparser.tosca_template.ToscaTemplate&gt;</span>
+
+<span class="sd">    Usage:</span>
+<span class="sd">        &gt;&gt;&gt; from security_enforcer_adaptor import SecurityEnforcerAdaptor</span>
+<span class="sd">        &gt;&gt;&gt; se_adapt = SecurityEnforcerAdaptor(&lt;adaptor_id&gt;, &lt;ToscaTemplate&gt;)</span>
+<span class="sd">        &gt;&gt;&gt; se_adapt.translate()</span>
+<span class="sd">            (does nothing but need to implement the abstract function anyways)</span>
+<span class="sd">        &gt;&gt;&gt; se_adapt.execute()</span>
+<span class="sd">            (send the informations to the security enforcer)</span>
+<span class="sd">        &gt;&gt;&gt; se_adapt.update()</span>
+<span class="sd">            (update the security enforcer with the new secret)</span>
+<span class="sd">        &gt;&gt;&gt; se_adapt.undeploy()</span>
+<span class="sd">            (send the security enforcer a undeploy request)</span>
+<span class="sd">        &gt;&gt;&gt; se_adapt.cleanup()</span>
+<span class="sd">            (does nothing as no files were created but need to implement the abstract function anyways)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adaptor_id</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Constructor method of the Adaptor as described above &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">template</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">ToscaTemplate</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Template is not a valid TOSCAParser object&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span> <span class="o">=</span> <span class="n">template</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">adaptor_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="k">if</span> <span class="n">template</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">policies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">policies</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Initialising the SE adaptor with the ID and TPL&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SecurityEnforcerAdaptor.translate"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.security_enforcer_adaptor.SecurityEnforcerAdaptor.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="SecurityEnforcerAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.security_enforcer_adaptor.SecurityEnforcerAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Send to the Security Enforcer the informations</span>
+<span class="sd">            retrieved from the TOSCA template&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">policies</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;tosca.policies.DockerSecretDistribution&quot;</span> <span class="ow">in</span> <span class="n">policy</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+                <span class="n">_interm_dict</span> <span class="o">=</span> <span class="n">policy</span><span class="o">.</span><span class="n">get_properties</span><span class="p">()[</span><span class="s2">&quot;text_secrets&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">_interm_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;dry_run&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;launch api command with params name=</span><span class="si">{}</span><span class="s2"> and value=</span><span class="si">{}</span><span class="s2"> to </span><span class="si">{}</span><span class="s2">/create_secret&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">value</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;endpoint&#39;</span><span class="p">]))</span>
+                        <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">policy</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;link the secret </span><span class="si">{}</span><span class="s2"> to the service </span><span class="si">{}</span><span class="s2"> by using the command line to </span><span class="si">{}</span><span class="s2">/add_secret&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">target</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;endpoint&#39;</span><span class="p">]))</span>
+
+                    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s2">&quot;dry_run&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+                        <span class="n">data_keys</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span><span class="n">key</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">:</span><span class="n">value</span><span class="p">}</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;launch secret&quot;</span><span class="p">)</span>
+                        <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/create_secret&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;endpoint&#39;</span><span class="p">]),</span> <span class="n">data</span> <span class="o">=</span> <span class="n">data_keys</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">policy</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;link the secret&quot;</span><span class="p">)</span>
+                            <span class="n">data_keys</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;secret&#39;</span><span class="p">:</span><span class="n">key</span><span class="p">,</span> <span class="s1">&#39;service&#39;</span><span class="p">:</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">IDtarget</span><span class="p">,</span> <span class="n">target</span><span class="p">)}</span>
+                            <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/add_secret&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;endpoint&#39;</span><span class="p">]),</span> <span class="n">data</span> <span class="o">=</span> <span class="n">data_keys</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SecurityEnforcerAdaptor.undeploy"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.security_enforcer_adaptor.SecurityEnforcerAdaptor.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Send to the Security Enforcer the id of the policy to undeploy &quot;&quot;&quot;</span></div>
+
+<div class="viewcode-block" id="SecurityEnforcerAdaptor.cleanup"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.security_enforcer_adaptor.SecurityEnforcerAdaptor.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="SecurityEnforcerAdaptor.update"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.security_enforcer_adaptor.SecurityEnforcerAdaptor.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Send to the Security Enforcer if needed the updated policy &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2018, James Deslauriers, Gregoire Gesmier.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.7.2.
+    </div>
+  </body>
+</html>

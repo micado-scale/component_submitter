@@ -12,7 +12,7 @@ import logging
 
 from toscaparser.tosca_template import ToscaTemplate
 import utils
-from abstracts import container_orchestrator as abco
+from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
 
 logger = logging.getLogger("adaptors."+__name__)
@@ -29,7 +29,7 @@ DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_NETWORK, DOCKER_VOLUME, DOCKER_IMAGE,
 
 COMPOSE_VERSION = "3.4"
 
-class DockerAdaptor(abco.ContainerAdaptor):
+class DockerAdaptor(abco.Adaptor):
 
     """ The Docker adaptor class
     Carries out the deployment of a Dockerised application or application stack
@@ -43,6 +43,7 @@ class DockerAdaptor(abco.ContainerAdaptor):
     :param string adaptor_id: The generated ID of the current application stack
     :param template: The ADT / ToscaTemplate of the current application stack
     :type template: ToscaTemplate <toscaparser.tosca_template.ToscaTemplate>
+
     Usage:
         >>> from docker_adaptor import DockerAdaptor
         >>> container_adapt = DockerAdaptor(<adaptor_id>, <ToscaTemplate>)
@@ -174,8 +175,9 @@ class DockerAdaptor(abco.ContainerAdaptor):
     def cleanup(self):
         """ Remove the associated Compose file
         Removes output file created for this stack from ``files/output_configs/``
+
         .. note::
-          A warning will be logged if the Compose file cannot be removed
+              A warning will be logged if the Compose file cannot be removed
         """
         logger.info("Cleanup config for ID {}".format(self.ID))
         try:

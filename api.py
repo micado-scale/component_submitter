@@ -1,6 +1,6 @@
 from flask import request, url_for, Flask, jsonify, render_template
 from submitter_engine import SubmitterEngine
-from abstracts.exceptions import AdaptorCritical
+from toscaparser.common.exception import *
 import os
 app = Flask(__name__)
 import logging
@@ -90,16 +90,29 @@ def engine_url():
 
 @app.route('/v1.0/app/launch/file/', methods=['POST'])
 def engine_file():
-    """ API functions to launch a application
-
-        stream.read() file
-
+    """ API functions to launch an application
     """
-    template_yaml = request.stream.read()
-    id_app = utils.id_generator()
-    utils.dump_order_yaml(yaml.safe_load(template_yaml), "files/templates/{}.yaml".format(id_app))
+    template = request.files['file']
+    try:
+         id_app= request.form['id']
+    except Exception:
+         id_app = utils.id_generator()
+
+    try:
+         params= request.form['params']
+    except Exception:
+         parsed_params = None
+    else:
+        parsed_params = ast.literal_eval(params)
+
+    template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
     path_to_file = "files/templates/{}.yaml".format(id_app)
-    id_app = submitter.launch(path_to_file = path_to_file, id_app=id_app)
+    id_app = submitter.launch(path_to_file = path_to_file, parsed_params=parsed_params, id_app=id_app)
+
+    try:
+        id_app = submitter.launch(path_to_file = path_to_file, parsed_params=parsed_params, id_app=id_app)
+    except Exception as e:
+        logger.info("exception was raised: {}".format(e))
     response = jsonify(dict(message="app:{}".format(id_app)))
     response.status_code = 200
     return response

@@ -20,11 +20,8 @@ class SubmitterConfig():
       self.main_config = config["main_config"]
       self.step_config = config["step"]
 
-      self.set_dictionary()
+      self.mapping()
 
-      #self.template = template
-      #self.set_dictionary()
-      #self._update_dictionary()
 
   def get_list_adaptors(self):
       """return list of adaptors to use"""
@@ -85,7 +82,9 @@ class SubmitterConfig():
               pass
       return output
 
-  def set_dictionary(self, template=None):
+  def mapping(self, template=None):
+      if template:
+          self._find_get_input(template.tpl)
       logger.debug("set dictionary")
       tmp_dic = self._reading_config()['adaptor_config']
       for key, value in tmp_dic.items():
@@ -131,29 +130,6 @@ class SubmitterConfig():
       self.adaptor_config = tmp_dic
 
 
-  # def set_dictionary(self, template):
-  #     """setting the dictionary, first going to call method to read config
-  #       and implement the dictionary related to it."""
-  #     logger.debug("set dictionary")
-  #     tmp_dic=self._reading_config()['key_config']
-  #     for key, value in tmp_dic.items():
-  #         if isinstance(value, list):
-  #             self.key_config.setdefault(key)
-  #             _interm_dict=dict()
-  #             for type in value:
-  #                 if self._check_re(type, template):
-  #                     for t in self._list_for_re(type):
-  #                         _interm_dict.setdefault(t)
-  #                 else:
-  #                     _interm_dict.setdefault(type)
-  #             self.key_config.__setitem__(key,_interm_dict)
-  #         else:
-  #             if self._check_re(key, template):
-  #                 for type in self._list_for_re(key):
-  #                     self.key_config.setdefault(type)
-  #             else:
-  #                 self.key_config.setdefault(key)
-  #     #self._update_dictionary(template)
 
   def _look_through_template(self, key, template):
       """look through template"""
@@ -196,6 +172,52 @@ class SubmitterConfig():
           except KeyError:
               return False
       return True
+
+
+  def _find_get_input(self,template):
+      for key, value in template.items():
+          if isinstance(value, dict):
+              logger.debug("sub dictionary found, look through this to find \"get_input\"")
+              result = self._find_get_input(value)
+              if result is not None:
+                  template[key] = self._get_input_value(result)
+          elif isinstance(value, list):
+              for i in value:
+                  if isinstance(i, dict):
+                      result = self._find_get_input(i)
+                      if result is not None:
+                          template[key][i] = self._get_input_value(result)
+                  else:
+                      logger.debug("this list doesn't contain any dictionary")
+          elif isinstance(value, GetInput):
+              logger.debug("GetInput object found, replace it with value")
+              template[key] = self._get_input_value(value.input_name)
+
+          elif "get_input" in key:
+              return value
+
+  def _get_input_value(self, key):
+      try:
+          if isinstance(self.topology.parsed_params, dict):
+              if self.topology.parsed_params[key]:
+                  return self.topology.parsed_params[key]
+      except KeyError as j:
+          logger.error("{} no {} in parsed_params".format(j,key))
+
+      try:
+          logger.debug("ready to get the result")
+          result=self._contains_inputs(self.topology.inputs, lambda x: x.name == key)
+          return result.default
+      except TypeError as e:
+          logger.error("{}".format(e))
+
+
+  def _contains_inputs(self, list_object, filter):
+      logger.debug("check if inputs is in list")
+      for i in list_object:
+          if filter(i):
+              return i
+      return False
 
   def get_SubmitterConfig(self):
       """retrieve the whole dictionary"""

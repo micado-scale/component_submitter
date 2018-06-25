@@ -3,7 +3,7 @@ import unittest
 from toscaparser.tosca_template import ToscaTemplate
 
 from adaptors.docker_adaptor import DockerAdaptor
-from key_lists import KeyLists
+from submitter_config import SubmitterConfig
 
 class TestDockerAdaptor(unittest.TestCase):
     """ UnitTests for docker adaptor """
@@ -11,7 +11,8 @@ class TestDockerAdaptor(unittest.TestCase):
     def setUp(self):
         """ Prep a good TOSCA template """
         self.tpl = ToscaTemplate("tests/templates/good_tosca.yaml")
-        self.config = KeyLists().adaptor_config['DockerAdaptor']
+        instantiation_config = SubmitterConfig().mapping(template)
+        self.config= instantiation_config.adaptor_config['DockerAdaptor']
         self.adapt = DockerAdaptor("main_adapt", self.config, self.tpl)
         self.compose_data = {}
 

@@ -1,5 +1,4 @@
 from micado_parser import MiCADOParser
-from mapper import Mapper
 from plugins_gestion import PluginsGestion
 import sys
 from micado_validator import MultiError
@@ -71,11 +70,11 @@ class SubmitterEngine(object):
             launch
         """
         logger.info("Launching the application located there {} and with params {}".format(path_to_file, parsed_params))
-
+        if self.app_list and not self.object_config.main_config['dry_run']:
+            raise Exception("An application is already running, MiCADO doesn't currently support multi applications")
+            return
         template = self._micado_parser_upload(path_to_file, parsed_params)
-        #self.object_config.set_dictionary(template)
-        Mapper(self.object_config, template)
-        #config = self._mapper_instantiation(template)
+        self.object_config.mapping(template)
 
         if id_app is None:
             id_app = utils.id_generator()
@@ -125,19 +124,16 @@ class SubmitterEngine(object):
 
         logger.info("proceding to the update of the application {}".format(id_app))
         template = self._micado_parser_upload(path_to_file, parsed_params)
-        Mapper(self.object_config, template)
+        self.object_config.mapping(template)
         dict_object_adaptors = self._instantiate_adaptors(id_app, template)
         logger.debug("list of adaptor created: {}".format(dict_object_adaptors))
         self._update(dict_object_adaptors, id_app)
 
     def _engine(self,adaptors, template, app_id):
-        """ Engine itself. Creates first a id, then parse the input file. Instantiate the
-        mapper. Retreive the list of id created by the translate methods of the adaptors.
+        """ Engine itself. Creates first a id, then parse the input file. Retreive the list of id created by the translate methods of the adaptors.
         Excute those id in their respective adaptor. Update the app_list and the json file.
         """
         try:
-
-
             self._translate(adaptors)
             executed_adaptors = self._execute(app_id, adaptors)
             logger.debug(executed_adaptors)
@@ -159,12 +155,6 @@ class SubmitterEngine(object):
         logger.info("Valid & Compatible TOSCA template")
         return template
 
-
-    def _mapper_instantiation(self, config, template = None):
-        """ Retrieve the Config from mapper """
-        logger.debug("instantiation of mapper and retrieve Config")
-        mapper = Mapper(config, template)
-        return mapper.adaptor_config
 
     def _get_adaptors_class(self):
         """ Retrieve the list of the differrent class adaptors """

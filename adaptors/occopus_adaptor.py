@@ -7,14 +7,14 @@ import time
 import requests
 import utils
 
-from abstracts import cloudorchestrator as abco
+from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
 from toscaparser.tosca_template import ToscaTemplate
 
 logger = logging.getLogger("adaptor."+__name__)
 
 
-class OccopusAdaptor(abco.CloudAdaptor):
+class OccopusAdaptor(abco.Adaptor):
 
     def __init__(self, adaptor_id, config, template=None):
         super().__init__()

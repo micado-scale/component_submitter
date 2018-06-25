@@ -8,6 +8,7 @@ Subpackages
 
     component_submitter.abstracts
     component_submitter.adaptors
+    component_submitter.tests
 
 Submodules
 ----------
@@ -20,26 +21,10 @@ component\_submitter.api module
     :undoc-members:
     :show-inheritance:
 
-component\_submitter.utils module
--------------------------------------
+component\_submitter.command\_line\_interface module
+----------------------------------------------------
 
-.. automodule:: component_submitter.utils
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-component\_submitter.key\_lists module
---------------------------------------
-
-.. automodule:: component_submitter.key_lists
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-component\_submitter.mapper module
-----------------------------------
-
-.. automodule:: component_submitter.mapper
+.. automodule:: component_submitter.command_line_interface
     :members:
     :undoc-members:
     :show-inheritance:
@@ -68,10 +53,10 @@ component\_submitter.plugins\_gestion module
     :undoc-members:
     :show-inheritance:
 
-component\_submitter.step module
---------------------------------
+component\_submitter.submitter\_config module
+---------------------------------------------
 
-.. automodule:: component_submitter.step
+.. automodule:: component_submitter.submitter_config
     :members:
     :undoc-members:
     :show-inheritance:
@@ -84,6 +69,13 @@ component\_submitter.submitter\_engine module
     :undoc-members:
     :show-inheritance:
 
+component\_submitter.utils module
+---------------------------------
+
+.. automodule:: component_submitter.utils
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 
 Module contents

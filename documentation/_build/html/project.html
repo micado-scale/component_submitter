@@ -67,23 +67,63 @@
 <p>The submitter is configurable via the KeyLists class. The KeyLists class will read the key_config.yml file that is located in
 the system directory.</p>
 <p>The key_config.yml file looks like follow:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">config</span><span class="p p-Indicator">:</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="l l-Scalar l-Scalar-Plain">main_config</span><span class="p p-Indicator">:</span>
   <span class="l l-Scalar l-Scalar-Plain">dry_run</span><span class="p p-Indicator">:</span> <span class="l l-Scalar l-Scalar-Plain">True</span>
-  <span class="l l-Scalar l-Scalar-Plain">path_log</span><span class="p p-Indicator">:</span> <span class="s">&quot;/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/submitter.log&quot;</span>
+  <span class="c1">#path_log: &quot;/var/lib/toscasubmitter/submitter.log&quot;</span>
+  <span class="l l-Scalar l-Scalar-Plain">path_log</span><span class="p p-Indicator">:</span> <span class="s">&quot;submitter.log&quot;</span>
+<span class="l l-Scalar l-Scalar-Plain">step</span><span class="p p-Indicator">:</span>
+  <span class="l l-Scalar l-Scalar-Plain">translate</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">SecurityEnforcerAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">DockerAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">OccopusAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">PkAdaptor</span>
+  <span class="l l-Scalar l-Scalar-Plain">execute</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">DockerAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">SecurityEnforcerAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">OccopusAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">PkAdaptor</span>
+  <span class="l l-Scalar l-Scalar-Plain">update</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">DockerAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">SecurityEnforcerAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">OccopusAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">PkAdaptor</span>
+  <span class="l l-Scalar l-Scalar-Plain">undeploy</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">SecurityEnforcerAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">DockerAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">OccopusAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">PkAdaptor</span>
+  <span class="l l-Scalar l-Scalar-Plain">cleanup</span><span class="p p-Indicator">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">DockerAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">SecurityEnforcerAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">OccopusAdaptor</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">PkAdaptor</span>
 
-<span class="l l-Scalar l-Scalar-Plain">Adaptor_config</span><span class="p p-Indicator">:</span>
+<span class="l l-Scalar l-Scalar-Plain">adaptor_config</span><span class="p p-Indicator">:</span>
  <span class="l l-Scalar l-Scalar-Plain">SecurityEnforcerAdaptor</span><span class="p p-Indicator">:</span>
    <span class="l l-Scalar l-Scalar-Plain">types</span><span class="p p-Indicator">:</span>
-     <span class="p p-Indicator">-</span> <span class="s">&quot;tosca.policies.DockerSecretDistribution&quot;</span>
-   <span class="l l-Scalar l-Scalar-Plain">endpoint</span><span class="p p-Indicator">:</span> <span class="s">&quot;http://127.0.0.1:5001/v1.0&quot;</span>
-   <span class="l l-Scalar l-Scalar-Plain">volume</span><span class="p p-Indicator">:</span> <span class="s">&quot;/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/files/output_configs/&quot;</span>
-
-
+     <span class="p p-Indicator">-</span> <span class="s">&quot;tosca.policies.Scaling.*&quot;</span>
+   <span class="l l-Scalar l-Scalar-Plain">endoint</span><span class="p p-Indicator">:</span> <span class="s">&quot;endpoint&quot;</span>
+   <span class="l l-Scalar l-Scalar-Plain">volume</span><span class="p p-Indicator">:</span> <span class="s">&quot;/var/lib/submitter/security_workdir_example/&quot;</span>
  <span class="l l-Scalar l-Scalar-Plain">DockerAdaptor</span><span class="p p-Indicator">:</span>
    <span class="l l-Scalar l-Scalar-Plain">types</span><span class="p p-Indicator">:</span>
      <span class="p p-Indicator">-</span> <span class="s">&quot;tosca.nodes.MiCADO.Container.Application.Docker&quot;</span>
-   <span class="l l-Scalar l-Scalar-Plain">endpoint</span><span class="p p-Indicator">:</span> <span class="s">&quot;endpoint&quot;</span>
-   <span class="l l-Scalar l-Scalar-Plain">volume</span><span class="p p-Indicator">:</span> <span class="s">&quot;/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/files/output_configs/&quot;</span>
+   <span class="l l-Scalar l-Scalar-Plain">endoint</span><span class="p p-Indicator">:</span> <span class="s">&quot;endpoint&quot;</span>
+
+   <span class="l l-Scalar l-Scalar-Plain">volume</span><span class="p p-Indicator">:</span> <span class="s">&quot;/var/lib/submitter/files/output_configs/&quot;</span>
+
+
+ <span class="l l-Scalar l-Scalar-Plain">OccopusAdaptor</span><span class="p p-Indicator">:</span>
+   <span class="l l-Scalar l-Scalar-Plain">types</span><span class="p p-Indicator">:</span>
+     <span class="p p-Indicator">-</span> <span class="s">&quot;tosca.nodes.MiCADO.Occopus.*&quot;</span>
+   <span class="l l-Scalar l-Scalar-Plain">endoint</span><span class="p p-Indicator">:</span> <span class="s">&quot;endpoint&quot;</span>
+   <span class="l l-Scalar l-Scalar-Plain">volume</span><span class="p p-Indicator">:</span> <span class="s">&quot;/var/lib/submitter/files/output_configs/&quot;</span>
+
+
+ <span class="l l-Scalar l-Scalar-Plain">PkAdaptor</span><span class="p p-Indicator">:</span>
+   <span class="l l-Scalar l-Scalar-Plain">types</span><span class="p p-Indicator">:</span>
+     <span class="p p-Indicator">-</span> <span class="s">&quot;tosca.policies.Scaling.MiCADO&quot;</span>
+   <span class="l l-Scalar l-Scalar-Plain">endpoint</span><span class="p p-Indicator">:</span> <span class="s">&quot;policykeeper:12345&quot;</span>
+   <span class="l l-Scalar l-Scalar-Plain">volume</span><span class="p p-Indicator">:</span> <span class="s">&quot;/var/lib/submitter/files/output_configs/&quot;</span>
 </pre></div>
 </div>
 <p>The first key <code class="docutils literal notranslate"><span class="pre">config</span></code> defines parameter for the whole infrastructure.
