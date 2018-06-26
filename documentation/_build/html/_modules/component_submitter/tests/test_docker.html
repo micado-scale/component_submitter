@@ -42,7 +42,11 @@
 <span class="kn">from</span> <span class="nn">toscaparser.tosca_template</span> <span class="k">import</span> <span class="n">ToscaTemplate</span>
 
 <span class="kn">from</span> <span class="nn">adaptors.docker_adaptor</span> <span class="k">import</span> <span class="n">DockerAdaptor</span>
+<<<<<<< HEAD
 <span class="kn">from</span> <span class="nn">submitter_config</span> <span class="k">import</span> <span class="n">SubmitterConfig</span>
+=======
+<span class="kn">from</span> <span class="nn">key_lists</span> <span class="k">import</span> <span class="n">KeyLists</span>
+>>>>>>> master
 
 <div class="viewcode-block" id="TestDockerAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor">[docs]</a><span class="k">class</span> <span class="nc">TestDockerAdaptor</span><span class="p">(</span><span class="n">unittest</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; UnitTests for docker adaptor &quot;&quot;&quot;</span>
@@ -50,8 +54,12 @@
 <div class="viewcode-block" id="TestDockerAdaptor.setUp"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Prep a good TOSCA template &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span> <span class="o">=</span> <span class="n">ToscaTemplate</span><span class="p">(</span><span class="s2">&quot;tests/templates/good_tosca.yaml&quot;</span><span class="p">)</span>
+<<<<<<< HEAD
         <span class="n">instantiation_config</span> <span class="o">=</span> <span class="n">SubmitterConfig</span><span class="p">()</span><span class="o">.</span><span class="n">mapping</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">=</span> <span class="n">instantiation_config</span><span class="o">.</span><span class="n">adaptor_config</span><span class="p">[</span><span class="s1">&#39;DockerAdaptor&#39;</span><span class="p">]</span>
+=======
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">KeyLists</span><span class="p">()</span><span class="o">.</span><span class="n">adaptor_config</span><span class="p">[</span><span class="s1">&#39;DockerAdaptor&#39;</span><span class="p">]</span>
+>>>>>>> master
         <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span> <span class="o">=</span> <span class="n">DockerAdaptor</span><span class="p">(</span><span class="s2">&quot;main_adapt&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span> <span class="o">=</span> <span class="p">{}</span></div>
 

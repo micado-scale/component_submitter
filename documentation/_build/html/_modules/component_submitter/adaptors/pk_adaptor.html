@@ -42,7 +42,11 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">requests</span>
 <span class="kn">from</span> <span class="nn">toscaparser.tosca_template</span> <span class="k">import</span> <span class="n">ToscaTemplate</span>
+<<<<<<< HEAD
 <span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">base_adaptor</span> <span class="k">as</span> <span class="n">abco</span>
+=======
+<span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">policykeeper</span> <span class="k">as</span> <span class="n">abco</span>
+>>>>>>> master
 <span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorCritical</span>
 <span class="kn">import</span> <span class="nn">ruamel.yaml</span> <span class="k">as</span> <span class="nn">yaml</span>
 
@@ -53,7 +57,11 @@
                 <span class="p">(</span><span class="s2">&quot;stack&quot;</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">,</span> <span class="s2">&quot;sources&quot;</span><span class="p">,</span> <span class="s2">&quot;constants&quot;</span><span class="p">,</span> <span class="s2">&quot;queries&quot;</span><span class="p">,</span> <span class="s2">&quot;alerts&quot;</span><span class="p">,</span> <span class="s2">&quot;scaling&quot;</span><span class="p">,</span> <span class="s2">&quot;nodes&quot;</span><span class="p">,</span> <span class="s2">&quot;services&quot;</span><span class="p">)</span>
 
 
+<<<<<<< HEAD
 <div class="viewcode-block" id="PkAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.pk_adaptor.PkAdaptor">[docs]</a><span class="k">class</span> <span class="nc">PkAdaptor</span><span class="p">(</span><span class="n">abco</span><span class="o">.</span><span class="n">Adaptor</span><span class="p">):</span>
+=======
+<div class="viewcode-block" id="PkAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.pk_adaptor.PkAdaptor">[docs]</a><span class="k">class</span> <span class="nc">PkAdaptor</span><span class="p">(</span><span class="n">abco</span><span class="o">.</span><span class="n">PolicyKeeperAdaptor</span><span class="p">):</span>
+>>>>>>> master
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adaptor_id</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
@@ -199,6 +207,10 @@
     <span class="k">def</span> <span class="nf">_differentiate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># Compare two Pk file</span>
         <span class="k">return</span> <span class="n">filecmp</span><span class="o">.</span><span class="n">cmp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tmp_path</span><span class="p">)</span></div>
+<<<<<<< HEAD
+=======
+
+>>>>>>> master
 </pre></div>
 
           </div>

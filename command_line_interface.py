@@ -24,7 +24,8 @@ if __name__=="__main__":
     launch.set_defaults(which='launch')
     launch.add_argument("--template", "-t", required=True, help="path or url of the template")
     launch.add_argument("--params", "-p", required=False, help="dictionary contianing the inputs that need to be modified")
-
+    launch.add_argument("--id", required=False, help="ID for the application to be set by the user, if not the ID is auto generated")
+    
     update.set_defaults(which='update')
     update.add_argument("-id", required=True, help="ID of the topology that needs to be updated")
     update.add_argument("--template", "-t", required=True, help="path or url of the template")

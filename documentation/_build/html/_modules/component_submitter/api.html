@@ -37,9 +37,14 @@
           <div class="body" role="main">
             
   <h1>Source code for component_submitter.api</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">request</span><span class="p">,</span> <span class="n">url_for</span><span class="p">,</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">render_template</span>
+<span></span><span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">request</span><span class="p">,</span> <span class="n">url_for</span><span class="p">,</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">render_template</span><span class="p">,</span> <span class="n">flash</span><span class="p">,</span> <span class="n">redirect</span>
 <span class="kn">from</span> <span class="nn">submitter_engine</span> <span class="k">import</span> <span class="n">SubmitterEngine</span>
+<<<<<<< HEAD
 <span class="kn">from</span> <span class="nn">toscaparser.common.exception</span> <span class="k">import</span> <span class="o">*</span>
+=======
+<span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorCritical</span>
+<span class="kn">from</span> <span class="nn">werkzeug</span> <span class="k">import</span> <span class="n">secure_filename</span>
+>>>>>>> master
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
 <span class="kn">import</span> <span class="nn">logging</span>
@@ -106,11 +111,14 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;serving request </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="p">))</span>
 
+
+    <span class="n">path_to_file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;path_to_file: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">))</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">path_to_file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;path_to_file: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">))</span>
+        <span class="n">id_app</span> <span class="o">=</span>  <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;no input params has been sent, checking if file present in the request&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;no id params has been sent, setting it to None&quot;</span><span class="p">)</span>
+        <span class="n">id_app</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">params</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]</span>
@@ -118,11 +126,11 @@
 
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;exception is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-        <span class="n">id_app</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span><span class="o">=</span><span class="n">path_to_file</span><span class="p">)</span>
+        <span class="n">id_app</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span><span class="o">=</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">id_app</span><span class="o">=</span><span class="n">id_app</span><span class="p">)</span>
 
     <span class="k">else</span><span class="p">:</span>
         <span class="n">parsed_params</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-        <span class="n">id_app</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span><span class="o">=</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="n">parsed_params</span><span class="p">)</span>
+        <span class="n">id_app</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span><span class="o">=</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="n">parsed_params</span><span class="p">,</span> <span class="n">id_app</span><span class="o">=</span><span class="n">id_app</span><span class="p">)</span>
     <span class="n">response</span> <span class="o">=</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;app:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)))</span>
     <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">200</span>
     <span class="k">return</span> <span class="n">response</span></div>
@@ -146,15 +154,22 @@
 
     <span class="n">template</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/files/templates/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">root_path</span><span class="p">,</span><span class="n">id_app</span><span class="p">))</span>
     <span class="n">path_to_file</span> <span class="o">=</span> <span class="s2">&quot;files/templates/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+<<<<<<< HEAD
     <span class="n">id_app</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span> <span class="o">=</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="n">parsed_params</span><span class="p">,</span> <span class="n">id_app</span><span class="o">=</span><span class="n">id_app</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
         <span class="n">id_app</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span> <span class="o">=</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="n">parsed_params</span><span class="p">,</span> <span class="n">id_app</span><span class="o">=</span><span class="n">id_app</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;exception was raised: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+=======
+
+    <span class="n">id_app</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span> <span class="o">=</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="n">parsed_params</span><span class="p">,</span> <span class="n">id_app</span><span class="o">=</span><span class="n">id_app</span><span class="p">)</span>
+>>>>>>> master
     <span class="n">response</span> <span class="o">=</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;app:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)))</span>
     <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">200</span>
     <span class="k">return</span> <span class="n">response</span></div>
+
+
 
 <div class="viewcode-block" id="undeploy"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.undeploy">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/app/undeploy/&lt;id_app&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;DELETE&#39;</span><span class="p">])</span>
 <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="n">id_app</span><span class="p">):</span>
@@ -166,9 +181,9 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;something undexpected happened&quot;</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">500</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="update"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.update">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/app/update/&lt;id_app&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PUT&#39;</span><span class="p">])</span>
-<span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="n">id_app</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; API function to deploy the application with a specific ID &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="update_url"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.update_url">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/app/update/url/&lt;id_app&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PUT&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">update_url</span><span class="p">(</span><span class="n">id_app</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; API function to update the application with a specific ID from a url&quot;&quot;&quot;</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;id is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">))</span>
     <span class="n">path_to_file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;path_to_file is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">))</span>
@@ -190,18 +205,36 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;update failed&quot;</span><span class="p">,</span> <span class="n">status_cod</span><span class="o">=</span><span class="mi">500</span><span class="p">))</span></div>
 
+<div class="viewcode-block" id="update_file"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.update_file">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/app/update/file/&lt;id_app&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PUT&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">update_file</span><span class="p">(</span><span class="n">id_app</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; API function to update the application with a specific ID from a file&quot;&quot;&quot;</span>
+    <span class="n">template</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+         <span class="n">params</span><span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+         <span class="n">parsed_params</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">parsed_params</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
+    <span class="n">template</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/files/templates/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">root_path</span><span class="p">,</span><span class="n">id_app</span><span class="p">))</span>
+    <span class="n">path_to_file</span> <span class="o">=</span> <span class="s2">&quot;files/templates/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">path_to_file</span><span class="o">=</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="n">parsed_params</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;correctly updated&quot;</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">200</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;update failed&quot;</span><span class="p">,</span> <span class="n">status_cod</span><span class="o">=</span><span class="mi">500</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="info_app"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.info_app">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/app/&lt;id_app&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
 <span class="k">def</span> <span class="nf">info_app</span><span class="p">(</span><span class="n">id_app</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; API function to get the information on a given id &quot;&quot;&quot;</span>
     <span class="n">response</span> <span class="o">=</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">submitter</span><span class="o">.</span><span class="n">app_list</span><span class="p">[</span><span class="n">id_app</span><span class="p">])))</span>
     <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">500</span>
-
 
     <span class="k">return</span> <span class="n">response</span></div>
 
 <div class="viewcode-block" id="list_app"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.list_app">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/list_app&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
 <span class="k">def</span> <span class="nf">list_app</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; API function to list all the running aplications&quot;&quot;&quot;</span>
     <span class="n">response</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">submitter</span><span class="o">.</span><span class="n">app_list</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">response</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;id: </span><span class="si">{}</span><span class="s2">, outputs: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">value</span><span class="p">))</span>

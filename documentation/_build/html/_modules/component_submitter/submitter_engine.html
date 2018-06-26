@@ -117,9 +117,17 @@
 
         <span class="k">if</span> <span class="n">id_app</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">id_app</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
+<<<<<<< HEAD
 
         <span class="n">dict_object_adaptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_adaptors</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">template</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;list of objects adaptor: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dict_object_adaptors</span><span class="p">))</span>
+=======
+        <span class="k">elif</span> <span class="n">id_app</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;This ID is already used by another application, please use another one&quot;</span><span class="p">)</span>
+            
+        <span class="n">object_adaptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_adaptors</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">template</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;list of objects adaptor: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">object_adaptors</span><span class="p">))</span>
+>>>>>>> master
         <span class="c1">#self._save_file(id_app, path_to_file)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">id_app</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">})</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_update_json</span><span class="p">()</span>
