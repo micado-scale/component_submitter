@@ -110,17 +110,10 @@ def engine_file():
 
     template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
     path_to_file = "files/templates/{}.yaml".format(id_app)
-<<<<<<< HEAD
-    id_app = submitter.launch(path_to_file = path_to_file, parsed_params=parsed_params, id_app=id_app)
 
-    try:
-        id_app = submitter.launch(path_to_file = path_to_file, parsed_params=parsed_params, id_app=id_app)
-    except Exception as e:
-        logger.info("exception was raised: {}".format(e))
-=======
 
     id_app = submitter.launch(path_to_file = path_to_file, parsed_params=parsed_params, id_app=id_app)
->>>>>>> 8601ecd3cee3965393856c74caa502b5b304b3a8
+
     response = jsonify(dict(message="app:{}".format(id_app)))
     response.status_code = 200
     return response
