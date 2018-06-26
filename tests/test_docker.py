@@ -11,7 +11,8 @@ class TestDockerAdaptor(unittest.TestCase):
     def setUp(self):
         """ Prep a good TOSCA template """
         self.tpl = ToscaTemplate("tests/templates/good_tosca.yaml")
-        instantiation_config = SubmitterConfig().mapping(template)
+        instantiation_config = SubmitterConfig()
+        instantiation_config.mapping(self.tpl)
         self.config= instantiation_config.adaptor_config['DockerAdaptor']
         self.adapt = DockerAdaptor("main_adapt", self.config, self.tpl)
         self.compose_data = {}

@@ -3,11 +3,7 @@ import filecmp
 import logging
 import requests
 from toscaparser.tosca_template import ToscaTemplate
-<<<<<<< HEAD
 from abstracts import base_adaptor as abco
-=======
-from abstracts import policykeeper as abco
->>>>>>> 8601ecd3cee3965393856c74caa502b5b304b3a8
 from abstracts.exceptions import AdaptorCritical
 import ruamel.yaml as yaml
 
@@ -18,11 +14,7 @@ PK = (STACK, DATA, SOURCES, CONSTANTS, QUERIES, ALERTS, SCALING, NODES, SERVICES
                 ("stack", "data", "sources", "constants", "queries", "alerts", "scaling", "nodes", "services")
 
 
-<<<<<<< HEAD
 class PkAdaptor(abco.Adaptor):
-=======
-class PkAdaptor(abco.PolicyKeeperAdaptor):
->>>>>>> 8601ecd3cee3965393856c74caa502b5b304b3a8
 
     def __init__(self, adaptor_id, config, template=None):
 

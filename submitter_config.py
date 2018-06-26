@@ -6,6 +6,7 @@ import utils
 from os import path
 basepath = path.dirname(__file__)
 CONFIG_FILE = "{}/system/key_config.yml".format(basepath)
+from toscaparser.functions import GetInput
 
 #CONFIG_FILE="/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/system/key_config.yml"
 import logging
@@ -84,7 +85,7 @@ class SubmitterConfig():
 
   def mapping(self, template=None):
       if template:
-          self._find_get_input(template.tpl)
+          self._find_get_input(template.tpl, template)
       logger.debug("set dictionary")
       tmp_dic = self._reading_config()['adaptor_config']
       for key, value in tmp_dic.items():
@@ -174,39 +175,39 @@ class SubmitterConfig():
       return True
 
 
-  def _find_get_input(self,template):
-      for key, value in template.items():
+  def _find_get_input(self, tpl, template):
+      for key, value in tpl.items():
           if isinstance(value, dict):
               logger.debug("sub dictionary found, look through this to find \"get_input\"")
-              result = self._find_get_input(value)
+              result = self._find_get_input(value, template)
               if result is not None:
-                  template[key] = self._get_input_value(result)
+                  tpl[key] = self._get_input_value(result, template)
           elif isinstance(value, list):
               for i in value:
                   if isinstance(i, dict):
-                      result = self._find_get_input(i)
+                      result = self._find_get_input(i, template)
                       if result is not None:
-                          template[key][i] = self._get_input_value(result)
+                          tpl[key][i] = self._get_input_value(result, template)
                   else:
                       logger.debug("this list doesn't contain any dictionary")
           elif isinstance(value, GetInput):
               logger.debug("GetInput object found, replace it with value")
-              template[key] = self._get_input_value(value.input_name)
+              tpl[key] = self._get_input_value(value.input_name, template)
 
           elif "get_input" in key:
               return value
 
-  def _get_input_value(self, key):
+  def _get_input_value(self, key, template):
       try:
-          if isinstance(self.topology.parsed_params, dict):
-              if self.topology.parsed_params[key]:
-                  return self.topology.parsed_params[key]
+          if isinstance(template.parsed_params, dict):
+              if template.parsed_params[key]:
+                  return template.parsed_params[key]
       except KeyError as j:
           logger.error("{} no {} in parsed_params".format(j,key))
 
       try:
           logger.debug("ready to get the result")
-          result=self._contains_inputs(self.topology.inputs, lambda x: x.name == key)
+          result=self._contains_inputs(template.inputs, lambda x: x.name == key)
           return result.default
       except TypeError as e:
           logger.error("{}".format(e))
