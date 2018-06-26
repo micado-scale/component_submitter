@@ -6,30 +6,29 @@ import utils
 from os import path
 basepath = path.dirname(__file__)
 CONFIG_FILE = "{}/system/key_config.yml".format(basepath)
+from toscaparser.functions import GetInput
 
 #CONFIG_FILE="/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/system/key_config.yml"
 import logging
 
 logger=logging.getLogger("submitter."+__name__)
 
-class KeyLists():
+class SubmitterConfig():
   def __init__(self):
 
-      logger.debug("initialisation of KeyLists class")
-      whole_file = self._reading_config()
+      logger.debug("initialisation of SubmitterConfig class")
+      config = self._reading_config()
+      self.main_config = config["main_config"]
+      self.step_config = config["step"]
 
-      self.config = whole_file["config"]
-      self.set_dictionary()
+      self.mapping()
 
-      #self.template = template
-      #self.set_dictionary()
-      #self._update_dictionary()
 
   def get_list_adaptors(self):
       """return list of adaptors to use"""
       logger.debug("get the list of adaptors")
       adaptor_list=[]
-      for key, value in self._reading_config()["Adaptor_config"].items():
+      for key, value in self._reading_config()["adaptor_config"].items():
           adaptor_list.append(key)
 
       logger.debug("adaptors:  {}".format(adaptor_list))
@@ -84,9 +83,11 @@ class KeyLists():
               pass
       return output
 
-  def set_dictionary(self, template=None):
+  def mapping(self, template=None):
+      if template:
+          self._find_get_input(template.tpl, template)
       logger.debug("set dictionary")
-      tmp_dic = self._reading_config()['Adaptor_config']
+      tmp_dic = self._reading_config()['adaptor_config']
       for key, value in tmp_dic.items():
           if isinstance(value, dict) and template is not None:
               for key_inter, value_inter in value.items():
@@ -107,7 +108,7 @@ class KeyLists():
                                   _list_inter.append({item: obj})
                       if _list_inter:
                          _for_dic[key_inter] = _list_inter
-                         _for_dic['dry_run'] = self.config['dry_run']
+                         _for_dic['dry_run'] = self.main_config['dry_run']
                          tmp_dic[key] = _for_dic
                   else:
                        tmp_dic[key][key_inter] = value_inter
@@ -121,7 +122,7 @@ class KeyLists():
                           _list_inter.append(item)
                       logger.debug("key_inter is: {}".format(_list_inter))
                       _for_dic[key_inter] = _list_inter
-                      _for_dic['dry_run'] = self.config['dry_run']
+                      _for_dic['dry_run'] = self.main_config['dry_run']
                       tmp_dic[key] = _for_dic
                   else:
                       tmp_dic[key][key_inter] = value_inter
@@ -130,29 +131,6 @@ class KeyLists():
       self.adaptor_config = tmp_dic
 
 
-  # def set_dictionary(self, template):
-  #     """setting the dictionary, first going to call method to read config
-  #       and implement the dictionary related to it."""
-  #     logger.debug("set dictionary")
-  #     tmp_dic=self._reading_config()['key_config']
-  #     for key, value in tmp_dic.items():
-  #         if isinstance(value, list):
-  #             self.key_config.setdefault(key)
-  #             _interm_dict=dict()
-  #             for type in value:
-  #                 if self._check_re(type, template):
-  #                     for t in self._list_for_re(type):
-  #                         _interm_dict.setdefault(t)
-  #                 else:
-  #                     _interm_dict.setdefault(type)
-  #             self.key_config.__setitem__(key,_interm_dict)
-  #         else:
-  #             if self._check_re(key, template):
-  #                 for type in self._list_for_re(key):
-  #                     self.key_config.setdefault(type)
-  #             else:
-  #                 self.key_config.setdefault(key)
-  #     #self._update_dictionary(template)
 
   def _look_through_template(self, key, template):
       """look through template"""
@@ -196,15 +174,61 @@ class KeyLists():
               return False
       return True
 
-  def get_KeyLists(self):
+
+  def _find_get_input(self, tpl, template):
+      for key, value in tpl.items():
+          if isinstance(value, dict):
+              logger.debug("sub dictionary found, look through this to find \"get_input\"")
+              result = self._find_get_input(value, template)
+              if result is not None:
+                  tpl[key] = self._get_input_value(result, template)
+          elif isinstance(value, list):
+              for i in value:
+                  if isinstance(i, dict):
+                      result = self._find_get_input(i, template)
+                      if result is not None:
+                          tpl[key][i] = self._get_input_value(result, template)
+                  else:
+                      logger.debug("this list doesn't contain any dictionary")
+          elif isinstance(value, GetInput):
+              logger.debug("GetInput object found, replace it with value")
+              tpl[key] = self._get_input_value(value.input_name, template)
+
+          elif "get_input" in key:
+              return value
+
+  def _get_input_value(self, key, template):
+      try:
+          if isinstance(template.parsed_params, dict):
+              if template.parsed_params[key]:
+                  return template.parsed_params[key]
+      except KeyError as j:
+          logger.error("{} no {} in parsed_params".format(j,key))
+
+      try:
+          logger.debug("ready to get the result")
+          result=self._contains_inputs(template.inputs, lambda x: x.name == key)
+          return result.default
+      except TypeError as e:
+          logger.error("{}".format(e))
+
+
+  def _contains_inputs(self, list_object, filter):
+      logger.debug("check if inputs is in list")
+      for i in list_object:
+          if filter(i):
+              return i
+      return False
+
+  def get_SubmitterConfig(self):
       """retrieve the whole dictionary"""
       logger.debug("get KeyList invoked")
-      return self.key_config
+      return self.config
 
   def get_dict(self, key):
       """retrieve the dictionary wanted"""
       logger.debug("get dict invoked")
-      return self.key_config[key]
+      return self.config["adaptor_config"][key]
 
   def get_node_from_type(self, type):
       """retrieve wanted node through its type"""

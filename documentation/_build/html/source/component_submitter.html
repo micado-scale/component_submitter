@@ -53,11 +53,7 @@
 <li class="toctree-l1"><a class="reference internal" href="component_submitter.abstracts.html">component_submitter.abstracts package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#submodules">Submodules</a></li>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#module-component_submitter.abstracts.base_adaptor">component_submitter.abstracts.base_adaptor module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#module-component_submitter.abstracts.cloudorchestrator">component_submitter.abstracts.cloudorchestrator module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#module-component_submitter.abstracts.container_orchestrator">component_submitter.abstracts.container_orchestrator module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#module-component_submitter.abstracts.exceptions">component_submitter.abstracts.exceptions module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#module-component_submitter.abstracts.policykeeper">component_submitter.abstracts.policykeeper module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#module-component_submitter.abstracts.securityenforcer">component_submitter.abstracts.securityenforcer module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.abstracts.html#module-component_submitter.abstracts">Module contents</a></li>
 </ul>
 </li>
@@ -67,10 +63,24 @@
 <li class="toctree-l3"><a class="reference internal" href="component_submitter.adaptors.html#micado-submitter-engine-docker-adaptor">MiCADO Submitter Engine Docker Adaptor</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_occopus_adaptor">component_submitter.adaptors.dummy_occopus_adaptor module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_pk_adaptor">component_submitter.adaptors.dummy_pk_adaptor module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_se_adaptor">component_submitter.adaptors.dummy_se_adaptor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.occopus_adaptor">component_submitter.adaptors.occopus_adaptor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.pk_adaptor">component_submitter.adaptors.pk_adaptor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.scalingpolicy_adaptor">component_submitter.adaptors.scalingpolicy_adaptor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="component_submitter.adaptors.html#micado-submitter-engine-scalingpolicy-adaptor">MiCADO Submitter Engine ScalingPolicy Adaptor</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.security_enforcer_adaptor">component_submitter.adaptors.security_enforcer_adaptor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="component_submitter.adaptors.html#micado-submitter-engine-security-enforcer-adaptor">MiCADO Submitter Engine Security Enforcer Adaptor</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="component_submitter.tests.html">component_submitter.tests package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.tests.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.tests.html#module-component_submitter.tests.test_docker">component_submitter.tests.test_docker module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.tests.html#module-component_submitter.tests.test_validator">component_submitter.tests.test_validator module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="component_submitter.tests.html#module-component_submitter.tests">Module contents</a></li>
 </ul>
 </li>
 </ul>
@@ -100,8 +110,7 @@
 <dl class="function">
 <dt id="component_submitter.api.engine_file">
 <code class="descclassname">component_submitter.api.</code><code class="descname">engine_file</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#engine_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.engine_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>API functions to launch a application</p>
-<p>stream.read() file</p>
+<dd><p>API functions to launch an application</p>
 </dd></dl>
 
 <dl class="function">
@@ -158,74 +167,13 @@
 </dd></dl>
 
 </div>
-<div class="section" id="module-component_submitter.utils">
-<span id="component-submitter-utils-module"></span><h2>component_submitter.utils module<a class="headerlink" href="#module-component_submitter.utils" title="Permalink to this headline">¶</a></h2>
-<dl class="function">
-<dt id="component_submitter.utils.dump_order_yaml">
-<code class="descclassname">component_submitter.utils.</code><code class="descname">dump_order_yaml</code><span class="sig-paren">(</span><em>data</em>, <em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#dump_order_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.dump_order_yaml" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dump the dictionary to a Docker-Compose file</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="component_submitter.utils.get_yaml_data">
-<code class="descclassname">component_submitter.utils.</code><code class="descname">get_yaml_data</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#get_yaml_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.get_yaml_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Retrieve the yaml dictionary form a yaml file and return it</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="component_submitter.utils.id_generator">
-<code class="descclassname">component_submitter.utils.</code><code class="descname">id_generator</code><span class="sig-paren">(</span><em>size=8</em>, <em>chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#id_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.id_generator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate an ID</p>
-</dd></dl>
-
+<div class="section" id="module-component_submitter.command_line_interface">
+<span id="component-submitter-command-line-interface-module"></span><h2>component_submitter.command_line_interface module<a class="headerlink" href="#module-component_submitter.command_line_interface" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="micado-command-line-interface">
+<h3>MiCADO Command Line Interface<a class="headerlink" href="#micado-command-line-interface" title="Permalink to this headline">¶</a></h3>
+<p>Component to create the command line interface that will talk to the submitter
+to launch, update, undeploy the application</p>
 </div>
-<div class="section" id="module-component_submitter.key_lists">
-<span id="component-submitter-key-lists-module"></span><h2>component_submitter.key_lists module<a class="headerlink" href="#module-component_submitter.key_lists" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="component_submitter.key_lists.KeyLists">
-<em class="property">class </em><code class="descclassname">component_submitter.key_lists.</code><code class="descname">KeyLists</code><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<dl class="method">
-<dt id="component_submitter.key_lists.KeyLists.get_KeyLists">
-<code class="descname">get_KeyLists</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.get_KeyLists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.get_KeyLists" title="Permalink to this definition">¶</a></dt>
-<dd><p>retrieve the whole dictionary</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.key_lists.KeyLists.get_dict">
-<code class="descname">get_dict</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.get_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.get_dict" title="Permalink to this definition">¶</a></dt>
-<dd><p>retrieve the dictionary wanted</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.key_lists.KeyLists.get_list_adaptors">
-<code class="descname">get_list_adaptors</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.get_list_adaptors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.get_list_adaptors" title="Permalink to this definition">¶</a></dt>
-<dd><p>return list of adaptors to use</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.key_lists.KeyLists.get_node_from_type">
-<code class="descname">get_node_from_type</code><span class="sig-paren">(</span><em>type</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.get_node_from_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.get_node_from_type" title="Permalink to this definition">¶</a></dt>
-<dd><p>retrieve wanted node through its type</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.key_lists.KeyLists.set_dictionary">
-<code class="descname">set_dictionary</code><span class="sig-paren">(</span><em>template=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.set_dictionary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.set_dictionary" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="module-component_submitter.mapper">
-<span id="component-submitter-mapper-module"></span><h2>component_submitter.mapper module<a class="headerlink" href="#module-component_submitter.mapper" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="component_submitter.mapper.Mapper">
-<em class="property">class </em><code class="descclassname">component_submitter.mapper.</code><code class="descname">Mapper</code><span class="sig-paren">(</span><em>topology=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/mapper.html#Mapper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.mapper.Mapper" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>Mapper class that is creating a KeyList dictionary</p>
-</dd></dl>
-
 </div>
 <div class="section" id="module-component_submitter.micado_parser">
 <span id="component-submitter-micado-parser-module"></span><h2>component_submitter.micado_parser module<a class="headerlink" href="#module-component_submitter.micado_parser" title="Permalink to this headline">¶</a></h2>
@@ -378,35 +326,39 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
 </dd></dl>
 
 </div>
-<div class="section" id="module-component_submitter.step">
-<span id="component-submitter-step-module"></span><h2>component_submitter.step module<a class="headerlink" href="#module-component_submitter.step" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-component_submitter.submitter_config">
+<span id="component-submitter-submitter-config-module"></span><h2>component_submitter.submitter_config module<a class="headerlink" href="#module-component_submitter.submitter_config" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="component_submitter.step.Step">
-<em class="property">class </em><code class="descclassname">component_submitter.step.</code><code class="descname">Step</code><span class="sig-paren">(</span><em>object</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step" title="Permalink to this definition">¶</a></dt>
+<dt id="component_submitter.submitter_config.SubmitterConfig">
+<em class="property">class </em><code class="descclassname">component_submitter.submitter_config.</code><code class="descname">SubmitterConfig</code><a class="reference internal" href="../_modules/component_submitter/submitter_config.html#SubmitterConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_config.SubmitterConfig" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="method">
-<dt id="component_submitter.step.Step.cleanup">
-<code class="descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.cleanup" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="component_submitter.submitter_config.SubmitterConfig.get_SubmitterConfig">
+<code class="descname">get_SubmitterConfig</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_config.html#SubmitterConfig.get_SubmitterConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_config.SubmitterConfig.get_SubmitterConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>retrieve the whole dictionary</p>
+</dd></dl>
 
 <dl class="method">
-<dt id="component_submitter.step.Step.execute">
-<code class="descname">execute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.execute" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="component_submitter.submitter_config.SubmitterConfig.get_dict">
+<code class="descname">get_dict</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_config.html#SubmitterConfig.get_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_config.SubmitterConfig.get_dict" title="Permalink to this definition">¶</a></dt>
+<dd><p>retrieve the dictionary wanted</p>
+</dd></dl>
 
 <dl class="method">
-<dt id="component_submitter.step.Step.translate">
-<code class="descname">translate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.translate" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="component_submitter.submitter_config.SubmitterConfig.get_list_adaptors">
+<code class="descname">get_list_adaptors</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_config.html#SubmitterConfig.get_list_adaptors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_config.SubmitterConfig.get_list_adaptors" title="Permalink to this definition">¶</a></dt>
+<dd><p>return list of adaptors to use</p>
+</dd></dl>
 
 <dl class="method">
-<dt id="component_submitter.step.Step.undeploy">
-<code class="descname">undeploy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.undeploy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="component_submitter.submitter_config.SubmitterConfig.get_node_from_type">
+<code class="descname">get_node_from_type</code><span class="sig-paren">(</span><em>type</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_config.html#SubmitterConfig.get_node_from_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_config.SubmitterConfig.get_node_from_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>retrieve wanted node through its type</p>
+</dd></dl>
 
 <dl class="method">
-<dt id="component_submitter.step.Step.update">
-<code class="descname">update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/step.html#Step.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.step.Step.update" title="Permalink to this definition">¶</a></dt>
+<dt id="component_submitter.submitter_config.SubmitterConfig.mapping">
+<code class="descname">mapping</code><span class="sig-paren">(</span><em>template=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_config.html#SubmitterConfig.mapping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_config.SubmitterConfig.mapping" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -477,6 +429,27 @@ launch</p>
 </dd></dl>
 
 </div>
+<div class="section" id="module-component_submitter.utils">
+<span id="component-submitter-utils-module"></span><h2>component_submitter.utils module<a class="headerlink" href="#module-component_submitter.utils" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="component_submitter.utils.dump_order_yaml">
+<code class="descclassname">component_submitter.utils.</code><code class="descname">dump_order_yaml</code><span class="sig-paren">(</span><em>data</em>, <em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#dump_order_yaml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.dump_order_yaml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dump the dictionary to a Docker-Compose file</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.utils.get_yaml_data">
+<code class="descclassname">component_submitter.utils.</code><code class="descname">get_yaml_data</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#get_yaml_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.get_yaml_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve the yaml dictionary form a yaml file and return it</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.utils.id_generator">
+<code class="descclassname">component_submitter.utils.</code><code class="descname">id_generator</code><span class="sig-paren">(</span><em>size=8</em>, <em>chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/utils.html#id_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.utils.id_generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an ID</p>
+</dd></dl>
+
+</div>
 <div class="section" id="module-component_submitter">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-component_submitter" title="Permalink to this headline">¶</a></h2>
 </div>
@@ -494,17 +467,19 @@ launch</p>
 <li><a class="reference internal" href="#subpackages">Subpackages</a></li>
 <li><a class="reference internal" href="#submodules">Submodules</a></li>
 <li><a class="reference internal" href="#module-component_submitter.api">component_submitter.api module</a></li>
-<li><a class="reference internal" href="#module-component_submitter.utils">component_submitter.utils module</a></li>
-<li><a class="reference internal" href="#module-component_submitter.key_lists">component_submitter.key_lists module</a></li>
-<li><a class="reference internal" href="#module-component_submitter.mapper">component_submitter.mapper module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.command_line_interface">component_submitter.command_line_interface module</a><ul>
+<li><a class="reference internal" href="#micado-command-line-interface">MiCADO Command Line Interface</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#module-component_submitter.micado_parser">component_submitter.micado_parser module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.micado_validator">component_submitter.micado_validator module</a><ul>
 <li><a class="reference internal" href="#micado-submission-engine-tosca-validator">MiCADO Submission Engine TOSCA Validator</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-component_submitter.plugins_gestion">component_submitter.plugins_gestion module</a></li>
-<li><a class="reference internal" href="#module-component_submitter.step">component_submitter.step module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.submitter_config">component_submitter.submitter_config module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.submitter_engine">component_submitter.submitter_engine module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.utils">component_submitter.utils module</a></li>
 <li><a class="reference internal" href="#module-component_submitter">Module contents</a></li>
 </ul>
 </li>

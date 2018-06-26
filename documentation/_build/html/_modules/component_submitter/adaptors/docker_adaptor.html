@@ -51,7 +51,7 @@
 
 <span class="kn">from</span> <span class="nn">toscaparser.tosca_template</span> <span class="k">import</span> <span class="n">ToscaTemplate</span>
 <span class="kn">import</span> <span class="nn">utils</span>
-<span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">container_orchestrator</span> <span class="k">as</span> <span class="n">abco</span>
+<span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">base_adaptor</span> <span class="k">as</span> <span class="n">abco</span>
 <span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorCritical</span>
 
 <span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;adaptors.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
@@ -68,7 +68,7 @@
 
 <span class="n">COMPOSE_VERSION</span> <span class="o">=</span> <span class="s2">&quot;3.4&quot;</span>
 
-<div class="viewcode-block" id="DockerAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor">[docs]</a><span class="k">class</span> <span class="nc">DockerAdaptor</span><span class="p">(</span><span class="n">abco</span><span class="o">.</span><span class="n">ContainerAdaptor</span><span class="p">):</span>
+<div class="viewcode-block" id="DockerAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor">[docs]</a><span class="k">class</span> <span class="nc">DockerAdaptor</span><span class="p">(</span><span class="n">abco</span><span class="o">.</span><span class="n">Adaptor</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot; The Docker adaptor class</span>
 <span class="sd">    Carries out the deployment of a Dockerised application or application stack</span>
@@ -82,6 +82,7 @@
 <span class="sd">    :param string adaptor_id: The generated ID of the current application stack</span>
 <span class="sd">    :param template: The ADT / ToscaTemplate of the current application stack</span>
 <span class="sd">    :type template: ToscaTemplate &lt;toscaparser.tosca_template.ToscaTemplate&gt;</span>
+
 <span class="sd">    Usage:</span>
 <span class="sd">        &gt;&gt;&gt; from docker_adaptor import DockerAdaptor</span>
 <span class="sd">        &gt;&gt;&gt; container_adapt = DockerAdaptor(&lt;adaptor_id&gt;, &lt;ToscaTemplate&gt;)</span>
@@ -158,19 +159,29 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Docker execution...&quot;</span><span class="p">)</span>
 
-
         <span class="k">try</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;dry_run&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
                 <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;stack&quot;</span><span class="p">,</span> <span class="s2">&quot;deploy&quot;</span><span class="p">,</span> <span class="s2">&quot;--compose-file&quot;</span><span class="p">,</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">[:</span><span class="mi">8</span><span class="p">]],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">[:</span><span class="mi">8</span><span class="p">]],</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;subprocess.run([</span><span class="se">\&quot;</span><span class="s1">docker</span><span class="se">\&quot;</span><span class="s1">, </span><span class="se">\&quot;</span><span class="s1">stack</span><span class="se">\&quot;</span><span class="s1">, </span><span class="se">\&quot;</span><span class="s1">deploy</span><span class="se">\&quot;</span><span class="s1">, &#39;</span>
                         <span class="n">f</span><span class="s1">&#39;</span><span class="se">\&quot;</span><span class="s1">--compose-file</span><span class="se">\&quot;</span><span class="s1">, </span><span class="se">\&quot;</span><span class="s1">docker-compose.yaml</span><span class="se">\&quot;</span><span class="s1">, &#39;</span>
                         <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.ID[:8]}</span><span class="s1">], check=True)&#39;</span><span class="p">)</span>
 
-        <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
-            <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="c1"># FIXME: no-so-nice hack to force updates to correct own sequences</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Got this error: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">stderr</span><span class="p">))</span>
+            <span class="k">if</span> <span class="p">(</span><span class="s2">&quot;update out of sequence&quot;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span> <span class="s1">&#39;utf-8&#39;</span><span class="p">)):</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Trying update again&quot;</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;stack&quot;</span><span class="p">,</span> <span class="s2">&quot;deploy&quot;</span><span class="p">,</span> <span class="s2">&quot;--compose-file&quot;</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">[:</span><span class="mi">8</span><span class="p">]],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
             <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;stack&quot;</span><span class="p">,</span> <span class="s2">&quot;deploy&quot;</span><span class="p">,</span> <span class="s2">&quot;--compose-file&quot;</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">[:</span><span class="mi">8</span><span class="p">]],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -203,8 +214,9 @@
 <div class="viewcode-block" id="DockerAdaptor.cleanup"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.docker_adaptor.DockerAdaptor.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Remove the associated Compose file</span>
 <span class="sd">        Removes output file created for this stack from ``files/output_configs/``</span>
+
 <span class="sd">        .. note::</span>
-<span class="sd">          A warning will be logged if the Compose file cannot be removed</span>
+<span class="sd">              A warning will be logged if the Compose file cannot be removed</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Cleanup config for ID </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
         <span class="k">try</span><span class="p">:</span>

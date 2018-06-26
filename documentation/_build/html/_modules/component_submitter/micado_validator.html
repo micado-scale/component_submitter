@@ -64,10 +64,10 @@
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error_set</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span> <span class="k">if</span> <span class="n">msg</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">--</span><span class="si">{msg}</span><span class="s1">--&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--</span><span class="si">{}</span><span class="s2">--&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">error_set</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">+=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">  </span><span class="si">{error}</span><span class="s1">&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">+=</span> <span class="n">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">----{&quot;-&quot;*len(msg)}&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">----</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="o">*</span><span class="nb">len</span><span class="p">(</span><span class="n">msg</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Overload __str__ to return msg when printing/logging&quot;&quot;&quot;</span>
@@ -118,7 +118,7 @@
         <span class="k">raise</span> <span class="n">MultiError</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">errors</span><span class="p">))</span><span class="c1">#, &quot;Validation Errors!&quot;)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ToscaTemplate object passed compatibility validation.&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">f</span><span class="s1">&#39;ToscaTemplate passed compatibility validation&#39;</span></div>
+        <span class="k">return</span> <span class="s2">&quot;ToscaTemplate passed compatibility validation&quot;</span></div>
 
 
 <div class="viewcode-block" id="validate_repositories"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.micado_validator.validate_repositories">[docs]</a><span class="k">def</span> <span class="nf">validate_repositories</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">repositories</span><span class="p">):</span>
@@ -134,7 +134,7 @@
 
     <span class="n">repositories</span> <span class="o">=</span> <span class="n">_key_search</span><span class="p">(</span><span class="s2">&quot;repository&quot;</span><span class="p">,</span> <span class="n">node</span><span class="o">.</span><span class="n">entity_tpl</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">{</span>
-        <span class="n">f</span><span class="s1">&#39;[NODE: </span><span class="si">{node.name}</span><span class="s1">] Repository &lt;</span><span class="si">{repo}</span><span class="s1">&gt; not defined!&#39;</span>
+        <span class="s2">&quot;[NODE: </span><span class="si">{}</span><span class="s2">] Repository &lt;</span><span class="si">{}</span><span class="s2">&gt; not defined!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">repo</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">repo</span> <span class="ow">in</span> <span class="n">repositories</span> <span class="k">if</span> <span class="n">repo</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">repository_names</span>
         <span class="p">}</span></div>
 
@@ -155,13 +155,13 @@
     <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Too many requirements per list item!&quot;</span>
 
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">type_reqs</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">type_req_names</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">{</span><span class="n">f</span><span class="s1">&#39;[CUSTOM TYPE: </span><span class="si">{node.type}</span><span class="s1">] </span><span class="si">{msg}</span><span class="s1">&#39;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;[CUSTOM TYPE: </span><span class="si">{}</span><span class="s2">] </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">type</span><span class="p">,</span> <span class="n">msg</span><span class="p">)}</span>
 
     <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">node_reqs</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">node_req_names</span><span class="p">):</span>
-        <span class="k">return</span> <span class="p">{</span><span class="n">f</span><span class="s1">&#39;[NODE: </span><span class="si">{node.name}</span><span class="s1">] </span><span class="si">{msg}</span><span class="s1">&#39;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;[NODE: </span><span class="si">{}</span><span class="s2">] </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">msg</span><span class="p">)}</span>
 
     <span class="k">return</span> <span class="p">{</span>
-        <span class="n">f</span><span class="s1">&#39;[NODE: </span><span class="si">{node.name}</span><span class="s1">] Requirement &lt;</span><span class="si">{req}</span><span class="s1">&gt; not defined!&#39;</span>
+        <span class="s2">&quot;[NODE: </span><span class="si">{}</span><span class="s2">] Requirement &lt;</span><span class="si">{}</span><span class="s2">&gt; not defined!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">req</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">req</span> <span class="ow">in</span> <span class="n">node_req_names</span> <span class="k">if</span> <span class="n">req</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">type_req_names</span>
         <span class="p">}</span></div>
 
@@ -184,8 +184,8 @@
                      <span class="k">for</span> <span class="n">type_req</span> <span class="ow">in</span> <span class="n">type_reqs</span><span class="p">]</span>
 
         <span class="n">errors</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
-            <span class="n">f</span><span class="s1">&#39;[NODE: </span><span class="si">{node.name}</span><span class="s1">] &#39;</span>
-            <span class="n">f</span><span class="s1">&#39;Relationship &lt;</span><span class="si">{relationship}</span><span class="s1">&gt; not supported!&#39;</span>
+            <span class="s2">&quot;[NODE: </span><span class="si">{}</span><span class="s2">] &quot;</span>
+            <span class="s2">&quot;Relationship &lt;</span><span class="si">{}</span><span class="s2">&gt; not supported!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">relationship</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">relationship</span> <span class="ow">in</span> <span class="n">relationships</span>
             <span class="k">if</span> <span class="n">relationship</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">supported_relationships</span><span class="p">)</span>
         <span class="p">})</span>
@@ -203,8 +203,8 @@
     <span class="k">for</span> <span class="n">req</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">relation</span> <span class="ow">in</span> <span class="n">_get_required_properties</span><span class="p">(</span><span class="n">node</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">_has_property</span><span class="p">(</span><span class="n">req</span><span class="p">,</span> <span class="n">prop</span><span class="p">,</span> <span class="n">relation</span><span class="p">):</span>
             <span class="n">errors</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
-                <span class="n">f</span><span class="s1">&#39;[NODE: </span><span class="si">{node.name}</span><span class="s1">] Relationship &lt;</span><span class="si">{relation}</span><span class="s1">&gt; &#39;</span>
-                <span class="n">f</span><span class="s1">&#39;missing property &lt;</span><span class="si">{prop}</span><span class="s1">&gt;&#39;</span>
+                <span class="s2">&quot;[NODE: </span><span class="si">{}</span><span class="s2">] Relationship &lt;</span><span class="si">{}</span><span class="s2">&gt; &quot;</span>
+                <span class="s2">&quot;missing property &lt;</span><span class="si">{}</span><span class="s2">&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">relation</span><span class="p">,</span> <span class="n">prop</span><span class="p">)</span>
                 <span class="p">})</span>
     <span class="k">return</span> <span class="n">errors</span></div>
 

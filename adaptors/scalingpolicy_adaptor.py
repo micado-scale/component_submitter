@@ -1,6 +1,6 @@
 """
 MiCADO Submitter Engine ScalingPolicy Adaptor
---------------------------------------
+---------------------------------------------
 
 An adaptor for TOSCA to "scaling_policy.yaml" adaptor.
 """
@@ -12,7 +12,7 @@ import os
 from toscaparser.tosca_template import ToscaTemplate
 
 import utils
-from abstracts import policykeeper as abco
+from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
 
 logger=logging.getLogger("adaptor."+__name__)
@@ -27,7 +27,7 @@ SIMPLE_POL = ("tosca.policies.Scaling.Performance.Consumption.Simple")
 PATH_TO_POLICY = "system/scaling_policy.yaml"
 PATH_TO_PROM = "system/"
 
-class ScalingPolicyAdaptor(abco.PolicyKeeperAdaptor):
+class ScalingPolicyAdaptor(abco.Adaptor):
 
     def __init__(self, adaptor_id, config, template=None):
 
