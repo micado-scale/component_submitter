@@ -12,22 +12,6 @@ component\_submitter.adaptors.docker\_adaptor module
     :undoc-members:
     :show-inheritance:
 
-component\_submitter.adaptors.dummy\_occopus\_adaptor module
-------------------------------------------------------------
-
-.. automodule:: component_submitter.adaptors.dummy_occopus_adaptor
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-component\_submitter.adaptors.dummy\_se\_adaptor module
--------------------------------------------------------
-
-.. automodule:: component_submitter.adaptors.dummy_se_adaptor
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 component\_submitter.adaptors.occopus\_adaptor module
 -----------------------------------------------------
 

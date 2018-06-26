@@ -15,7 +15,7 @@
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../search.html" /> 
+    <link rel="search" title="Search" href="../../../search.html" />
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
@@ -27,15 +27,15 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
       </ul>
-    </div>  
+    </div>
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body" role="main">
-            
+
   <h1>Source code for component_submitter.adaptors.scalingpolicy_adaptor</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">MiCADO Submitter Engine ScalingPolicy Adaptor</span>
@@ -51,7 +51,7 @@
 <span class="kn">from</span> <span class="nn">toscaparser.tosca_template</span> <span class="k">import</span> <span class="n">ToscaTemplate</span>
 
 <span class="kn">import</span> <span class="nn">utils</span>
-<span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">policykeeper</span> <span class="k">as</span> <span class="n">abco</span>
+<span class="kn">from</span> <span class="nn">abstracts</span> <span class="k">import</span> <span class="n">base_adaptor</span> <span class="k">as</span> <span class="n">abco</span>
 <span class="kn">from</span> <span class="nn">abstracts.exceptions</span> <span class="k">import</span> <span class="n">AdaptorCritical</span>
 
 <span class="n">logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;adaptor.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
@@ -66,7 +66,8 @@
 <span class="n">PATH_TO_POLICY</span> <span class="o">=</span> <span class="s2">&quot;system/scaling_policy.yaml&quot;</span>
 <span class="n">PATH_TO_PROM</span> <span class="o">=</span> <span class="s2">&quot;system/&quot;</span>
 
-<div class="viewcode-block" id="ScalingPolicyAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.scalingpolicy_adaptor.ScalingPolicyAdaptor">[docs]</a><span class="k">class</span> <span class="nc">ScalingPolicyAdaptor</span><span class="p">(</span><span class="n">abco</span><span class="o">.</span><span class="n">PolicyKeeperAdaptor</span><span class="p">):</span>
+
+<div class="viewcode-block" id="ScalingPolicyAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.scalingpolicy_adaptor.ScalingPolicyAdaptor">[docs]</a><span class="k">class</span> <span class="nc">ScalingPolicyAdaptor</span><span class="p">(</span><span class="n">abco</span><span class="o">.</span><span class="n">Adaptor</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adaptor_id</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 
@@ -170,7 +171,7 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
       </ul>
     </div>
     <div class="footer" role="contentinfo">

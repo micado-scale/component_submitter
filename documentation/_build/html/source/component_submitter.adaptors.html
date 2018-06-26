@@ -17,7 +17,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="component_submitter.tests package" href="component_submitter.tests.html" />
-    <link rel="prev" title="component_submitter.abstracts package" href="component_submitter.abstracts.html" /> 
+    <link rel="prev" title="component_submitter.abstracts package" href="component_submitter.abstracts.html" />
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
@@ -36,15 +36,15 @@
              accesskey="P">previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../code.html" >MiCADO Submitter Code</a> &#187;</li>
-          <li class="nav-item nav-item-2"><a href="component_submitter.html" accesskey="U">component_submitter package</a> &#187;</li> 
+          <li class="nav-item nav-item-2"><a href="component_submitter.html" accesskey="U">component_submitter package</a> &#187;</li>
       </ul>
-    </div>  
+    </div>
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body" role="main">
-            
+
   <div class="section" id="component-submitter-adaptors-package">
 <h1>component_submitter.adaptors package<a class="headerlink" href="#component-submitter-adaptors-package" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="submodules">
@@ -58,7 +58,7 @@
 <dl class="class">
 <dt id="component_submitter.adaptors.docker_adaptor.DockerAdaptor">
 <em class="property">class </em><code class="descclassname">component_submitter.adaptors.docker_adaptor.</code><code class="descname">DockerAdaptor</code><span class="sig-paren">(</span><em>adaptor_id</em>, <em>config</em>, <em>template=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/docker_adaptor.html#DockerAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.docker_adaptor.DockerAdaptor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abstracts.container_orchestrator.ContainerAdaptor</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abstracts.base_adaptor.Adaptor</span></code></p>
 <p>The Docker adaptor class
 Carries out the deployment of a Dockerised application or application stack
 based on a description of an application provided by a YAML file which
@@ -70,9 +70,10 @@ methods require both an <strong>adaptor_id</strong> and <strong>template</strong
 <code class="docutils literal notranslate"><span class="pre">undeploy()</span></code> and <code class="docutils literal notranslate"><span class="pre">cleanup()</span></code> methods require only the <strong>adaptor_id</strong> .
 :param string adaptor_id: The generated ID of the current application stack
 :param template: The ADT / ToscaTemplate of the current application stack
-:type template: ToscaTemplate &lt;toscaparser.tosca_template.ToscaTemplate&gt;
-Usage:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">docker_adaptor</span> <span class="k">import</span> <span class="n">DockerAdaptor</span>
+:type template: ToscaTemplate &lt;toscaparser.tosca_template.ToscaTemplate&gt;</p>
+<dl class="docutils">
+<dt>Usage:</dt>
+<dd><div class="first last highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">docker_adaptor</span> <span class="k">import</span> <span class="n">DockerAdaptor</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span> <span class="o">=</span> <span class="n">DockerAdaptor</span><span class="p">(</span><span class="o">&lt;</span><span class="n">adaptor_id</span><span class="o">&gt;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">ToscaTemplate</span><span class="o">&gt;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">container_adapt</span><span class="o">.</span><span class="n">translate</span><span class="p">()</span>
 <span class="go">    (writes compose file to file/output_configs/&lt;adaptor_id&gt;.yaml)</span>
@@ -86,14 +87,16 @@ Usage:</p>
 <span class="go">    (compose file removed from file/output_configs/)</span>
 </pre></div>
 </div>
+</dd>
+</dl>
 <dl class="method">
 <dt id="component_submitter.adaptors.docker_adaptor.DockerAdaptor.cleanup">
 <code class="descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/docker_adaptor.html#DockerAdaptor.cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.docker_adaptor.DockerAdaptor.cleanup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Remove the associated Compose file
-Removes output file created for this stack from <code class="docutils literal notranslate"><span class="pre">files/output_configs/</span></code>
-.. note:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">A</span> <span class="n">warning</span> <span class="n">will</span> <span class="n">be</span> <span class="n">logged</span> <span class="k">if</span> <span class="n">the</span> <span class="n">Compose</span> <span class="n">file</span> <span class="n">cannot</span> <span class="n">be</span> <span class="n">removed</span>
-</pre></div>
+Removes output file created for this stack from <code class="docutils literal notranslate"><span class="pre">files/output_configs/</span></code></p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">A warning will be logged if the Compose file cannot be removed</p>
 </div>
 </dd></dl>
 
@@ -138,80 +141,12 @@ with the current compose file. If different, replace current compose with
 
 </div>
 </div>
-<div class="section" id="module-component_submitter.adaptors.dummy_occopus_adaptor">
-<span id="component-submitter-adaptors-dummy-occopus-adaptor-module"></span><h2>component_submitter.adaptors.dummy_occopus_adaptor module<a class="headerlink" href="#module-component_submitter.adaptors.dummy_occopus_adaptor" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor">
-<em class="property">class </em><code class="descclassname">component_submitter.adaptors.dummy_occopus_adaptor.</code><code class="descname">DummyOccopusAdaptor</code><span class="sig-paren">(</span><em>adaptor_id</em>, <em>config</em>, <em>template=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_occopus_adaptor.html#DummyOccopusAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abstracts.cloudorchestrator.CloudAdaptor</span></code></p>
-<dl class="method">
-<dt id="component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor.cleanup">
-<code class="descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_occopus_adaptor.html#DummyOccopusAdaptor.cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor.cleanup" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor.execute">
-<code class="descname">execute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_occopus_adaptor.html#DummyOccopusAdaptor.execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor.execute" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor.translate">
-<code class="descname">translate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_occopus_adaptor.html#DummyOccopusAdaptor.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor.translate" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor.undeploy">
-<code class="descname">undeploy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_occopus_adaptor.html#DummyOccopusAdaptor.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor.undeploy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor.update">
-<code class="descname">update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_occopus_adaptor.html#DummyOccopusAdaptor.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_occopus_adaptor.DummyOccopusAdaptor.update" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-</div>
-<div class="section" id="module-component_submitter.adaptors.dummy_se_adaptor">
-<span id="component-submitter-adaptors-dummy-se-adaptor-module"></span><h2>component_submitter.adaptors.dummy_se_adaptor module<a class="headerlink" href="#module-component_submitter.adaptors.dummy_se_adaptor" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor">
-<em class="property">class </em><code class="descclassname">component_submitter.adaptors.dummy_se_adaptor.</code><code class="descname">DummySeAdaptor</code><span class="sig-paren">(</span><em>adaptor_id</em>, <em>config</em>, <em>template=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_se_adaptor.html#DummySeAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abstracts.securityenforcer.SecurityEnforcerAdaptor</span></code></p>
-<dl class="method">
-<dt id="component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.cleanup">
-<code class="descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_se_adaptor.html#DummySeAdaptor.cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.cleanup" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.execute">
-<code class="descname">execute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_se_adaptor.html#DummySeAdaptor.execute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.execute" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.translate">
-<code class="descname">translate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_se_adaptor.html#DummySeAdaptor.translate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.translate" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.undeploy">
-<code class="descname">undeploy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_se_adaptor.html#DummySeAdaptor.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.undeploy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.update">
-<code class="descname">update</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/dummy_se_adaptor.html#DummySeAdaptor.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.dummy_se_adaptor.DummySeAdaptor.update" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-</div>
 <div class="section" id="module-component_submitter.adaptors.occopus_adaptor">
 <span id="component-submitter-adaptors-occopus-adaptor-module"></span><h2>component_submitter.adaptors.occopus_adaptor module<a class="headerlink" href="#module-component_submitter.adaptors.occopus_adaptor" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="component_submitter.adaptors.occopus_adaptor.OccopusAdaptor">
 <em class="property">class </em><code class="descclassname">component_submitter.adaptors.occopus_adaptor.</code><code class="descname">OccopusAdaptor</code><span class="sig-paren">(</span><em>adaptor_id</em>, <em>config</em>, <em>template=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/occopus_adaptor.html#OccopusAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.occopus_adaptor.OccopusAdaptor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abstracts.cloudorchestrator.CloudAdaptor</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abstracts.base_adaptor.Adaptor</span></code></p>
 <dl class="method">
 <dt id="component_submitter.adaptors.occopus_adaptor.OccopusAdaptor.cleanup">
 <code class="descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/occopus_adaptor.html#OccopusAdaptor.cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.occopus_adaptor.OccopusAdaptor.cleanup" title="Permalink to this definition">¶</a></dt>
@@ -258,7 +193,7 @@ changed first undeploy the infrastructure and rebuild it with the modified param
 <dl class="class">
 <dt id="component_submitter.adaptors.pk_adaptor.PkAdaptor">
 <em class="property">class </em><code class="descclassname">component_submitter.adaptors.pk_adaptor.</code><code class="descname">PkAdaptor</code><span class="sig-paren">(</span><em>adaptor_id</em>, <em>config</em>, <em>template=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/pk_adaptor.html#PkAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.pk_adaptor.PkAdaptor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abstracts.policykeeper.PolicyKeeperAdaptor</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abstracts.base_adaptor.Adaptor</span></code></p>
 <dl class="method">
 <dt id="component_submitter.adaptors.pk_adaptor.PkAdaptor.cleanup">
 <code class="descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/pk_adaptor.html#PkAdaptor.cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.pk_adaptor.PkAdaptor.cleanup" title="Permalink to this definition">¶</a></dt>
@@ -295,7 +230,7 @@ changed first undeploy the infrastructure and rebuild it with the modified param
 <dl class="class">
 <dt id="component_submitter.adaptors.scalingpolicy_adaptor.ScalingPolicyAdaptor">
 <em class="property">class </em><code class="descclassname">component_submitter.adaptors.scalingpolicy_adaptor.</code><code class="descname">ScalingPolicyAdaptor</code><span class="sig-paren">(</span><em>adaptor_id</em>, <em>config</em>, <em>template=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/scalingpolicy_adaptor.html#ScalingPolicyAdaptor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.scalingpolicy_adaptor.ScalingPolicyAdaptor" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abstracts.policykeeper.PolicyKeeperAdaptor</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">abstracts.base_adaptor.Adaptor</span></code></p>
 <dl class="method">
 <dt id="component_submitter.adaptors.scalingpolicy_adaptor.ScalingPolicyAdaptor.cleanup">
 <code class="descname">cleanup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/adaptors/scalingpolicy_adaptor.html#ScalingPolicyAdaptor.cleanup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.adaptors.scalingpolicy_adaptor.ScalingPolicyAdaptor.cleanup" title="Permalink to this definition">¶</a></dt>
@@ -430,8 +365,6 @@ retrieved from the TOSCA template</p>
 <li><a class="reference internal" href="#micado-submitter-engine-docker-adaptor">MiCADO Submitter Engine Docker Adaptor</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-component_submitter.adaptors.dummy_occopus_adaptor">component_submitter.adaptors.dummy_occopus_adaptor module</a></li>
-<li><a class="reference internal" href="#module-component_submitter.adaptors.dummy_se_adaptor">component_submitter.adaptors.dummy_se_adaptor module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.adaptors.occopus_adaptor">component_submitter.adaptors.occopus_adaptor module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.adaptors.pk_adaptor">component_submitter.adaptors.pk_adaptor module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.adaptors.scalingpolicy_adaptor">component_submitter.adaptors.scalingpolicy_adaptor module</a><ul>
@@ -493,7 +426,7 @@ retrieved from the TOSCA template</p>
              >previous</a> |</li>
         <li class="nav-item nav-item-0"><a href="../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="../code.html" >MiCADO Submitter Code</a> &#187;</li>
-          <li class="nav-item nav-item-2"><a href="component_submitter.html" >component_submitter package</a> &#187;</li> 
+          <li class="nav-item nav-item-2"><a href="component_submitter.html" >component_submitter package</a> &#187;</li>
       </ul>
     </div>
     <div class="footer" role="contentinfo">

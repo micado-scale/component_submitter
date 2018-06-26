@@ -3,7 +3,7 @@ import filecmp
 import logging
 import requests
 from toscaparser.tosca_template import ToscaTemplate
-from abstracts import policykeeper as abco
+from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
 import ruamel.yaml as yaml
 
@@ -14,7 +14,7 @@ PK = (STACK, DATA, SOURCES, CONSTANTS, QUERIES, ALERTS, SCALING, NODES, SERVICES
                 ("stack", "data", "sources", "constants", "queries", "alerts", "scaling", "nodes", "services")
 
 
-class PkAdaptor(abco.PolicyKeeperAdaptor):
+class PkAdaptor(abco.Adaptor):
 
     def __init__(self, adaptor_id, config, template=None):
 
@@ -160,4 +160,3 @@ class PkAdaptor(abco.PolicyKeeperAdaptor):
     def _differentiate(self):
         # Compare two Pk file
         return filecmp.cmp(self.path, self.tmp_path)
-

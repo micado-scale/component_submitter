@@ -29,22 +29,6 @@ component\_submitter.command\_line\_interface module
     :undoc-members:
     :show-inheritance:
 
-component\_submitter.key\_lists module
---------------------------------------
-
-.. automodule:: component_submitter.key_lists
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-component\_submitter.mapper module
-----------------------------------
-
-.. automodule:: component_submitter.mapper
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 component\_submitter.micado\_parser module
 ------------------------------------------
 
@@ -69,10 +53,10 @@ component\_submitter.plugins\_gestion module
     :undoc-members:
     :show-inheritance:
 
-component\_submitter.step module
---------------------------------
+component\_submitter.submitter\_config module
+---------------------------------------------
 
-.. automodule:: component_submitter.step
+.. automodule:: component_submitter.submitter_config
     :members:
     :undoc-members:
     :show-inheritance:
