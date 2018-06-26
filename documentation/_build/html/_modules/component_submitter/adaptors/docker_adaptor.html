@@ -15,7 +15,7 @@
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../search.html" /> 
+    <link rel="search" title="Search" href="../../../search.html" />
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
@@ -27,15 +27,15 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
       </ul>
-    </div>  
+    </div>
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body" role="main">
-            
+
   <h1>Source code for component_submitter.adaptors.docker_adaptor</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">MiCADO Submitter Engine Docker Adaptor</span>
@@ -162,20 +162,11 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;dry_run&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
                 <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;stack&quot;</span><span class="p">,</span> <span class="s2">&quot;deploy&quot;</span><span class="p">,</span> <span class="s2">&quot;--compose-file&quot;</span><span class="p">,</span>
-<<<<<<< HEAD
                 <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">[:</span><span class="mi">8</span><span class="p">]],</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;subprocess.run([</span><span class="se">\&quot;</span><span class="s1">docker</span><span class="se">\&quot;</span><span class="s1">, </span><span class="se">\&quot;</span><span class="s1">stack</span><span class="se">\&quot;</span><span class="s1">, </span><span class="se">\&quot;</span><span class="s1">deploy</span><span class="se">\&quot;</span><span class="s1">, &#39;</span>
                         <span class="n">f</span><span class="s1">&#39;</span><span class="se">\&quot;</span><span class="s1">--compose-file</span><span class="se">\&quot;</span><span class="s1">, </span><span class="se">\&quot;</span><span class="s1">docker-compose.yaml</span><span class="se">\&quot;</span><span class="s1">, &#39;</span>
                         <span class="n">f</span><span class="s1">&#39;</span><span class="si">{self.ID[:8]}</span><span class="s1">], check=True)&#39;</span><span class="p">)</span>
-=======
-                <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">stderr</span><span class="o">=</span><span class="n">subprocess</span><span class="o">.</span><span class="n">PIPE</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;subprocess.run([</span><span class="se">\&quot;</span><span class="s1">docker</span><span class="se">\&quot;</span><span class="s1">, </span><span class="se">\&quot;</span><span class="s1">stack</span><span class="se">\&quot;</span><span class="s1">, </span><span class="se">\&quot;</span><span class="s1">deploy</span><span class="se">\&quot;</span><span class="s1">, &#39;</span>
-                        <span class="n">f</span><span class="s1">&#39;</span><span class="se">\&quot;</span><span class="s1">--compose-file</span><span class="se">\&quot;</span><span class="s1">, </span><span class="se">\&quot;</span><span class="s1">docker-compose.yaml</span><span class="se">\&quot;</span><span class="s1">, &#39;</span>
-                        <span class="n">f</span><span class="s1">&#39;{self.ID.split(&quot;_&quot;)[0]}], check=True)&#39;</span><span class="p">)</span>
->>>>>>> master
-
         <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="c1"># FIXME: no-so-nice hack to force updates to correct own sequences</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Got this error: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">stderr</span><span class="p">))</span>
@@ -183,11 +174,8 @@
                 <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Trying update again&quot;</span><span class="p">)</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;stack&quot;</span><span class="p">,</span> <span class="s2">&quot;deploy&quot;</span><span class="p">,</span> <span class="s2">&quot;--compose-file&quot;</span><span class="p">,</span>
-<<<<<<< HEAD
                     <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">[:</span><span class="mi">8</span><span class="p">]],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-=======
-                    <span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]],</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
->>>>>>> master
+
                 <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
                     <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Cannot execute Docker&quot;</span><span class="p">)</span>
@@ -432,7 +420,7 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
       </ul>
     </div>
     <div class="footer" role="contentinfo">
