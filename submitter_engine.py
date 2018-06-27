@@ -13,9 +13,10 @@ from submitter_config import SubmitterConfig
 
 import logging
 """ set up of Logging """
-LEVEL = logging.DEBUG
-
-logging.basicConfig(filename=SubmitterConfig().main_config['path_log'], level=LEVEL, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+config = SubmitterConfig()
+LEVEL = config.main_config['log_level']
+FILENAME = config.main_config['path_log']
+logging.basicConfig(filename=FILENAME, level=LEVEL, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger=logging.getLogger("submitter."+__name__)
 
 """define the Handler which write message to sys.stderr"""

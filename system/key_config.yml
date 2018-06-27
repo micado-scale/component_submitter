@@ -1,7 +1,9 @@
 main_config:
   dry_run: True
   #path_log: "/var/lib/toscasubmitter/submitter.log"
+  log_level: INFO
   path_log: "submitter.log"
+
 step:
   translate:
     - SecurityEnforcerAdaptor

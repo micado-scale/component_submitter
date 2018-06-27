@@ -56,15 +56,8 @@ class MiCADOParser(object):
     try:
         template = ToscaTemplate(self.path, parsed_params, isfile)
     except AttributeError as e:
-        tb = sys.exc_info()[2]
-        logger.info(e.with_traceback(tb))
-        logger.info(e.args)
-        traceback.print_tb(tb)
-        frames = inspect.trace()
-        argvalues = inspect.getargvalues(frames[-1][0])
-        log.error('argvalues: %s', inspect.formatargvalues(*argvalues))
-        #logger.info(dir(tb.tb_next.tb_frame.f_code.co_name))
-
+        logger.error("error happened: {}, This might be due to the wrong type in the TOSCA template, check if all the type exist or that the import section is correct.".format(e))
+        raise Exception("An error occured while parsing, This might be due to the a wrong type in the TOSCA template, check if all the types exist, or that the import section is correct.")
 
 
     Validator.validation(template)
