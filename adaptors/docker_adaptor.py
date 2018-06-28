@@ -32,6 +32,7 @@ COMPOSE_VERSION = "3.4"
 class DockerAdaptor(abco.Adaptor):
 
     """ The Docker adaptor class
+
     Carries out the deployment of a Dockerised application or application stack
     based on a description of an application provided by a YAML file which
     follows the OpenStack TOSCA language specification.
@@ -80,6 +81,7 @@ class DockerAdaptor(abco.Adaptor):
 
     def translate(self, tmp=False):
         """ Translate the self.tpl subset to the Compose format
+
         Does the work of mapping the Docker relevant sections of TOSCA into a
         dictionary following the Docker-Compose format, then dumping output to
         a .yaml file in output_configs/
@@ -105,15 +107,14 @@ class DockerAdaptor(abco.Adaptor):
             raise AdaptorCritical("No TOSCA nodes of Docker type!")
 
         if tmp is False:
-            utils.dump_order_yaml(
-                self.compose_data, self.path)
+            utils.dump_order_yaml(self.compose_data, self.path)
         else:
-            utils.dump_order_yaml(
-                self.compose_data, self.tmp_path)
+            utils.dump_order_yaml(self.compose_data, self.tmp_path)
 
 
     def execute(self):
         """ Deploy the stack onto the Swarm
+
         Executes the ``docker stack deploy`` command on the Docker-Compose file
         which was created in ``translate()``
         :raises: AdaptorCritical
@@ -122,8 +123,9 @@ class DockerAdaptor(abco.Adaptor):
 
         try:
             if self.config['dry_run'] is False:
-                subprocess.run(["docker", "stack", "deploy", "--compose-file",
-                self.path, self.ID.split("_")[0]], stderr=subprocess.PIPE, check=True)
+                subprocess.run(["docker", "stack", "deploy", "--with-registry-auth",
+                "--compose-file", self.path, self.ID.split("_")[0]],
+                stderr=subprocess.PIPE, check=True)
             else:
                 logger.info(f'subprocess.run([\"docker\", \"stack\", \"deploy\", '
                         f'\"--compose-file\", \"docker-compose.yaml\", '
@@ -135,8 +137,8 @@ class DockerAdaptor(abco.Adaptor):
             if ("update out of sequence" in str(e.stderr, 'utf-8')):
                 logger.error("Trying update again")
                 try:
-                    subprocess.run(["docker", "stack", "deploy", "--compose-file",
-                    self.path, self.ID.split("_")[0]], check=True)
+                    subprocess.run(["docker", "stack", "deploy", "--with-registry-auth",
+                    "--compose-file", self.path, self.ID.split("_")[0]], check=True)
                 except subprocess.CalledProcessError:
                     raise AdaptorCritical("Cannot execute Docker")
                     logger.error("Cannot execute Docker")
@@ -144,14 +146,15 @@ class DockerAdaptor(abco.Adaptor):
                 raise AdaptorCritical("Cannot execute Docker")
                 logger.error("Cannot execute Docker")
         except KeyError:
-            subprocess.run(["docker", "stack", "deploy", "--compose-file",
-            self.path, self.ID.split("_")[0]], check=True)
+            subprocess.run(["docker", "stack", "deploy", "--with-registry-auth",
+            "--compose-file", self.path, self.ID.split("_")[0]], check=True)
 
         logger.info("Docker running, trying to get outputs...")
         self._get_outputs()
 
     def undeploy(self):
         """ Undeploy the stack from Docker
+
         Runs ``docker stack down`` using the given ID to bring down the stack.
         :raises: AdaptorCritical
         """
@@ -174,8 +177,8 @@ class DockerAdaptor(abco.Adaptor):
 
     def cleanup(self):
         """ Remove the associated Compose file
-        Removes output file created for this stack from ``files/output_configs/``
 
+        Removes output file created for this stack from ``files/output_configs/``
         .. note::
               A warning will be logged if the Compose file cannot be removed
         """
@@ -187,6 +190,7 @@ class DockerAdaptor(abco.Adaptor):
 
     def update(self):
         """ Update an already deployed application stack with a changed ADT
+
         Translates the template into a ``tmp`` compose file, differentiates ``tmp``
         with the current compose file. If different, replace current compose with
         ``tmp`` compose, and call execute().
