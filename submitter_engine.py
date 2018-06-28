@@ -64,7 +64,6 @@ class SubmitterEngine(object):
         Creating empty list for the whole class adaptor and executed adaptor
         :params: path_to_file, parsed_params
         :types: string, dictionary
-
         .. note::
             For the time being we only have one "workflow engine" but we could extend this
             launch method to accept another parameter to be able to choose which engine to
@@ -75,16 +74,13 @@ class SubmitterEngine(object):
             raise Exception("An application is already running, MiCADO doesn't currently support multi applications")
             return
         template = self._micado_parser_upload(path_to_file, parsed_params)
-        config = self._mapper_instantiation(template)
-        if self.app_list:
-            raise Exception("An application is already running, this MiCADO version doesn't support multiple application running in the same time")
+        self.object_config.mapping(template)
+
         if id_app is None:
             id_app = utils.id_generator()
-        elif id_app in self.app_list:
-            raise Exception("This ID is already used by another application, please use another one")
 
-        object_adaptors = self._instantiate_adaptors(id_app, config, template)
-        logger.debug("list of objects adaptor: {}".format(object_adaptors))
+        dict_object_adaptors = self._instantiate_adaptors(id_app, template)
+        logger.debug("list of objects adaptor: {}".format(dict_object_adaptors))
         #self._save_file(id_app, path_to_file)
         self.app_list.update({id_app: ""})
         self._update_json()
