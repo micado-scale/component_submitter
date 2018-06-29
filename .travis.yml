@@ -9,3 +9,5 @@ install:
 script:
   - python -m unittest tests.test_validator.TestValidation
   - python -m unittest tests.test_docker.TestDockerAdaptor
+  - python -m unittest tests.test_submitter_config.TestSubmitterConfig
+  - python -m unittest tests.test_micado_parser.TestMiCADOParser
