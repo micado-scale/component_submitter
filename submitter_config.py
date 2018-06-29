@@ -1,4 +1,8 @@
-#!/usr/bin/python
+"""
+MiCADO Submitter Engine Submitter Config
+----------------------------------------
+A module allowing the configuration of the whole submitter
+"""
 import yaml
 import re
 import collections
@@ -8,13 +12,28 @@ basepath = path.dirname(__file__)
 CONFIG_FILE = "{}/system/key_config.yml".format(basepath)
 from toscaparser.functions import GetInput
 
-#CONFIG_FILE="/Users/greg/Desktop/work/COLA/submitter/greg_fork/component_submitter/system/key_config.yml"
 import logging
 
 logger=logging.getLogger("submitter."+__name__)
 
 class SubmitterConfig():
-  def __init__(self):
+  """
+        This is the SubmitterConfig,
+        in charge of the configuration of the whole submitter.
+        It has ``__init__()``, ``get_list_adaptors()``, ``_retrieve_custom_type()``,
+        ``_reading_config()``, ``_check_re()``, ``_list_for_re()``, ``mapping()``,
+        ``_look_through_template()``, ``_find_get_input()``, ``_contains_inputs()``,
+        ``get_SubmitterConfig()``, ``get_dict()`` and ``get_node_from_type()``.
+
+        Optional testing parameter can be passed to __init__ to define which key_config files
+        to take for test purposes.
+
+        
+  """
+
+  def __init__(self, testing=None):
+      if testing:
+          CONFIG_FILE = testing
 
       logger.debug("initialisation of SubmitterConfig class")
       config = self._reading_config()
@@ -143,36 +162,7 @@ class SubmitterConfig():
               return policy
       return None
 
-  def _update_embeded(self, key, value, embeded):
-      """methode to update the embedded dictionary"""
-      logger.debug("update embedded dictionary")
-      for k, v in self.key_config.items():
-          if k is embeded and isinstance(v, collections.Mapping):
-              for i in v:
-                  if key in i and v[i] is None:
-                      self.key_config[k][i]=value
-                  elif key in i and isinstance(v[i],list):
-                      _element = v[i]
-                      _element.append(value)
-                      self.key_config[k][i]=_element
-                  elif key in i and v[i] is not None:
-                      self.key_config[k][i]=[v[i],value]
 
-
-  def _key_exist(self, *keys_to_check):
-      """method to know if the key exist in the config file"""
-      logger.debug("check if the key exist")
-      if type(self.key_config) is not dict:
-          raise AttributeError('self.key_config is expected to be a dict')
-      if len(keys_to_check) == 0:
-          raise AttributeError('key is supposed to be non nul')
-      _element= self.key_config
-      for key in keys_to_check:
-          try:
-              _element=_element[key]
-          except KeyError:
-              return False
-      return True
 
 
   def _find_get_input(self, tpl, template):
@@ -219,24 +209,3 @@ class SubmitterConfig():
           if filter(i):
               return i
       return False
-
-  def get_SubmitterConfig(self):
-      """retrieve the whole dictionary"""
-      logger.debug("get KeyList invoked")
-      return self.config
-
-  def get_dict(self, key):
-      """retrieve the dictionary wanted"""
-      logger.debug("get dict invoked")
-      return self.config["adaptor_config"][key]
-
-  def get_node_from_type(self, type):
-      """retrieve wanted node through its type"""
-      logger.debug("get node or nodes having type %s" % type)
-      for key, value in self.key_config.items():
-          if key is type and not isinstance(value, collections.Mapping):
-              return value
-          elif isinstance(value, collections.Mapping):
-              for k, v in value.items():
-                  if k in type:
-                      return v

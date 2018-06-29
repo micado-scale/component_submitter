@@ -60,6 +60,8 @@ class MiCADOParser(object):
         raise Exception("An error occured while parsing, This might be due to the a wrong type in the TOSCA template, check if all the types exist, or that the import section is correct.")
 
 
+
+
     Validator.validation(template)
 
 
