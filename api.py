@@ -3,6 +3,7 @@ from submitter_engine import SubmitterEngine
 from toscaparser.common.exception import *
 import os
 app = Flask(__name__)
+app.url_map.strict_slashes = False
 import logging
 import ast
 import utils
