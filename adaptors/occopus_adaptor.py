@@ -297,10 +297,10 @@ class OccopusAdaptor(abco.Adaptor):
         if capabilites.get("subnet_id") is not None:
             self.node_data.setdefault(key, {}) \
               .setdefault("subnet_id", capabilites["subnet_id"].value)
-        if capabilites.get("security_groups_ids") is not None:
+        if capabilites.get("security_group_ids") is not None:
             security_groups = list()
-            security_groups.append(capabilites["security_groups_ids"].value)
-            self.node_data[key]["security_groups_ids"] = security_groups
+            security_groups.append(capabilites["security_group_ids"].value)
+            self.node_data[key]["security_group_ids"] = security_groups
 
     def _node_data_get_cloudbroker_host_properties(self, node, key):
         """
