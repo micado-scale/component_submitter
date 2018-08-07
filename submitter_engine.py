@@ -82,7 +82,7 @@ class SubmitterEngine(object):
         dict_object_adaptors = self._instantiate_adaptors(id_app, template)
         logger.debug("list of objects adaptor: {}".format(dict_object_adaptors))
         #self._save_file(id_app, path_to_file)
-        self.app_list.update({id_app: ""})
+        self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys())}})
         self._update_json()
         logger.info("dictionnaty of id is: {}".format(self.app_list))
 
@@ -226,8 +226,9 @@ class SubmitterEngine(object):
             adaptors[step].execute()
             executed_adaptors.append(adaptors[step])
             try:
-                self.app_list[app_id] = adaptors[step].output
+                self.app_list[app_id]["output"] = adaptors[step].output
             except AttributeError as e:
+                self.app_list[app_id]["output"] = "no output available"
                 logger.warning("the adaptor doesn't provice a output attribute")
 
         # for adaptor in adaptors:
