@@ -180,8 +180,10 @@ def info_app(id_app):
     try:
         this_app = submitter.app_list[id_app]
     except KeyError:
-        return jsonify(dict(status_code=404,
+        response = jsonify(dict(status_code=404,
                             message="App with ID {} does not exist".format(id_app)))
+        response.status_code = 404
+        return response
     else:
         response = dict(status_code=200,
                         message="Detail application {}".format(id_app), data={})
