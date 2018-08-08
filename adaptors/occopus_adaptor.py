@@ -322,6 +322,8 @@ class OccopusAdaptor(abco.Adaptor):
               .setdefault("description", {}) \
               .setdefault("opened_port", capabilites["opened_port"].value)
         self._node_data_get_context_section()
+        self.node_data.setdefault("health_check", {}) \
+            .setdefault("ping",False)
 
     def _node_data_get_nova_host_properties(self, node, key):
         """
