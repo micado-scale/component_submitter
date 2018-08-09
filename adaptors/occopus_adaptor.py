@@ -71,28 +71,28 @@ class OccopusAdaptor(abco.Adaptor):
 
         for node in self.template.nodetemplates:
             if "tosca.nodes.MiCADO.Occopus.CloudSigma.Compute" in node.type:
-                logger.info("CloudSigma resource deteckted")
+                logger.info("CloudSigma resource detected")
                 self._node_data_get_interface(node, "resource")
                 self._node_data_get_cloudsigma_host_properties(node, "resource")
                 self._get_policies()
                 self._get_infra_def(tmp)
                 cloudsigma = True
             if "tosca.nodes.MiCADO.Occopus.EC2.Compute" in node.type:
-                logger.info("EC2 resource deteckted")
+                logger.info("EC2 resource detected")
                 self._node_data_get_interface(node, "resource")
                 self._node_data_get_ec2_host_properties(node, "resource")
                 self._get_policies()
                 self._get_infra_def(tmp)
                 ec2 = True
             if "tosca.nodes.MiCADO.Occopus.CloudBroker.Compute" in node.type:
-                logger.info("CloudBroker resource deteckted")
+                logger.info("CloudBroker resource detected")
                 self._node_data_get_interface(node, "resource")
                 self._node_data_get_cloudbroker_host_properties(node, "resource")
                 self._get_policies()
                 self._get_infra_def(tmp)
                 cloudbroker = True
             if "tosca.nodes.MiCADO.Occopus.Nova.Compute" in node.type:
-                logger.info("Nova resource deteckted")
+                logger.info("Nova resource detected")
                 self._node_data_get_interface(node, "resource")
                 self._node_data_get_nova_host_properties(node, "resource")
                 self._get_policies()
@@ -322,6 +322,8 @@ class OccopusAdaptor(abco.Adaptor):
               .setdefault("description", {}) \
               .setdefault("opened_port", capabilites["opened_port"].value)
         self._node_data_get_context_section()
+        self.node_data.setdefault("health_check", {}) \
+            .setdefault("ping",False)
 
     def _node_data_get_nova_host_properties(self, node, key):
         """
