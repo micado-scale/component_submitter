@@ -93,9 +93,13 @@ class DockerAdaptor(abco.Adaptor):
         logger.info("Starting translation to compose...")
         self.compose_data = {"version": COMPOSE_VERSION}
 
-        inspect = json.loads(
-            subprocess.check_output(['docker','network','inspect','bridge']))[0]
-        self.mtu = inspect.get("Options").get("com.docker.network.driver.mtu")
+        #Get the MTU from default bridge network
+        try:
+            inspect = json.loads(
+                subprocess.check_output('docker','network','inspect','bridge']))[0]
+            self.mtu = inspect.get("Options").get("com.docker.network.driver.mtu")
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            logger.error("Could not get MTU from default network, using 1500!")
         if not self.mtu:
             self.mtu = 1500
 
