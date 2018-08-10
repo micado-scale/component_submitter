@@ -77,6 +77,7 @@ class DockerAdaptor(abco.Adaptor):
                                             self.config['volume'], self.ID)
         self.tpl = template
         self.output = dict()
+        self.openstack = False
         logger.info("DockerAdaptor ready to go!")
 
     def translate(self, tmp=False):
@@ -91,6 +92,9 @@ class DockerAdaptor(abco.Adaptor):
 
         logger.info("Starting translation to compose...")
         self.compose_data = {"version": COMPOSE_VERSION}
+
+        if [node for node in self.tpl.nodetemplates if 'nova' in node.type.lower()]:
+            self.openstack = True
 
         for node in self.tpl.nodetemplates:
             if DOCKER_CONTAINER in node.type:
@@ -263,6 +267,9 @@ class DockerAdaptor(abco.Adaptor):
                 logger.debug("Error caught {}, trying without .result()".format(e))
                 entry[prop] = node.get_property_value(prop)
 
+        if self.openstack == True and key == 'networks':
+            entry.setdefault("driver_opts", {}) \
+                 .setdefault("com.docker.network.driver.mtu", 1450)
         # Write the compose data
         self.compose_data.setdefault(key, {}).setdefault(node.name, {}).update(entry)
 
@@ -329,6 +336,9 @@ class DockerAdaptor(abco.Adaptor):
         """ Create a network entry in the compose data under networks """
         network_key = self.compose_data.setdefault("networks", {})
         network_key.update({network: {"driver":"overlay"}})
+        if self.openstack == True:
+            network_key[network].setdefault("driver_opts", {}) \
+                                .setdefault("com.docker.network.driver.mtu", 1450)
 
         # Add the entry for the network under the current node's key in compose
         node = self.compose_data.setdefault("services", {}) \
