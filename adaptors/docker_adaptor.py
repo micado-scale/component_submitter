@@ -77,7 +77,7 @@ class DockerAdaptor(abco.Adaptor):
                                             self.config['volume'], self.ID)
         self.tpl = template
         self.output = dict()
-        self.openstack = False
+        self.mtu = 1500
         logger.info("DockerAdaptor ready to go!")
 
     def translate(self, tmp=False):
@@ -93,8 +93,15 @@ class DockerAdaptor(abco.Adaptor):
         logger.info("Starting translation to compose...")
         self.compose_data = {"version": COMPOSE_VERSION}
 
-        if [node for node in self.tpl.nodetemplates if 'nova' in node.type.lower()]:
-            self.openstack = True
+        #Get the MTU from default bridge network
+        try:
+            inspect = json.loads(
+                subprocess.check_output(['docker','network','inspect','bridge']))[0]
+            self.mtu = inspect.get("Options").get("com.docker.network.driver.mtu")
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            logger.error("Could not get MTU from default network, using 1500!")
+        if not self.mtu:
+            self.mtu = 1500
 
         for node in self.tpl.nodetemplates:
             if DOCKER_CONTAINER in node.type:
@@ -267,9 +274,9 @@ class DockerAdaptor(abco.Adaptor):
                 logger.debug("Error caught {}, trying without .result()".format(e))
                 entry[prop] = node.get_property_value(prop)
 
-        if self.openstack == True and key == 'networks':
+        if self.mtu != 1500 and key == 'networks':
             entry.setdefault("driver_opts", {}) \
-                 .setdefault("com.docker.network.driver.mtu", 1450)
+                 .setdefault("com.docker.network.driver.mtu", self.mtu)
         # Write the compose data
         self.compose_data.setdefault(key, {}).setdefault(node.name, {}).update(entry)
 
@@ -336,9 +343,9 @@ class DockerAdaptor(abco.Adaptor):
         """ Create a network entry in the compose data under networks """
         network_key = self.compose_data.setdefault("networks", {})
         network_key.update({network: {"driver":"overlay"}})
-        if self.openstack == True:
+        if self.mtu != 1500:
             network_key[network].setdefault("driver_opts", {}) \
-                                .setdefault("com.docker.network.driver.mtu", 1450)
+                                .setdefault("com.docker.network.driver.mtu", self.mtu)
 
         # Add the entry for the network under the current node's key in compose
         node = self.compose_data.setdefault("services", {}) \
