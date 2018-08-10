@@ -96,7 +96,7 @@ class DockerAdaptor(abco.Adaptor):
         #Get the MTU from default bridge network
         try:
             inspect = json.loads(
-                subprocess.check_output('docker','network','inspect','bridge']))[0]
+                subprocess.check_output(['docker','network','inspect','bridge']))[0]
             self.mtu = inspect.get("Options").get("com.docker.network.driver.mtu")
         except (subprocess.CalledProcessError, FileNotFoundError):
             logger.error("Could not get MTU from default network, using 1500!")
