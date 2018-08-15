@@ -270,7 +270,7 @@ class SubmitterEngine(object):
 
     def query(self, query, app_id):
         """ query """
-        for adaptor in self._instantiate_adaptors(app_id):
+        for adaptor in self._instantiate_adaptors(app_id).values():
             try:
                 result = adaptor.query(query)
             except AttributeError:

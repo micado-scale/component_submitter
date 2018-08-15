@@ -198,7 +198,7 @@ def services_app(id_app):
     """ API call to query running services """
     response = dict(status_code=200, message="List running services", data=[])
     for result in submitter.query('nodes', id_app):
-        response[data].append(result)
+        response['data'].append(result)
     return jsonify(response)
 
 @app.route('/v1.0/list_app', methods=['GET'])

@@ -191,9 +191,9 @@ class DockerAdaptor(abco.Adaptor):
         """ Queries """
         logger.info("Query ID {}".format(self.ID))
         docker_client = docker.APIClient(base_url='unix://var/run/docker.sock')
-        if query == 'nodes'
+        if query == 'nodes':
             return docker_client.nodes()
-        elif query == 'services'
+        elif query == 'services':
             return docker_client.services(filters={'name':self.ID.split("_")[0]})
 
     def cleanup(self):
