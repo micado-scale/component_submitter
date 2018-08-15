@@ -6,6 +6,7 @@ install:
   - pip install tosca-parser
   - pip install flask
   - pip install ruamel.yaml
+  - pip install docker
 script:
   - python -m unittest tests.test_validator.TestValidation
   - python -m unittest tests.test_docker.TestDockerAdaptor
