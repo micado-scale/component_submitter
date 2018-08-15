@@ -268,7 +268,17 @@ class SubmitterEngine(object):
             except AttributeError as e:
                 logger.warning("the Adaptor doesn't provide a output attribute")
 
-
+    def query(self, query, app_id):
+        """ query """
+        for adaptor in self._instantiate_adaptors(app_id).values():
+            try:
+                result = adaptor.query(query)
+            except AttributeError:
+                continue
+            else:
+                return result
+        else:
+            raise AdaptorCritical("No query method available")
 
     def _cleanup(self, id, adaptors):
         """ method called by the engine to launch the celanup method of all the components for a specific application

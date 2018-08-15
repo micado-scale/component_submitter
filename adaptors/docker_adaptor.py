@@ -9,6 +9,7 @@ import os
 import json
 import filecmp
 import logging
+import docker
 
 from toscaparser.tosca_template import ToscaTemplate
 import utils
@@ -185,6 +186,15 @@ class DockerAdaptor(abco.Adaptor):
             subprocess.run(["docker", "stack", "down", self.ID.split("_")[0]], check=True)
             logger.debug("Undeploy application with ID: {}".format(self.ID))
         logger.info("Stack is down...")
+
+    def query(self, query):
+        """ Queries """
+        logger.info("Query ID {}".format(self.ID))
+        docker_client = docker.APIClient(base_url='unix://var/run/docker.sock')
+        if query == 'nodes':
+            return docker_client.nodes()
+        elif query == 'services':
+            return docker_client.services(filters={'name':self.ID.split("_")[0]})
 
     def cleanup(self):
         """ Remove the associated Compose file

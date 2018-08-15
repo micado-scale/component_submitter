@@ -193,6 +193,22 @@ def info_app(id_app):
                                 components=this_app["components"])
         return jsonify(response)
 
+@app.route('/v1.0/app/<id_app>/services', methods=['GET'])
+def services_query(id_app):
+    """ API call to query running services """
+    response = dict(status_code=200, message="List running services", data=[])
+    for result in submitter.query('services', id_app):
+        response['data'].append(result)
+    return jsonify(response)
+
+@app.route('/v1.0/app/<id_app>/nodes', methods=['GET'])
+def nodes_query(id_app):
+    """ API call to query running services """
+    response = dict(status_code=200, message="List running nodes", data=[])
+    for result in submitter.query('nodes', id_app):
+        response['data'].append(result)
+    return jsonify(response)
+
 @app.route('/v1.0/list_app', methods=['GET'])
 def list_app():
     """ API function to list all the running aplications"""
