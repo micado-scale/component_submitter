@@ -71,7 +71,6 @@ class DockerAdaptor(abco.Adaptor):
 
         self.config = config
         self.compose_data = {}
-        logger.debug("\t\t\t\t\t {}".format(config))
         self.ID = adaptor_id
         self.path = "{}{}.yaml".format(self.config['volume'], self.ID)
         self.tmp_path = "{}tmp_{}.yaml".format(
