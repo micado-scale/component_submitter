@@ -1,9 +1,8 @@
 FROM alpine:latest
 
-RUN apk update && \
-apk --no-cache add gcc docker python3 && \
-pip3 install tosca-parser ruamel.yaml==0.14 flask && \
-apk del gcc
+RUN apk update \
+&& apk --no-cache add docker python3 \
+&& pip3 install -r requirements.txt
 
 WORKDIR /var/lib/submitter
 

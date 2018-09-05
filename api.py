@@ -3,6 +3,7 @@ from submitter_engine import SubmitterEngine
 from toscaparser.common.exception import *
 import os
 app = Flask(__name__)
+app.url_map.strict_slashes = False
 import logging
 import ast
 import utils
@@ -146,13 +147,13 @@ def update_url(id_app):
         if response is None:
             return jsonify(dict(message="correctly updated", status_code=200))
         else:
-            return jsonify(dict(message="update failed", status_cod=500))
+            return jsonify(dict(message="update failed", status_code=500))
     else:
         response = submitter.update(id_app, path_to_file, parsed_params)
         if response is None:
             return jsonify(dict(message="correctly updated", status_code=200))
         else:
-            return jsonify(dict(message="update failed", status_cod=500))
+            return jsonify(dict(message="update failed", status_code=500))
 
 @app.route('/v1.0/app/update/file/<id_app>', methods=['PUT'])
 def update_file(id_app):
@@ -171,23 +172,53 @@ def update_file(id_app):
     if response is None:
         return jsonify(dict(message="correctly updated", status_code=200))
     else:
-        return jsonify(dict(message="update failed", status_cod=500))
+        return jsonify(dict(message="update failed", status_code=500))
 
 @app.route('/v1.0/app/<id_app>', methods=['GET'])
 def info_app(id_app):
     """ API function to get the information on a given id """
-    response = jsonify(dict(message="{}".format(submitter.app_list[id_app])))
-    response.status_code = 500
+    try:
+        this_app = submitter.app_list[id_app]
+    except KeyError:
+        response = jsonify(dict(status_code=404,
+                            message="App with ID {} does not exist".format(id_app)))
+        response.status_code = 404
+        return response
+    else:
+        response = dict(status_code=200,
+                        message="Detail application {}".format(id_app), data={})
+        response["data"] = dict(type="application",
+                                id=id_app,
+                                outputs=this_app["output"],
+                                components=this_app["components"])
+        return jsonify(response)
 
-    return response
+@app.route('/v1.0/app/<id_app>/services', methods=['GET'])
+def services_query(id_app):
+    """ API call to query running services """
+    response = dict(status_code=200, message="List running services", data=[])
+    for result in submitter.query('services', id_app):
+        response['data'].append(result)
+    return jsonify(response)
+
+@app.route('/v1.0/app/<id_app>/nodes', methods=['GET'])
+def nodes_query(id_app):
+    """ API call to query running services """
+    response = dict(status_code=200, message="List running nodes", data=[])
+    for result in submitter.query('nodes', id_app):
+        response['data'].append(result)
+    return jsonify(response)
 
 @app.route('/v1.0/list_app', methods=['GET'])
 def list_app():
     """ API function to list all the running aplications"""
-    response = []
+    response = dict(status_code=200, message="List running applications", data=[])
     for key, value in submitter.app_list.items():
-        response.append("id: {}, outputs: {}\n".format(key,value))
-    return "<h1>here is the id list of applications \n {}\n</h1>\n".format(response)
+        response["data"].append(dict(type="application",
+                                     id=key,
+                                     outputs=value["output"],
+                                     components=value["components"]))
+    return jsonify(response)
 
 if __name__ == "__main__":
     __init__()

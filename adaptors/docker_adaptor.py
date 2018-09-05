@@ -9,6 +9,7 @@ import os
 import json
 import filecmp
 import logging
+import docker
 
 from toscaparser.tosca_template import ToscaTemplate
 import utils
@@ -32,6 +33,7 @@ COMPOSE_VERSION = "3.4"
 class DockerAdaptor(abco.Adaptor):
 
     """ The Docker adaptor class
+
     Carries out the deployment of a Dockerised application or application stack
     based on a description of an application provided by a YAML file which
     follows the OpenStack TOSCA language specification.
@@ -75,10 +77,12 @@ class DockerAdaptor(abco.Adaptor):
                                             self.config['volume'], self.ID)
         self.tpl = template
         self.output = dict()
+        self.mtu = 1500
         logger.info("DockerAdaptor ready to go!")
 
     def translate(self, tmp=False):
         """ Translate the self.tpl subset to the Compose format
+
         Does the work of mapping the Docker relevant sections of TOSCA into a
         dictionary following the Docker-Compose format, then dumping output to
         a .yaml file in output_configs/
@@ -88,6 +92,16 @@ class DockerAdaptor(abco.Adaptor):
 
         logger.info("Starting translation to compose...")
         self.compose_data = {"version": COMPOSE_VERSION}
+
+        #Get the MTU from default bridge network
+        try:
+            inspect = json.loads(
+                subprocess.check_output(['docker','network','inspect','bridge']))[0]
+            self.mtu = inspect.get("Options").get("com.docker.network.driver.mtu")
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            logger.error("Could not get MTU from default network, using 1500!")
+        if not self.mtu:
+            self.mtu = 1500
 
         for node in self.tpl.nodetemplates:
             if DOCKER_CONTAINER in node.type:
@@ -104,15 +118,14 @@ class DockerAdaptor(abco.Adaptor):
             raise AdaptorCritical("No TOSCA nodes of Docker type!")
 
         if tmp is False:
-            utils.dump_order_yaml(
-                self.compose_data, self.path)
+            utils.dump_order_yaml(self.compose_data, self.path)
         else:
-            utils.dump_order_yaml(
-                self.compose_data, self.tmp_path)
+            utils.dump_order_yaml(self.compose_data, self.tmp_path)
 
 
     def execute(self):
         """ Deploy the stack onto the Swarm
+
         Executes the ``docker stack deploy`` command on the Docker-Compose file
         which was created in ``translate()``
         :raises: AdaptorCritical
@@ -121,12 +134,13 @@ class DockerAdaptor(abco.Adaptor):
 
         try:
             if self.config['dry_run'] is False:
-                subprocess.run(["docker", "stack", "deploy", "--compose-file",
-                self.path, self.ID[:8]], stderr=subprocess.PIPE, check=True)
+                subprocess.run(["docker", "stack", "deploy", "--with-registry-auth",
+                "--compose-file", self.path, self.ID.split("_")[0]],
+                stderr=subprocess.PIPE, check=True)
             else:
                 logger.info(f'subprocess.run([\"docker\", \"stack\", \"deploy\", '
                         f'\"--compose-file\", \"docker-compose.yaml\", '
-                        f'{self.ID[:8]}], check=True)')
+                        f'{self.ID.split("_")[0]}], check=True)')
 
         except subprocess.CalledProcessError as e:
             # FIXME: no-so-nice hack to force updates to correct own sequences
@@ -134,8 +148,8 @@ class DockerAdaptor(abco.Adaptor):
             if ("update out of sequence" in str(e.stderr, 'utf-8')):
                 logger.error("Trying update again")
                 try:
-                    subprocess.run(["docker", "stack", "deploy", "--compose-file",
-                    self.path, self.ID[:8]], check=True)
+                    subprocess.run(["docker", "stack", "deploy", "--with-registry-auth",
+                    "--compose-file", self.path, self.ID.split("_")[0]], check=True)
                 except subprocess.CalledProcessError:
                     raise AdaptorCritical("Cannot execute Docker")
                     logger.error("Cannot execute Docker")
@@ -143,14 +157,15 @@ class DockerAdaptor(abco.Adaptor):
                 raise AdaptorCritical("Cannot execute Docker")
                 logger.error("Cannot execute Docker")
         except KeyError:
-            subprocess.run(["docker", "stack", "deploy", "--compose-file",
-            self.path, self.ID[:8]], check=True)
+            subprocess.run(["docker", "stack", "deploy", "--with-registry-auth",
+            "--compose-file", self.path, self.ID.split("_")[0]], check=True)
 
         logger.info("Docker running, trying to get outputs...")
         self._get_outputs()
 
     def undeploy(self):
         """ Undeploy the stack from Docker
+
         Runs ``docker stack down`` using the given ID to bring down the stack.
         :raises: AdaptorCritical
         """
@@ -158,7 +173,7 @@ class DockerAdaptor(abco.Adaptor):
 
         try:
             if self.config['dry_run'] is False:
-                subprocess.run(["docker", "stack", "down", self.ID[:8]], check=True)
+                subprocess.run(["docker", "stack", "down", self.ID.split("_")[0]], check=True)
                 logger.debug("Undeploy application with ID: {}".format(self.ID))
             else:
                 logger.debug(f'Undeploy application with ID: {self.ID}')
@@ -167,14 +182,23 @@ class DockerAdaptor(abco.Adaptor):
             logger.error("Cannot undeploy the stack")
             raise AdaptorCritical("Cannot undeploy the stack")
         except KeyError:
-            subprocess.run(["docker", "stack", "down", self.ID[:8]], check=True)
+            subprocess.run(["docker", "stack", "down", self.ID.split("_")[0]], check=True)
             logger.debug("Undeploy application with ID: {}".format(self.ID))
         logger.info("Stack is down...")
 
+    def query(self, query):
+        """ Queries """
+        logger.info("Query ID {}".format(self.ID))
+        docker_client = docker.APIClient(base_url='unix://var/run/docker.sock')
+        if query == 'nodes':
+            return docker_client.nodes()
+        elif query == 'services':
+            return docker_client.services(filters={'name':self.ID.split("_")[0]})
+
     def cleanup(self):
         """ Remove the associated Compose file
-        Removes output file created for this stack from ``files/output_configs/``
 
+        Removes output file created for this stack from ``files/output_configs/``
         .. note::
               A warning will be logged if the Compose file cannot be removed
         """
@@ -186,6 +210,7 @@ class DockerAdaptor(abco.Adaptor):
 
     def update(self):
         """ Update an already deployed application stack with a changed ADT
+
         Translates the template into a ``tmp`` compose file, differentiates ``tmp``
         with the current compose file. If different, replace current compose with
         ``tmp`` compose, and call execute().
@@ -235,7 +260,7 @@ class DockerAdaptor(abco.Adaptor):
         for output in self.tpl.outputs:
             node = output.value.get_referenced_node_template()
             if node.type == DOCKER_CONTAINER:
-                service = "{}_{}".format(self.ID[:8], node.name)
+                service = "{}_{}".format(self.ID.split("_")[0], node.name)
                 logger.debug("Inspect service: {}".format(service))
                 query = output.value.attribute_name
                 get_attribute(service, query)
@@ -258,6 +283,9 @@ class DockerAdaptor(abco.Adaptor):
                 logger.debug("Error caught {}, trying without .result()".format(e))
                 entry[prop] = node.get_property_value(prop)
 
+        if self.mtu != 1500 and key == 'networks':
+            entry.setdefault("driver_opts", {}) \
+                 .setdefault("com.docker.network.driver.mtu", self.mtu)
         # Write the compose data
         self.compose_data.setdefault(key, {}).setdefault(node.name, {}).update(entry)
 
@@ -324,6 +352,9 @@ class DockerAdaptor(abco.Adaptor):
         """ Create a network entry in the compose data under networks """
         network_key = self.compose_data.setdefault("networks", {})
         network_key.update({network: {"driver":"overlay"}})
+        if self.mtu != 1500:
+            network_key[network].setdefault("driver_opts", {}) \
+                                .setdefault("com.docker.network.driver.mtu", self.mtu)
 
         # Add the entry for the network under the current node's key in compose
         node = self.compose_data.setdefault("services", {}) \
