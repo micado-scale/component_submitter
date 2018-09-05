@@ -135,7 +135,7 @@ def undeploy(id_app):
         response["status_code"] = 200
         return jsonify(response)
     except Exception:
-        response["message"] = "application {} doesn't exist"
+        response["message"] = "application {} doesn't exist".format(id_app)
         response["status_code"] = 404
         return jsonify(response)
     else:
