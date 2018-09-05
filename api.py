@@ -45,7 +45,7 @@ def unhandle_request_error(error):
     import traceback as tb
     logger.error("An unhandle exception occured:{}".format(error))
     response = jsonify(dict(message=str(error)))
-    response.status_code = 500
+    response.status_code= 500
     return response
 
 @app.errorhandler(RequestError)
@@ -67,7 +67,7 @@ def engine_url():
         :type params: dictionary
     """
     logger.debug("serving request {}".format(request.method))
-
+    response = dict(status_code="", message="", data=[])
 
     path_to_file = request.form["input"]
     logger.debug("path_to_file: {}".format(path_to_file))
@@ -88,14 +88,16 @@ def engine_url():
     else:
         parsed_params = ast.literal_eval(params)
         id_app = submitter.launch(path_to_file=path_to_file, parsed_params=parsed_params, id_app=id_app)
-    response = jsonify(dict(message="app:{}".format(id_app)))
-    response.status_code = 200
-    return response
+
+    response["status_code"] = 200
+    response["message"] = "successfully launched app {}".format(id_app)
+    return jsonify(response)
 
 @app.route('/v1.0/app/launch/file/', methods=['POST'])
 def engine_file():
     """ API functions to launch an application
     """
+    response = dict(status_code="", message="", data=[])
     template = request.files['file']
     try:
          id_app= request.form['id']
@@ -115,9 +117,9 @@ def engine_file():
 
     id_app = submitter.launch(path_to_file = path_to_file, parsed_params=parsed_params, id_app=id_app)
 
-    response = jsonify(dict(message="app:{}".format(id_app)))
-    response.status_code = 200
-    return response
+    response["message"] = "successfully launched app {}".format(id_app)
+    response["status_code"]= 200
+    return jsonify(response)
 
 
 
@@ -125,11 +127,21 @@ def engine_file():
 def undeploy(id_app):
     """ API function to undeploy the application with a specific ID
     """
-    response = submitter.undeploy(id_app)
-    if response is None:
-        return jsonify(dict(message="undeployed {} correctly".format(id_app), status_code=200))
+    response = dict(status_code="", message="", data=[])
+
+    try:
+        submitter.undeploy(id_app)
+        response["message"] = "successfully undeployed {}".format(id_app)
+        response["status_code"] = 200
+        return jsonify(response)
+    except Exception:
+        response["message"] = "application {} doesn't exist".format(id_app)
+        response["status_code"] = 404
+        return jsonify(response)
     else:
-        return jsonify(dict(message="something undexpected happened", status_code=500))
+        response["message"] = "something unexpected happened, contact your MiCADO Admin for more details"
+        response["status_code"]= 500
+        return jsonify(response)
 
 @app.route('/v1.0/app/update/url/<id_app>', methods=['PUT'])
 def update_url(id_app):
@@ -137,28 +149,37 @@ def update_url(id_app):
     logger.info("id is: {}".format(id_app))
     path_to_file = request.form['input']
     logger.info("path_to_file is: {}".format(path_to_file))
+    response = dict(status_code="", message="", data=[])
     try:
         params = request.form['params']
         logger.info("params is: {}".format(params))
         parsed_params = ast.literal_eval(params)
     except Exception as e:
         logger.info("exception is: {}".format(e))
-        response = submitter.update(id_app, path_to_file)
-        if response is None:
-            return jsonify(dict(message="correctly updated", status_code=200))
+        if submitter.update(id_app, path_to_file) is None:
+            response["message"] = "{} correctly updated".format(id_app)
+            response["status_code"]= 200
+            return jsonify(response)
         else:
-            return jsonify(dict(message="update failed", status_code=500))
+            response["message"] = "{} update failed".format(id_app)
+            response["status_code"]= 500
+            return jsonify(response)
     else:
-        response = submitter.update(id_app, path_to_file, parsed_params)
-        if response is None:
-            return jsonify(dict(message="correctly updated", status_code=200))
+
+        if submitter.update(id_app, path_to_file, parsed_params) is None:
+            response["message"] = "{} correctly updated".format(id_app)
+            response["status_code"]= 200
+            return jsonify(response)
         else:
-            return jsonify(dict(message="update failed", status_code=500))
+            response["message"] = "{} update failed".format(id_app)
+            response["status_code"]= 500
+            return jsonify(response)
 
 @app.route('/v1.0/app/update/file/<id_app>', methods=['PUT'])
 def update_file(id_app):
     """ API function to update the application with a specific ID from a file"""
     template = request.files['file']
+    response = dict(status_code="", message="", data=[])
     try:
          params= request.form['params']
     except Exception:
@@ -168,25 +189,31 @@ def update_file(id_app):
 
     template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
     path_to_file = "files/templates/{}.yaml".format(id_app)
-    response = submitter.update(id_app, path_to_file=path_to_file, parsed_params=parsed_params)
-    if response is None:
-        return jsonify(dict(message="correctly updated", status_code=200))
+
+    if submitter.update(id_app, path_to_file=path_to_file, parsed_params=parsed_params) is None:
+        response["message"] = "{} correctly updated".format(id_app)
+        response["status_code"]= 200
+        return jsonify(response)
     else:
-        return jsonify(dict(message="update failed", status_code=500))
+        response["message"] = "{} update failed".format(id_app)
+        response["status_code"]= 500
+        return jsonify(response)
 
 @app.route('/v1.0/app/<id_app>', methods=['GET'])
 def info_app(id_app):
     """ API function to get the information on a given id """
+    response = dict(status_code="", message="", data=[])
     try:
         this_app = submitter.app_list[id_app]
     except KeyError:
-        response = jsonify(dict(status_code=404,
-                            message="App with ID {} does not exist".format(id_app)))
-        response.status_code = 404
-        return response
+        response["status_code"]=404
+        response["message"]="App with ID {} does not exist".format(id_app)
+
+        return jsonify(response)
     else:
-        response = dict(status_code=200,
-                        message="Detail application {}".format(id_app), data={})
+        response["status_code"]=200
+
+        response["message"]="Detail application {}".format(id_app)
         response["data"] = dict(type="application",
                                 id=id_app,
                                 outputs=this_app["output"],
