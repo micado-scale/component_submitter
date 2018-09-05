@@ -45,7 +45,7 @@ def unhandle_request_error(error):
     import traceback as tb
     logger.error("An unhandle exception occured:{}".format(error))
     response = jsonify(dict(message=str(error)))
-    response["status_code"]= 500
+    response.status_code= 500
     return response
 
 @app.errorhandler(RequestError)
