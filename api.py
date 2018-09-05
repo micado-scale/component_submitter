@@ -128,9 +128,15 @@ def undeploy(id_app):
     """ API function to undeploy the application with a specific ID
     """
     response = dict(status_code="", message="", data=[])
-    if submitter.undeploy(id_app) is None:
+
+    try:
+        submitter.undeploy(id_app)
         response["message"] = "successfully undeployed {}".format(id_app)
-        response["status_code"]= 200
+        response["status_code"] = 200
+        return jsonify(response)
+    except Exception:
+        response["message"] = "application {} doesn't exist"
+        response["status_code"] = 404
         return jsonify(response)
     else:
         response["message"] = "something unexpected happened, contact your MiCADO Admin for more details"
