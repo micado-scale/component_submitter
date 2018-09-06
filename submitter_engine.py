@@ -264,7 +264,7 @@ class SubmitterEngine(object):
             try:
                 #self.app_list.update(app_id, Step(adaptor).output)
                 logger.info(adaptors[step].output)
-                self.app_list[app_id] = adaptors[step].output
+                self.app_list[app_id]["output"] = adaptors[step].output
             except AttributeError as e:
                 logger.warning("the Adaptor doesn't provide a output attribute")
 
