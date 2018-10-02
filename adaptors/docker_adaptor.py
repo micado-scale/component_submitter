@@ -175,6 +175,7 @@ class DockerAdaptor(abco.Adaptor):
         try:
             if self.config['dry_run'] is False:
                 subprocess.run(["docker", "stack", "down", self.ID.split("_")[0]], check=True)
+                subprocess.run(["docker", "exec", "occopus_redis", "redis-cli", "FLUSHALL"], check=True)
                 logger.debug("Undeploy application with ID: {}".format(self.ID))
             else:
                 logger.debug(f'Undeploy application with ID: {self.ID}')
