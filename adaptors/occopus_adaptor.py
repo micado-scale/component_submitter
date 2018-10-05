@@ -156,7 +156,7 @@ class OccopusAdaptor(abco.Adaptor):
                     #with open(self.infra_def_path_output, 'rb') as data:
                     #    requests.post("http://{0}/infrastructures/"
                     # .format(self.occopus_address), data=data, headers=headers)
-                    buildinfo = self.occopus.exec_run("occopus-build {} -i {} --auth_data_path {}"
+                    buildinfo = self.occopus.exec_run("occopus-build {} -i {} --auth_data_path {} --parallelize"
                                                       .format(self.occo_infra_path,
                                                               self.worker_infra_name,
                                                               self.auth_data_file))
