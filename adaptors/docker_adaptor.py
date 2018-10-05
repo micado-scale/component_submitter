@@ -115,8 +115,7 @@ class DockerAdaptor(abco.Adaptor):
                 self._compose_properties(node, "volumes")
 
         if not self.compose_data.get("services"):
-            logger.error("No TOSCA nodes of Docker type!")
-            raise AdaptorCritical("No TOSCA nodes of Docker type!")
+            logger.info("No Docker nodes in TOSCA. Do you need this adaptor?")
 
         if tmp is False:
             utils.dump_order_yaml(self.compose_data, self.path)
