@@ -174,7 +174,6 @@ class DockerAdaptor(abco.Adaptor):
         try:
             if self.config['dry_run'] is False:
                 subprocess.run(["docker", "stack", "down", self.ID.split("_")[0]], check=True)
-                subprocess.run(["docker", "exec", "occopus_redis", "redis-cli", "FLUSHALL"], check=True)
                 logger.debug("Undeploy application with ID: {}".format(self.ID))
             else:
                 logger.debug(f'Undeploy application with ID: {self.ID}')
@@ -208,6 +207,11 @@ class DockerAdaptor(abco.Adaptor):
             os.remove(self.path)
         except OSError as e:
             logger.warning(e)
+        try:
+            subprocess.run(["docker", "exec", "occopus_redis", "redis-cli", "FLUSHALL"], check=True)
+        except subprocess.CalledProcessError:
+            logger.warning("Could not flush occopus_redis")
+
 
     def update(self):
         """ Update an already deployed application stack with a changed ADT
