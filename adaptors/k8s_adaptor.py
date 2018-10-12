@@ -28,9 +28,9 @@ DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_NETWORK, DOCKER_VOLUME, DOCKER_IMAGE,
                  "tosca.artifacts.Deployment.Image.Container.Docker",
                  "network", "location")
 
-COMPOSE_VERSION = "3.4"
+COMPOSE_VERSION = "3"
 
-class DockerAdaptor(abco.Adaptor):
+class K8sAdaptor(abco.Adaptor):
 
     """ The Docker adaptor class
 
@@ -67,7 +67,7 @@ class DockerAdaptor(abco.Adaptor):
         if template and not isinstance(template, ToscaTemplate):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")
 
-        logger.debug("Initialising the Docker adaptor with ID & TPL...")
+        logger.debug("Initialising the K8s adaptor with ID & TPL...")
 
         self.config = config
         self.compose_data = {}
@@ -134,33 +134,15 @@ class DockerAdaptor(abco.Adaptor):
 
         try:
             if self.config['dry_run'] is False:
-                subprocess.run(["docker", "stack", "deploy", "--with-registry-auth",
-                "--compose-file", self.path, self.ID.split("_")[0]],
+                subprocess.run(["kompose", "-f", self.path, "up"],
                 stderr=subprocess.PIPE, check=True)
             else:
-                logger.info(f'subprocess.run([\"docker\", \"stack\", \"deploy\", '
-                        f'\"--compose-file\", \"docker-compose.yaml\", '
-                        f'{self.ID.split("_")[0]}], check=True)')
+                logger.info("dry run kompose up")
 
         except subprocess.CalledProcessError as e:
-            # FIXME: no-so-nice hack to force updates to correct own sequences
-            logger.error("Got this error: {}".format(e.stderr))
-            if ("update out of sequence" in str(e.stderr, 'utf-8')):
-                logger.error("Trying update again")
-                try:
-                    subprocess.run(["docker", "stack", "deploy", "--with-registry-auth",
-                    "--compose-file", self.path, self.ID.split("_")[0]], check=True)
-                except subprocess.CalledProcessError:
-                    raise AdaptorCritical("Cannot execute Docker")
-                    logger.error("Cannot execute Docker")
-            else:
-                raise AdaptorCritical("Cannot execute Docker")
-                logger.error("Cannot execute Docker")
-        except KeyError:
-            subprocess.run(["docker", "stack", "deploy", "--with-registry-auth",
-            "--compose-file", self.path, self.ID.split("_")[0]], check=True)
-
-        logger.info("Docker running, trying to get outputs...")
+            raise AdaptorCritical("Cannot execute Docker")
+            logger.error("Cannot execute Docker")
+        logger.info("K8s running, trying to get outputs...")
         self._get_outputs()
 
     def undeploy(self):
@@ -173,27 +155,19 @@ class DockerAdaptor(abco.Adaptor):
 
         try:
             if self.config['dry_run'] is False:
-                subprocess.run(["docker", "stack", "down", self.ID.split("_")[0]], check=True)
+                subprocess.run(["kompose", "-f", self.path, "up"], check=True)
                 logger.debug("Undeploy application with ID: {}".format(self.ID))
             else:
-                logger.debug(f'Undeploy application with ID: {self.ID}')
+                logger.debug(f'Dry undeploy application with ID: {self.ID}')
 
         except subprocess.CalledProcessError:
             logger.error("Cannot undeploy the stack")
             raise AdaptorCritical("Cannot undeploy the stack")
-        except KeyError:
-            subprocess.run(["docker", "stack", "down", self.ID.split("_")[0]], check=True)
-            logger.debug("Undeploy application with ID: {}".format(self.ID))
         logger.info("Stack is down...")
 
     def query(self, query):
         """ Queries """
-        logger.info("Query ID {}".format(self.ID))
-        docker_client = docker.APIClient(base_url='unix://var/run/docker.sock')
-        if query == 'nodes':
-            return docker_client.nodes()
-        elif query == 'services':
-            return docker_client.services(filters={'name':self.ID.split("_")[0]})
+        logger.info("Query ID {} does nothing".format(self.ID))
 
     def cleanup(self):
         """ Remove the associated Compose file
@@ -220,57 +194,11 @@ class DockerAdaptor(abco.Adaptor):
         with the current compose file. If different, replace current compose with
         ``tmp`` compose, and call execute().
         """
-        logger.info("Starting the update...")
-        logger.debug("Creating temporary template...")
-        self.translate(True)
-
-        if not self._differentiate():
-            logger.debug("tmp file different, replacing old config and executing")
-            os.rename(self.tmp_path, self.path)
-            self.execute()
-        else:
-            try:
-                logger.debug("tmp file is the same, removing the tmp file")
-                os.remove(self.tmp_path)
-            except OSError as e:
-                logger.warning(e)
+        logger.info("Not starting the update...")
 
     def _get_outputs(self):
         """ Get outputs and their resultant attributes """
-        def get_attribute(service, query):
-            """ Get attribute from a service """
-            try:
-                if self.config['dry_run'] is False:
-                    inspect = subprocess.check_output(
-                                        ["docker", "service", "inspect", service])
-                    [inspect] = json.loads(inspect.decode('UTF-8'))
-                else:
-                    inspect = {"Endpoint": {"VirtualIPs": "120.12.12.12", "Ports":"120"}}
-            except KeyError:
-                inspect = subprocess.check_output()(
-                                    ["docker", "service", "inspect", service])
-                [inspect] = json.loads(inspect.decode('UTF-8'))
-            except (subprocess.CalledProcessError, TypeError):
-                logger.warning("Cannot inspect the service {}".format(service))
-            else:
-                if query == "ip_address":
-                    result = inspect.get("Endpoint").get("VirtualIPs")
-                elif query == "port":
-                    result = inspect.get("Endpoint").get("Ports")
-
-                logger.info("[OUTPUT] Service: <{}> Attr: <{}>\n"
-                            "    RESULT: {}".format(service, query, result))
-                self.output.update({query:{"service": service, "result": result}})
-
-        for output in self.tpl.outputs:
-            node = output.value.get_referenced_node_template()
-            if node.type == DOCKER_CONTAINER:
-                service = "{}_{}".format(self.ID.split("_")[0], node.name)
-                logger.debug("Inspect service: {}".format(service))
-                query = output.value.attribute_name
-                get_attribute(service, query)
-            else:
-                logger.warning("{} is not a Docker container!".format(node.name))
+        logger.info("not implemented")
 
     def _differentiate(self):
         """ Compare two compose files """
