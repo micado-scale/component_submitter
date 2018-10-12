@@ -155,7 +155,7 @@ class K8sAdaptor(abco.Adaptor):
 
         try:
             if self.config['dry_run'] is False:
-                subprocess.run(["kompose", "-f", self.path, "up"], check=True)
+                subprocess.run(["kompose", "-f", self.path, "down"], check=True)
                 logger.debug("Undeploy application with ID: {}".format(self.ID))
             else:
                 logger.debug(f'Dry undeploy application with ID: {self.ID}')
