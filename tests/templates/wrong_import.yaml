@@ -1,0 +1,85 @@
+tosca_definitions_version: tosca_simple_yaml_1_0
+
+imports:
+repositories:
+  docker_hub: https://hub.docker.com/
+
+topology_template:
+  inputs:
+    my_first_secret:
+      type: string
+      description: first secrets
+      required: yes
+
+  node_templates:
+    stressng:
+      type: tosca.nodes.MiCADO.Container.Application.Docker
+      properties:
+         command: "--cpu 0 --cpu-method pi -l 85"
+         deploy:
+           resources:
+             reservations:
+               cpus: '1.0'
+      artifacts:
+       image:
+         type: tosca.artifacts.Deployment.Image.Container.Docker
+         file: lorel/docker-stress-ng
+         repository: docker_hub
+
+    worker_node:
+      type: tosca.nodes.MiCADO.Occopus.CloudSigma.Compute
+      properties:
+        cloud:
+          interface_cloud: cloudsigma
+          endpoint_cloud: https://zrh.cloudsigma.com/api/2.0
+      capabilities:
+        host:
+          properties:
+            num_cpus: 2000
+            mem_size: 1073741824
+            vnc_password: secret
+            public_key_id: nsjdkanak
+            libdrive_id: 87ce928e-e0bc-4cab-9502-514e523783e3
+
+  policies:
+    - scalability:
+        type: tosca.policies.Scaling.MiCADO
+        targets: [ worker_node ]
+        properties:
+          constants:
+          alerts:
+          min_instances: 1
+          max_instances: 3
+          scaling_rule: |
+            if len(m_nodes) <= m_node_count and m_time_since_node_count_changed > 60:
+              if node_overloaded:
+                m_node_count+=1
+              if node_underloaded:
+                m_node_count-=1
+            else:
+              print('Transient phase, skipping update of nodes...')
+    - scalability:
+        type: tosca.policies.Scaling.MiCADO
+        targets: [ stressng ]
+        properties:
+          constants:
+          alerts:
+          min_instances: 1
+          max_instances: 3
+          scaling_rule: |
+            if len(m_nodes) == m_node_count:
+              if service_overloaded and m_node_count > m_container_count:
+                m_container_count+=1
+              if service_underloaded:
+                m_container_count-=1
+            else:
+              print('Transient phase, skipping update of containers...')
+
+    - secret_distribution:
+        type: tosca.policies.DockerSecretDistribution
+        targets: [stressng]
+        properties:
+          stage: execution
+          priority: 100
+          text_secrets:
+            my_magician_secret: { get_input: my_first_secret }
