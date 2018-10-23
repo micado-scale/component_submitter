@@ -79,7 +79,7 @@ class SubmitterEngine(object):
 
         if id_app is None:
             id_app = utils.id_generator()
-        self.status_app.set_default(id_app)
+        self.status_app[id_app] = dict()
         dict_object_adaptors = self._instantiate_adaptors(id_app, template)
         logger.debug("list of objects adaptor: {}".format(dict_object_adaptors))
         #self._save_file(id_app, path_to_file)
@@ -184,7 +184,6 @@ class SubmitterEngine(object):
 
         """
         adaptors = dict()
-
         if template is not None:
             for adaptor in self.adaptors_class_name:
                 logger.debug("instantiate {}, template".format(adaptor))
