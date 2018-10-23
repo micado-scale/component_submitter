@@ -16,13 +16,14 @@ logger = logging.getLogger("adaptor."+__name__)
 
 class OccopusAdaptor(abco.Adaptor):
 
-    def __init__(self, adaptor_id, config, template=None):
+    def __init__(self, adaptor_id, config, status, template=None):
         super().__init__()
         """
         Constructor method of the Adaptor
         """
         if template and not isinstance(template, ToscaTemplate):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")
+        self.status = status
         self.config = config
         self.node_name = "node_def:worker"
         self.worker_infra_name = "micado_worker_infra"

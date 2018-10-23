@@ -16,7 +16,7 @@ PK = (STACK, DATA, SOURCES, CONSTANTS, QUERIES, ALERTS, SCALING, NODES, SERVICES
 
 class PkAdaptor(abco.Adaptor):
 
-    def __init__(self, adaptor_id, config, template=None):
+    def __init__(self, adaptor_id, config, status, template=None):
 
         super().__init__()
         if template and not isinstance(template, ToscaTemplate):
@@ -25,6 +25,7 @@ class PkAdaptor(abco.Adaptor):
         self.config = config
         self.pk_data = {}
         self.ID = adaptor_id
+        self.status = status
         try:
             self.path = "{}{}.yaml".format(self.config['volume'], self.ID)
             self.tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)

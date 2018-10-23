@@ -236,6 +236,18 @@ def nodes_query(id_app):
         response['data'].append(result)
     return jsonify(response)
 
+
+@app.route('/v1.0/<id_app>/status', methods=['GET'])
+def status_app(id_app):
+    """ API call to query the status of the application"""
+    response = dict(status_code=200, message="Status of application {}".format(id_app), data=[])
+    try:
+        response['data'] = submitter.get_status(id_app)
+    except KeyError:
+        response['status_code'] = 404
+        response['message'] = "application {} doesn't exist".format(id__app)
+    return jsonify(response)
+
 @app.route('/v1.0/list_app', methods=['GET'])
 def list_app():
     """ API function to list all the running aplications"""

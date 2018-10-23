@@ -61,7 +61,7 @@ class DockerAdaptor(abco.Adaptor):
             (compose file removed from file/output_configs/)
     """
 
-    def __init__(self, adaptor_id, config, template=None):
+    def __init__(self, adaptor_id, config, status, template=None):
         """ Constructor method of the Adaptor as described above """
         super().__init__()
         if template and not isinstance(template, ToscaTemplate):
@@ -79,6 +79,8 @@ class DockerAdaptor(abco.Adaptor):
         self.output = dict()
         self.mtu = 1500
         logger.info("DockerAdaptor ready to go!")
+        self.status = status
+
 
     def translate(self, tmp=False):
         """ Translate the self.tpl subset to the Compose format
@@ -89,7 +91,7 @@ class DockerAdaptor(abco.Adaptor):
         :param bool tmp: Set ``True`` for update() - outputfile gets prefix ``tmp_``
         :raises: AdaptorCritical
         """
-
+        self.status = "translating"
         logger.info("Starting translation to compose...")
         self.compose_data = {"version": COMPOSE_VERSION}
 
@@ -122,6 +124,7 @@ class DockerAdaptor(abco.Adaptor):
         else:
             utils.dump_order_yaml(self.compose_data, self.tmp_path)
 
+        self.status = "translated"
 
     def execute(self):
         """ Deploy the stack onto the Swarm
@@ -131,7 +134,7 @@ class DockerAdaptor(abco.Adaptor):
         :raises: AdaptorCritical
         """
         logger.info("Starting Docker execution...")
-
+        self.status = "executing"
         try:
             if self.config['dry_run'] is False:
                 subprocess.run(["docker", "stack", "deploy", "--with-registry-auth",
@@ -162,6 +165,7 @@ class DockerAdaptor(abco.Adaptor):
 
         logger.info("Docker running, trying to get outputs...")
         self._get_outputs()
+        self.status = executed
 
     def undeploy(self):
         """ Undeploy the stack from Docker
@@ -170,7 +174,7 @@ class DockerAdaptor(abco.Adaptor):
         :raises: AdaptorCritical
         """
         logger.info("Undeploying the application")
-
+        self.status = "undeploying"
         try:
             if self.config['dry_run'] is False:
                 subprocess.run(["docker", "stack", "down", self.ID.split("_")[0]], check=True)
@@ -185,6 +189,7 @@ class DockerAdaptor(abco.Adaptor):
             subprocess.run(["docker", "stack", "down", self.ID.split("_")[0]], check=True)
             logger.debug("Undeploy application with ID: {}".format(self.ID))
         logger.info("Stack is down...")
+        self.status = "executed"
 
     def query(self, query):
         """ Queries """
@@ -215,6 +220,7 @@ class DockerAdaptor(abco.Adaptor):
         with the current compose file. If different, replace current compose with
         ``tmp`` compose, and call execute().
         """
+        self.status = "updating"
         logger.info("Starting the update...")
         logger.debug("Creating temporary template...")
         self.translate(True)
@@ -229,7 +235,7 @@ class DockerAdaptor(abco.Adaptor):
                 os.remove(self.tmp_path)
             except OSError as e:
                 logger.warning(e)
-
+        self.status = "updated"
     def _get_outputs(self):
         """ Get outputs and their resultant attributes """
         def get_attribute(service, query):

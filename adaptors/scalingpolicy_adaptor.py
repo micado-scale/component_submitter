@@ -29,13 +29,13 @@ PATH_TO_PROM = "system/"
 
 class ScalingPolicyAdaptor(abco.Adaptor):
 
-    def __init__(self, adaptor_id, config, template=None):
+    def __init__(self, adaptor_id, config, status, template=None):
 
         super().__init__()
         self.config = config
         if template and not isinstance(template, ToscaTemplate):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")
-
+        self.status = status
         self.ID = adaptor_id
         self.tpl = template
         try:

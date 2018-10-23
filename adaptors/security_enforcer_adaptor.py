@@ -48,7 +48,7 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
             (does nothing as no files were created but need to implement the abstract function anyways)
     """
 
-    def __init__(self, adaptor_id, config, template=None):
+    def __init__(self, adaptor_id, config, status, template=None):
         """ Constructor method of the Adaptor as described above """
         super().__init__()
         if template and not isinstance(template, ToscaTemplate):
@@ -56,6 +56,7 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
         self.tpl = template
         self.ID = adaptor_id
         self.config = config
+        self.status = status
         if template is not None:
             self.policies = self.tpl.policies
         logger.debug("Initialising the SE adaptor with the ID and TPL")

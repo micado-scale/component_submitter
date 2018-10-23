@@ -10,7 +10,7 @@ import os
 import time
 from random import randint
 from submitter_config import SubmitterConfig
-
+import _thread
 import logging
 """ set up of Logging """
 config = SubmitterConfig()
@@ -54,6 +54,7 @@ class SubmitterEngine(object):
         self.object_config = SubmitterConfig()
         self.adaptors_class_name = []
         self._get_adaptors_class()
+        self.status_app = dict()
 
 
 
@@ -78,7 +79,7 @@ class SubmitterEngine(object):
 
         if id_app is None:
             id_app = utils.id_generator()
-
+        self.status_app.set_default(id_app)
         dict_object_adaptors = self._instantiate_adaptors(id_app, template)
         logger.debug("list of objects adaptor: {}".format(dict_object_adaptors))
         #self._save_file(id_app, path_to_file)
@@ -86,7 +87,10 @@ class SubmitterEngine(object):
         self._update_json()
         logger.info("dictionnaty of id is: {}".format(self.app_list))
 
-        self._engine(dict_object_adaptors, template, id_app)
+        try:
+            _thread.strart_new_thread(self._engine, (dict_object_adaptors, template, id_app))
+        except:
+            logger.error("Error : unable to start thread")
         return id_app
 
     def undeploy(self, id_app):
@@ -185,7 +189,9 @@ class SubmitterEngine(object):
             for adaptor in self.adaptors_class_name:
                 logger.debug("instantiate {}, template".format(adaptor))
                 adaptor_id="{}_{}".format(app_id, adaptor.__name__)
-                obj = adaptor(adaptor_id, self.object_config.adaptor_config[adaptor.__name__], template = template)
+                if adaptor_id not in self.status_app[app_id]:
+                    self.status_app[app_id][adaptor_id] = None
+                obj = adaptor(adaptor_id, self.object_config.adaptor_config[adaptor.__name__],self.status_app[app_id][adaptor_id], template = template)
                 adaptors[adaptor.__name__] = obj
                 #adaptors.append(obj)
             return adaptors
@@ -194,7 +200,9 @@ class SubmitterEngine(object):
             for adaptor in self.adaptors_class_name:
                 logger.debug("instantiate {}, no template".format(adaptor))
                 adaptor_id="{}_{}".format(app_id, adaptor.__name__)
-                obj = adaptor(adaptor_id,self.object_config.adaptor_config[adaptor.__name__])
+                if adaptor_id not in self.status_app[app_id]:
+                    self.status_app[app_id][adaptor_id] = None
+                obj = adaptor(adaptor_id,self.object_config.adaptor_config[adaptor.__name__], self.status_app[app_id][adaptor_id])
                 #adaptors.append(obj)
                 adaptors[adaptor.__name__] = obj
                 logger.debug("done instntiation of {}".format(adaptor))
@@ -279,6 +287,15 @@ class SubmitterEngine(object):
                 return result
         else:
             raise AdaptorCritical("No query method available")
+
+    def get_status(self, app_id):
+        """ method to retrieve the status of the differents adaptor"""
+        try:
+            result = self.status_app[app_id]
+        except KeyError:
+            logger.error("application id {} doesn't exist".format(app_id))
+            raise KeyError
+        return result
 
     def _cleanup(self, id, adaptors):
         """ method called by the engine to launch the celanup method of all the components for a specific application
