@@ -88,7 +88,7 @@ class SubmitterEngine(object):
         logger.info("dictionnaty of id is: {}".format(self.app_list))
 
         try:
-            _thread.strart_new_thread(self._engine, (dict_object_adaptors, template, id_app))
+            _thread.start_new_thread(self._engine, (dict_object_adaptors, template, id_app))
         except:
             logger.error("Error : unable to start thread")
         return id_app

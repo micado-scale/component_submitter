@@ -8,6 +8,7 @@ import logging
 import ast
 import utils
 import yaml
+import _thread
 
 
 def __init__():
@@ -242,7 +243,7 @@ def status_app(id_app):
     """ API call to query the status of the application"""
     response = dict(status_code=200, message="Status of application {}".format(id_app), data=[])
     try:
-        response['data'] = submitter.get_status(id_app)
+        response['data'] = _thread.strart_new_thread(submitter.get_status, (id_app))
     except KeyError:
         response['status_code'] = 404
         response['message'] = "application {} doesn't exist".format(id__app)
