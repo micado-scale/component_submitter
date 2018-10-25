@@ -48,7 +48,7 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
             (does nothing as no files were created but need to implement the abstract function anyways)
     """
 
-    def __init__(self, adaptor_id, config, status, template=None):
+    def __init__(self, adaptor_id, config, template=None):
         """ Constructor method of the Adaptor as described above """
         super().__init__()
         if template and not isinstance(template, ToscaTemplate):
@@ -56,7 +56,7 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
         self.tpl = template
         self.ID = adaptor_id
         self.config = config
-        self.status = status
+        self.status = "init"
         if template is not None:
             self.policies = self.tpl.policies
         logger.debug("Initialising the SE adaptor with the ID and TPL")
@@ -65,6 +65,7 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
         pass
 
     def execute(self):
+        self.status = "executing"
         """ Send to the Security Enforcer the informations
             retrieved from the TOSCA template"""
         for policy in self.policies:
@@ -84,6 +85,7 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
                             logger.info("link the secret")
                             data_keys = {'secret':key, 'service':"{}_{}".format(self.IDtarget, target)}
                             response = requests.post("{}/add_secret".format(self.config['endpoint']), data = data_keys)
+        self.status = "executed"
 
     def undeploy(self):
         """ Send to the Security Enforcer the id of the policy to undeploy """

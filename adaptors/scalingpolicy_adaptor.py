@@ -29,13 +29,13 @@ PATH_TO_PROM = "system/"
 
 class ScalingPolicyAdaptor(abco.Adaptor):
 
-    def __init__(self, adaptor_id, config, status, template=None):
+    def __init__(self, adaptor_id, config, template=None):
 
         super().__init__()
         self.config = config
         if template and not isinstance(template, ToscaTemplate):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")
-        self.status = status
+        self.status = "init"
         self.ID = adaptor_id
         self.tpl = template
         try:
@@ -45,7 +45,8 @@ class ScalingPolicyAdaptor(abco.Adaptor):
         logger.info("ScalingPolicyAdaptor ready!")
 
     def translate(self):
-        """ Translate from TOSCA to scaling_policy.yaml """
+        """ Translate from TOSCA to scaling_policy.yaml """]
+        self.status = "translating"
         logger.info("Starting ScalingPolicy translation")
 
         for policy in self.tpl.policies:
@@ -58,13 +59,16 @@ class ScalingPolicyAdaptor(abco.Adaptor):
                         {target: {"scaledown": min_cpu, "scaleup": max_cpu}})
 
         utils.dump_order_yaml(self.sp_data, PATH_TO_POLICY)
+        self.status = "translated"
 
     def execute(self):
         """ Do nothing to the alertgenerator """
+        self.status = "executed"
         logger.info("Doing nothing for ScalingPolicy execution")
 
     def undeploy(self, update=False):
         """ Remove the relevant policy from scaling_policy.yaml """
+        self.status = "undeploying"
         logger.info(f'Remove policy in scaling_policy with id {self.ID}')
         try:
             for key in self.sp_data["services"].keys():
@@ -81,6 +85,7 @@ class ScalingPolicyAdaptor(abco.Adaptor):
                         self._force_removal(key)
 
         utils.dump_order_yaml(self.sp_data, PATH_TO_POLICY)
+        self.status = "undeployed"
 
     def _force_removal(self, key):
         """ Force deletion of *.rules files """

@@ -101,6 +101,7 @@ class SubmitterEngine(object):
         """
         logger.info("proceding to the undeployment of the application")
         dict_object_adaptors = self._instantiate_adaptors(id_app)
+        logger.debug("{}".format(self.status_app))
         logger.debug("{}".format(dict_object_adaptors))
 
 
@@ -127,6 +128,8 @@ class SubmitterEngine(object):
         """
 
         logger.info("proceding to the update of the application {}".format(id_app))
+        logger.debug("{}".format(self.status_app))
+
         template = self._micado_parser_upload(path_to_file, parsed_params)
         self.object_config.mapping(template)
         dict_object_adaptors = self._instantiate_adaptors(id_app, template)
@@ -137,6 +140,8 @@ class SubmitterEngine(object):
         """ Engine itself. Creates first a id, then parse the input file. Retreive the list of id created by the translate methods of the adaptors.
         Excute those id in their respective adaptor. Update the app_list and the json file.
         """
+        logger.debug("{}".format(self.status_app))
+
         try:
             self._translate(adaptors)
             executed_adaptors = self._execute(app_id, adaptors)
@@ -190,8 +195,9 @@ class SubmitterEngine(object):
                 adaptor_id="{}_{}".format(app_id, adaptor.__name__)
                 if adaptor_id not in self.status_app[app_id]:
                     self.status_app[app_id][adaptor_id] = None
-                obj = adaptor(adaptor_id, self.object_config.adaptor_config[adaptor.__name__],self.status_app[app_id][adaptor_id], template = template)
+                obj = adaptor(adaptor_id, self.object_config.adaptor_config[adaptor.__name__], template = template)
                 adaptors[adaptor.__name__] = obj
+                self.status_app[app_id][adaptor_id] = obj
                 #adaptors.append(obj)
             return adaptors
 
@@ -199,11 +205,11 @@ class SubmitterEngine(object):
             for adaptor in self.adaptors_class_name:
                 logger.debug("instantiate {}, no template".format(adaptor))
                 adaptor_id="{}_{}".format(app_id, adaptor.__name__)
-                if adaptor_id not in self.status_app[app_id]:
-                    self.status_app[app_id][adaptor_id] = None
-                obj = adaptor(adaptor_id,self.object_config.adaptor_config[adaptor.__name__], self.status_app[app_id][adaptor_id])
+                obj = adaptor(adaptor_id,self.object_config.adaptor_config[adaptor.__name__])
                 #adaptors.append(obj)
                 adaptors[adaptor.__name__] = obj
+                self.status_app[app_id][adaptor_id] = obj
+
                 logger.debug("done instntiation of {}".format(adaptor))
 
             return adaptors
@@ -290,7 +296,10 @@ class SubmitterEngine(object):
     def get_status(self, app_id):
         """ method to retrieve the status of the differents adaptor"""
         try:
-            result = self.status_app[app_id]
+            result = dict()
+            for key, value in self.status_app[app_id].items():
+                result[key] = value.status
+                
         except KeyError:
             logger.error("application id {} doesn't exist".format(app_id))
             raise KeyError

@@ -61,7 +61,7 @@ class DockerAdaptor(abco.Adaptor):
             (compose file removed from file/output_configs/)
     """
 
-    def __init__(self, adaptor_id, config, status, template=None):
+    def __init__(self, adaptor_id, config, template=None):
         """ Constructor method of the Adaptor as described above """
         super().__init__()
         if template and not isinstance(template, ToscaTemplate):
@@ -79,7 +79,7 @@ class DockerAdaptor(abco.Adaptor):
         self.output = dict()
         self.mtu = 1500
         logger.info("DockerAdaptor ready to go!")
-        self.status = status
+        self.status = "init"
 
 
     def translate(self, tmp=False):
@@ -165,7 +165,7 @@ class DockerAdaptor(abco.Adaptor):
 
         logger.info("Docker running, trying to get outputs...")
         self._get_outputs()
-        self.status = executed
+        self.status = "executed"
 
     def undeploy(self):
         """ Undeploy the stack from Docker
