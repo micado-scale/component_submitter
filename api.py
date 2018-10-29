@@ -8,8 +8,7 @@ import logging
 import ast
 import utils
 import yaml
-import _thread
-
+import threading
 
 def __init__():
 
@@ -57,6 +56,8 @@ def handle_request_error(error):
 
 
 
+
+
 @app.route('/v1.0/app/launch/url/', methods=['POST'])
 def engine_url():
     """ API functions to launch a application
@@ -76,7 +77,7 @@ def engine_url():
         id_app =  request.form["id"]
     except Exception as e:
         logger.info("no id params has been sent, setting it to None")
-        id_app = None
+        id_app = utils.id_generator()
 
     try:
         params = request.form['params']
@@ -88,10 +89,10 @@ def engine_url():
 
     else:
         parsed_params = ast.literal_eval(params)
-        id_app = submitter.launch(path_to_file=path_to_file, parsed_params=parsed_params, id_app=id_app)
+        id_app = submitter.launch(path_to_file=path_to_file, id_app=id_app, parsed_params=parsed_params)
 
     response["status_code"] = 200
-    response["message"] = "successfully launched app {}".format(id_app)
+    response["message"] = "App launch go checkout http://{}/v1.0/{}/status".format(id_app)
     return jsonify(response)
 
 @app.route('/v1.0/app/launch/file/', methods=['POST'])
@@ -116,9 +117,9 @@ def engine_file():
     path_to_file = "files/templates/{}.yaml".format(id_app)
 
 
-    id_app = submitter.launch(path_to_file = path_to_file, parsed_params=parsed_params, id_app=id_app)
-
-    response["message"] = "successfully launched app {}".format(id_app)
+    thread = threading.Thread(target=submitter.launch,args=(path_to_file, id_app, parsed_params), daemon=True)
+    thread.start()
+    response["message"] = "Thread to deploy application launched. To check process curl http://YOUR_HOST/v1.0/{}/status".format(id_app)
     response["status_code"]= 200
     return jsonify(response)
 
@@ -143,6 +144,7 @@ def undeploy(id_app):
         response["message"] = "something unexpected happened, contact your MiCADO Admin for more details"
         response["status_code"]= 500
         return jsonify(response)
+
 
 @app.route('/v1.0/app/update/url/<id_app>', methods=['PUT'])
 def update_url(id_app):
@@ -200,6 +202,7 @@ def update_file(id_app):
         response["status_code"]= 500
         return jsonify(response)
 
+
 @app.route('/v1.0/app/<id_app>', methods=['GET'])
 def info_app(id_app):
     """ API function to get the information on a given id """
@@ -246,7 +249,7 @@ def status_app(id_app):
         response['data'] = submitter.get_status(id_app)
     except KeyError:
         response['status_code'] = 404
-        response['message'] = "application {} doesn't exist".format(id__app)
+        response['message'] = "application {} doesn't exist".format(id_app)
     return jsonify(response)
 
 @app.route('/v1.0/list_app', methods=['GET'])

@@ -45,7 +45,7 @@ class ScalingPolicyAdaptor(abco.Adaptor):
         logger.info("ScalingPolicyAdaptor ready!")
 
     def translate(self):
-        """ Translate from TOSCA to scaling_policy.yaml """]
+        """ Translate from TOSCA to scaling_policy.yaml """
         self.status = "translating"
         logger.info("Starting ScalingPolicy translation")
 

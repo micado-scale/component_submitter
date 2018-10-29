@@ -10,7 +10,6 @@ import os
 import time
 from random import randint
 from submitter_config import SubmitterConfig
-import _thread
 import logging
 """ set up of Logging """
 config = SubmitterConfig()
@@ -54,12 +53,8 @@ class SubmitterEngine(object):
         self.object_config = SubmitterConfig()
         self.adaptors_class_name = []
         self._get_adaptors_class()
-        self.status_app = dict()
 
-
-
-
-    def launch(self, path_to_file, parsed_params=None, id_app=None):
+    def launch(self, path_to_file, id_app, parsed_params=None):
         """
         Launch method, that will call the in-method egine to execute the application
         Creating empty list for the whole class adaptor and executed adaptor
@@ -77,20 +72,15 @@ class SubmitterEngine(object):
         template = self._micado_parser_upload(path_to_file, parsed_params)
         self.object_config.mapping(template)
 
-        if id_app is None:
-            id_app = utils.id_generator()
-        self.status_app[id_app] = dict()
         dict_object_adaptors = self._instantiate_adaptors(id_app, template)
         logger.debug("list of objects adaptor: {}".format(dict_object_adaptors))
         #self._save_file(id_app, path_to_file)
-        self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys())}})
+        self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys()), "adaptors_object": dict_object_adaptors}})
         self._update_json()
         logger.info("dictionnaty of id is: {}".format(self.app_list))
 
-        try:
-            _thread.start_new_thread(self._engine, (dict_object_adaptors, template, id_app))
-        except:
-            logger.error("Error : unable to start thread")
+        self._engine(dict_object_adaptors, template, id_app)
+
         return id_app
 
     def undeploy(self, id_app):
@@ -101,7 +91,6 @@ class SubmitterEngine(object):
         """
         logger.info("proceding to the undeployment of the application")
         dict_object_adaptors = self._instantiate_adaptors(id_app)
-        logger.debug("{}".format(self.status_app))
         logger.debug("{}".format(dict_object_adaptors))
 
 
@@ -128,7 +117,6 @@ class SubmitterEngine(object):
         """
 
         logger.info("proceding to the update of the application {}".format(id_app))
-        logger.debug("{}".format(self.status_app))
 
         template = self._micado_parser_upload(path_to_file, parsed_params)
         self.object_config.mapping(template)
@@ -136,11 +124,11 @@ class SubmitterEngine(object):
         logger.debug("list of adaptor created: {}".format(dict_object_adaptors))
         self._update(dict_object_adaptors, id_app)
 
+
     def _engine(self,adaptors, template, app_id):
         """ Engine itself. Creates first a id, then parse the input file. Retreive the list of id created by the translate methods of the adaptors.
         Excute those id in their respective adaptor. Update the app_list and the json file.
         """
-        logger.debug("{}".format(self.status_app))
 
         try:
             self._translate(adaptors)
@@ -176,6 +164,7 @@ class SubmitterEngine(object):
             self.adaptors_class_name.append(adaptor)
         logger.debug("list of adaptors instantiated: {}".format(self.adaptors_class_name))
 
+
     def _instantiate_adaptors(self, app_id, template = None):
         """ Instantiate the list of adaptors from the adaptors class list
 
@@ -193,11 +182,8 @@ class SubmitterEngine(object):
             for adaptor in self.adaptors_class_name:
                 logger.debug("instantiate {}, template".format(adaptor))
                 adaptor_id="{}_{}".format(app_id, adaptor.__name__)
-                if adaptor_id not in self.status_app[app_id]:
-                    self.status_app[app_id][adaptor_id] = None
                 obj = adaptor(adaptor_id, self.object_config.adaptor_config[adaptor.__name__], template = template)
                 adaptors[adaptor.__name__] = obj
-                self.status_app[app_id][adaptor_id] = obj
                 #adaptors.append(obj)
             return adaptors
 
@@ -208,7 +194,6 @@ class SubmitterEngine(object):
                 obj = adaptor(adaptor_id,self.object_config.adaptor_config[adaptor.__name__])
                 #adaptors.append(obj)
                 adaptors[adaptor.__name__] = obj
-                self.status_app[app_id][adaptor_id] = obj
 
                 logger.debug("done instntiation of {}".format(adaptor))
 
@@ -228,6 +213,7 @@ class SubmitterEngine(object):
                 except AdaptorError as e:
                     continue
                 break
+
 
 
 
@@ -297,9 +283,9 @@ class SubmitterEngine(object):
         """ method to retrieve the status of the differents adaptor"""
         try:
             result = dict()
-            for key, value in self.status_app[app_id].items():
+            for key, value in self.app_list[app_id]["adaptors_object"].items():
                 result[key] = value.status
-                
+
         except KeyError:
             logger.error("application id {} doesn't exist".format(app_id))
             raise KeyError
@@ -319,11 +305,25 @@ class SubmitterEngine(object):
         and the list of the IDs of its components link to the ID of the app.
 
         """
+        data_to_save = dict()
+
+        for key, value in self.app_list.items():
+            data_to_save = {key: None}
+            for k, v in self.app_list[key].items():
+                logger.info("key is: {} k is {} v is {}".format(key, k,v))
+                if "components" in k or "outputs" in k:
+                    data_to_save[key]={ k: v}
+        if not data_to_save:
+            logger.info("data to save is empty")
+            data_to_save = {}
+
+
         try:
             with open(JSON_FILE, 'w') as outfile:
-                json.dump(self.app_list, outfile)
+                json.dump(data_to_save, outfile)
         except Exception as e:
             logger.warning("{}".format(e))
+
 
     def _save_file(self, id_app, path):
         """ method called by the engine to dump the current template being treated to the files/templates directory, with as name
