@@ -90,6 +90,8 @@ class SubmitterEngine(object):
         :type: string
         """
         logger.info("proceding to the undeployment of the application")
+        if id_app not in self.app_list.keys():
+            raise ("application doesn't exist")
         dict_object_adaptors = self._instantiate_adaptors(id_app)
         logger.debug("{}".format(dict_object_adaptors))
 

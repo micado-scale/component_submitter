@@ -9,14 +9,33 @@ import ast
 import utils
 import yaml
 import threading
+import time
 
 def __init__():
 
-    global logger, submitter
-
+    global logger, submitter, threads
+    threads = dict()
+    threads["list_threads"] = []
     logger =  logging.getLogger("submitter."+__name__)
     submitter = SubmitterEngine()
+    thread = threading.Thread(target=threads_management)
+    thread.start()
 
+def threads_management():
+    while True:
+        if threads["list_threads"]:
+            logger.info("execute first thread of the list")
+            name_thread_to_execute = threads["list_threads"][0]
+
+            logger.info("{}".format(threads.get(name_thread_to_execute)))
+            threads.get(name_thread_to_execute).start()
+            threads.get(name_thread_to_execute).join()
+            threads.pop(name_thread_to_execute)
+            threads["list_threads"].pop(0)
+
+            time.sleep(2)
+        else:
+            time.sleep(2)
 __init__()
 class RequestError(Exception):
     status_code = 400
@@ -32,7 +51,6 @@ class RequestError(Exception):
         rv = dict(self.payload or ())
         rv['message'] = self.message
         return rv
-
 
 
 def keyboardInterrupt():
@@ -56,10 +74,8 @@ def handle_request_error(error):
 
 
 
-
-
-@app.route('/v1.0/app/launch/url/', methods=['POST'])
-def engine_url():
+@app.route('/v1.0/app/launch/', methods=['POST'])
+def launch():
     """ API functions to launch a application
 
         :params intput: path to the file wanted
@@ -68,39 +84,19 @@ def engine_url():
         :params params: dictionary with the update of input.
         :type params: dictionary
     """
-    logger.debug("serving request {}".format(request.method))
     response = dict(status_code="", message="", data=[])
-
-    path_to_file = request.form["input"]
-    logger.debug("path_to_file: {}".format(path_to_file))
+    path_to_file = None
     try:
-        id_app =  request.form["id"]
-    except Exception as e:
-        logger.info("no id params has been sent, setting it to None")
-        id_app = utils.id_generator()
+        path_to_file = request.form['input']
+    except Exception:
+        logger.info("no input provided")
 
     try:
-        params = request.form['params']
-        logger.info("params is {}".format(params))
+        if not path_to_file:
+            template = request.files['file']
+    except Exception:
+        logger.info("no file provided")
 
-    except Exception as e:
-        logger.info("exception is: {}".format(e))
-        id_app = submitter.launch(path_to_file=path_to_file, id_app=id_app)
-
-    else:
-        parsed_params = ast.literal_eval(params)
-        id_app = submitter.launch(path_to_file=path_to_file, id_app=id_app, parsed_params=parsed_params)
-
-    response["status_code"] = 200
-    response["message"] = "App launch go checkout http://{}/v1.0/{}/status".format(id_app)
-    return jsonify(response)
-
-@app.route('/v1.0/app/launch/file/', methods=['POST'])
-def engine_file():
-    """ API functions to launch an application
-    """
-    response = dict(status_code="", message="", data=[])
-    template = request.files['file']
     try:
          id_app= request.form['id']
     except Exception:
@@ -113,15 +109,17 @@ def engine_file():
     else:
         parsed_params = ast.literal_eval(params)
 
-    template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
-    path_to_file = "files/templates/{}.yaml".format(id_app)
-
+    if template:
+        template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
+        path_to_file = "files/templates/{}.yaml".format(id_app)
 
     thread = threading.Thread(target=submitter.launch,args=(path_to_file, id_app, parsed_params), daemon=True)
-    thread.start()
+    threads["list_threads"].append("launch_{}".format(id_app))
+    threads["launch_{}".format(id_app)] = thread
     response["message"] = "Thread to deploy application launched. To check process curl http://YOUR_HOST/v1.0/{}/status".format(id_app)
     response["status_code"]= 200
     return jsonify(response)
+
 
 
 
@@ -132,7 +130,9 @@ def undeploy(id_app):
     response = dict(status_code="", message="", data=[])
 
     try:
-        submitter.undeploy(id_app)
+        thread = threading.Thread(target=submitter.undeploy, args=(id_app,), daemon=True)
+        threads["list_threads"].append("undeploy_{}".format(id_app))
+        threads["undeploy_{}".format(id_app)] = thread
         response["message"] = "successfully undeployed {}".format(id_app)
         response["status_code"] = 200
         return jsonify(response)
@@ -146,43 +146,22 @@ def undeploy(id_app):
         return jsonify(response)
 
 
-@app.route('/v1.0/app/update/url/<id_app>', methods=['PUT'])
-def update_url(id_app):
-    """ API function to update the application with a specific ID from a url"""
-    logger.info("id is: {}".format(id_app))
-    path_to_file = request.form['input']
-    logger.info("path_to_file is: {}".format(path_to_file))
+@app.route('/v1.0/app/update/<id_app>', methods=['PUT'])
+def update(id_app):
+    """ API function to update the application with a specific ID"""
+
     response = dict(status_code="", message="", data=[])
+    path_to_file = None
     try:
-        params = request.form['params']
-        logger.info("params is: {}".format(params))
-        parsed_params = ast.literal_eval(params)
-    except Exception as e:
-        logger.info("exception is: {}".format(e))
-        if submitter.update(id_app, path_to_file) is None:
-            response["message"] = "{} correctly updated".format(id_app)
-            response["status_code"]= 200
-            return jsonify(response)
-        else:
-            response["message"] = "{} update failed".format(id_app)
-            response["status_code"]= 500
-            return jsonify(response)
-    else:
+        path_to_file = request.form['input']
+    except Exception:
+        logger.info("no input provided")
 
-        if submitter.update(id_app, path_to_file, parsed_params) is None:
-            response["message"] = "{} correctly updated".format(id_app)
-            response["status_code"]= 200
-            return jsonify(response)
-        else:
-            response["message"] = "{} update failed".format(id_app)
-            response["status_code"]= 500
-            return jsonify(response)
-
-@app.route('/v1.0/app/update/file/<id_app>', methods=['PUT'])
-def update_file(id_app):
-    """ API function to update the application with a specific ID from a file"""
-    template = request.files['file']
-    response = dict(status_code="", message="", data=[])
+    try:
+        if not path_to_file:
+            template = request.files['file']
+    except Exception:
+        logger.info("no file provided")
     try:
          params= request.form['params']
     except Exception:
@@ -190,14 +169,17 @@ def update_file(id_app):
     else:
         parsed_params = ast.literal_eval(params)
 
-    template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
-    path_to_file = "files/templates/{}.yaml".format(id_app)
-
-    if submitter.update(id_app, path_to_file=path_to_file, parsed_params=parsed_params) is None:
-        response["message"] = "{} correctly updated".format(id_app)
+    if template:
+        template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
+        path_to_file = "files/templates/{}.yaml".format(id_app)
+    try:
+        thread = threading.Thread(target=submitter.update, args=(id_app, path_to_file, parsed_params), daemon=True)
+        threads["list_threads"].append("update_{}".format(id_app))
+        threads["launch_{}".format(id_app)] = thread
+        response["message"] = "Thread to update the application {} is launch. To check process curl http://YOUR_HOST/v1.0/{}/status ".format(id_app)
         response["status_code"]= 200
         return jsonify(response)
-    else:
+    except Exception:
         response["message"] = "{} update failed".format(id_app)
         response["status_code"]= 500
         return jsonify(response)
@@ -252,6 +234,17 @@ def status_app(id_app):
         response['message'] = "application {} doesn't exist".format(id_app)
     return jsonify(response)
 
+@app.route('/v1.0/info_threads')
+def list_thread():
+    """ API call to query the info on the thread being executed"""
+    response = dict(status_code=200, message="Info on Thread", data=[])
+    try:
+        response['data']={"thread being executed": threads["list_threads"][0], "list of threads waiting" : threads["list_threads"][1:]}
+    except:
+        response["status_code"] = 500
+        response["message"] = "failed retriving info of threads"
+    return jsonify(response)
+
 @app.route('/v1.0/list_app', methods=['GET'])
 def list_app():
     """ API function to list all the running aplications"""
@@ -265,4 +258,4 @@ def list_app():
 
 if __name__ == "__main__":
     __init__()
-    app.run(debug=True, port=5000, threaded=True)
+    app.run(debug=True, port=5000, threaded=True)                                                                                                                                                                                                                                      
