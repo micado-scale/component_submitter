@@ -119,9 +119,22 @@ class K8sAdaptor(abco.Adaptor):
 
         if tmp is False:
             utils.dump_order_yaml(self.compose_data, self.path)
+            self._kompose_convert(self.path)
         else:
             utils.dump_order_yaml(self.compose_data, self.tmp_path)
+            self._kompose_convert(self.tmp_path)
 
+    def _kompose_convert(self, path):
+        """Quick convert"""
+        try:
+            if self.config['dry_run'] is False:
+                subprocess.run(["kompose", "-f", path, "convert", "-o", path],
+                stderr=subprocess.PIPE, check=True)
+            else:
+                logger.info("dry run kompose convert")
+
+        except subprocess.CalledProcessError as e:
+            raise AdaptorCritical("Cannot execute Kompose")
 
     def execute(self):
         """ Deploy the stack onto the Swarm
@@ -130,11 +143,11 @@ class K8sAdaptor(abco.Adaptor):
         which was created in ``translate()``
         :raises: AdaptorCritical
         """
-        logger.info("Starting Docker execution...")
+        logger.info("Starting k8s execution...")
 
         try:
             if self.config['dry_run'] is False:
-                subprocess.run(["kompose", "-f", self.path, "up"],
+                subprocess.run(["kubectl", "create", "-f", self.path, "--save-config"],
                 stderr=subprocess.PIPE, check=True)
             else:
                 logger.info("dry run kompose up")
@@ -155,7 +168,7 @@ class K8sAdaptor(abco.Adaptor):
 
         try:
             if self.config['dry_run'] is False:
-                subprocess.run(["kompose", "-f", self.path, "down"], check=True)
+                subprocess.run(["kubectl", "delete", "-f", self.path], check=True)
                 logger.debug("Undeploy application with ID: {}".format(self.ID))
             else:
                 logger.debug(f'Dry undeploy application with ID: {self.ID}')
@@ -194,7 +207,20 @@ class K8sAdaptor(abco.Adaptor):
         with the current compose file. If different, replace current compose with
         ``tmp`` compose, and call execute().
         """
-        logger.info("Not starting the update...")
+        logger.info("Starting the update...")
+        logger.debug("Creating temporary template...")
+        self.translate(True)
+
+        if not self._differentiate():
+            logger.debug("tmp file different, replacing old config and executing")
+            os.rename(self.tmp_path, self.path)
+            self.execute()
+        else:
+            try:
+                logger.debug("tmp file is the same, removing the tmp file")
+                os.remove(self.tmp_path)
+            except OSError as e:
+                logger.warning(e)
 
     def _get_outputs(self):
         """ Get outputs and their resultant attributes """
