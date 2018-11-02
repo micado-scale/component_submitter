@@ -136,7 +136,7 @@ class K8sAdaptor(abco.Adaptor):
         except subprocess.CalledProcessError as e:
             raise AdaptorCritical("Cannot execute Kompose")
 
-    def execute(self):
+    def execute(self, tmp=False):
         """ Deploy the stack onto the Swarm
 
         Executes the ``docker stack deploy`` command on the Docker-Compose file
@@ -144,11 +144,14 @@ class K8sAdaptor(abco.Adaptor):
         :raises: AdaptorCritical
         """
         logger.info("Starting k8s execution...")
+        if tmp:
+            operation = ["kubectl", 'apply', "-f", self.path]
+        else:
+            operation = ["kubectl", 'create', "-f", self.path, "--save-config"]
 
         try:
             if self.config['dry_run'] is False:
-                subprocess.run(["kubectl", "create", "-f", self.path, "--save-config"],
-                stderr=subprocess.PIPE, check=True)
+                subprocess.run(operation, stderr=subprocess.PIPE, check=True)
             else:
                 logger.info("dry run kompose up")
 
@@ -214,7 +217,7 @@ class K8sAdaptor(abco.Adaptor):
         if not self._differentiate():
             logger.debug("tmp file different, replacing old config and executing")
             os.rename(self.tmp_path, self.path)
-            self.execute()
+            self.execute(True)
         else:
             try:
                 logger.debug("tmp file is the same, removing the tmp file")
