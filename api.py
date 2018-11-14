@@ -16,6 +16,7 @@ def __init__():
     global logger, submitter, threads
     threads = dict()
     threads["list_threads"] = []
+    threads["apps"] = []
     logger =  logging.getLogger("submitter."+__name__)
     submitter = SubmitterEngine()
     thread = threading.Thread(target=threads_management)
@@ -32,6 +33,8 @@ def threads_management():
             threads.get(name_thread_to_execute).join()
             threads.pop(name_thread_to_execute)
             threads["list_threads"].pop(0)
+            if "undeploy" in name_thread_to_execute:
+                threads["apps"].pop(threads["apps"].index(name_thread_to_execute[9:]))
 
             time.sleep(2)
         else:
@@ -101,6 +104,10 @@ def launch():
          id_app= request.form['id']
     except Exception:
          id_app = utils.id_generator()
+    if id_app in threads["apps"]:
+         response["message"] = "this id is already in use, please choose another one and try again."
+         response["status_code"] = 400
+         return jsonify(response)
 
     try:
          params= request.form['params']
@@ -116,6 +123,7 @@ def launch():
     thread = threading.Thread(target=submitter.launch,args=(path_to_file, id_app, parsed_params), daemon=True)
     threads["list_threads"].append("launch_{}".format(id_app))
     threads["launch_{}".format(id_app)] = thread
+    threads["apps"].append(id_app)
     response["message"] = "Thread to deploy application launched. To check process curl http://YOUR_HOST/v1.0/{}/status".format(id_app)
     response["status_code"]= 200
     return jsonify(response)
@@ -130,6 +138,11 @@ def undeploy(id_app):
     response = dict(status_code="", message="", data=[])
 
     try:
+        if "undeploy_{}".format(id_app) in threads["list_threads"]:
+            response["message"] = "this application has already undeploy acction  pending."
+            repsonse["status_code"] = 400
+            return jsonify(response)
+
         thread = threading.Thread(target=submitter.undeploy, args=(id_app,), daemon=True)
         threads["list_threads"].append("undeploy_{}".format(id_app))
         threads["undeploy_{}".format(id_app)] = thread
@@ -152,6 +165,10 @@ def update(id_app):
 
     response = dict(status_code="", message="", data=[])
     path_to_file = None
+    if "update_{}".format(id_app) in threads["list_threads"]:
+        response["message"] = "this application has already an update pending, please wait for it to be completed before sending a new one."
+        response["status_code"] = 400
+        return jsonify(response)
     try:
         path_to_file = request.form['input']
     except Exception:
@@ -191,6 +208,14 @@ def info_app(id_app):
     response = dict(status_code="", message="", data=[])
     try:
         this_app = submitter.app_list[id_app]
+        this_app_status = submitter.get_status(id_app)
+
+        if "launch_{}".format(id_app) in threads["list_threads"]:
+            if "launch_{}".format(id_app) not in threads["list_threads"][0]:
+                this_app_status = "pending, other application in the queue."
+
+
+
     except KeyError:
         response["status_code"]=404
         response["message"]="App with ID {} does not exist".format(id_app)
@@ -203,36 +228,21 @@ def info_app(id_app):
         response["data"] = dict(type="application",
                                 id=id_app,
                                 outputs=this_app["output"],
-                                components=this_app["components"])
+                                components=this_app["components"],
+                                status=this_app_status)
+
         return jsonify(response)
 
-@app.route('/v1.0/app/<id_app>/services', methods=['GET'])
-def services_query(id_app):
-    """ API call to query running services """
-    response = dict(status_code=200, message="List running services", data=[])
-    for result in submitter.query('services', id_app):
-        response['data'].append(result)
-    return jsonify(response)
 
-@app.route('/v1.0/app/<id_app>/nodes', methods=['GET'])
-def nodes_query(id_app):
+@app.route('/v1.0/app/query/<id_app>', methods=['GET'])
+def query(id_app):
     """ API call to query running services """
     response = dict(status_code=200, message="List running nodes", data=[])
-    for result in submitter.query('nodes', id_app):
+    query = request.form['query']
+    for result in submitter.query(query, id_app):
         response['data'].append(result)
     return jsonify(response)
 
-
-@app.route('/v1.0/<id_app>/status', methods=['GET'])
-def status_app(id_app):
-    """ API call to query the status of the application"""
-    response = dict(status_code=200, message="Status of application {}".format(id_app), data=[])
-    try:
-        response['data'] = submitter.get_status(id_app)
-    except KeyError:
-        response['status_code'] = 404
-        response['message'] = "application {} doesn't exist".format(id_app)
-    return jsonify(response)
 
 @app.route('/v1.0/info_threads')
 def list_thread():
@@ -259,4 +269,3 @@ def list_app():
 if __name__ == "__main__":
     __init__()
     app.run(debug=True, port=5000, threaded=True)
-                                                                                                                                                                                                                                      
