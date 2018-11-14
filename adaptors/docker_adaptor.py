@@ -116,8 +116,7 @@ class DockerAdaptor(abco.Adaptor):
                 self._compose_properties(node, "volumes")
 
         if not self.compose_data.get("services"):
-            logger.error("No TOSCA nodes of Docker type!")
-            raise AdaptorCritical("No TOSCA nodes of Docker type!")
+            logger.info("No Docker nodes in TOSCA. Do you need this adaptor?")
 
         if tmp is False:
             utils.dump_order_yaml(self.compose_data, self.path)
@@ -212,6 +211,11 @@ class DockerAdaptor(abco.Adaptor):
             os.remove(self.path)
         except OSError as e:
             logger.warning(e)
+        try:
+            subprocess.run(["docker", "exec", "occopus_redis", "redis-cli", "FLUSHALL"], check=True)
+        except subprocess.CalledProcessError:
+            logger.warning("Could not flush occopus_redis")
+
 
     def update(self):
         """ Update an already deployed application stack with a changed ADT
