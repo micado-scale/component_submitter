@@ -47,7 +47,10 @@ def threads_management():
            thread.start()
            thread.join()
            if 'undeploy' in current_thread:
-               apps.pop(current_thread.split('_', 1 )[1])
+               try:
+                   apps.pop(apps.index(current_thread.split('_', 1 )[1]))
+               except ValueError:
+                   pass
         try:
            if not queue_exception.empty():
                raise queue_exception.get()
@@ -230,10 +233,12 @@ def info_app(id_app):
     try:
         this_app = submitter.app_list[id_app]
         this_app_status = submitter.get_status(id_app)
+        q_t = queue_threading.queue
 
-        if "launch_{}".format(id_app) in threads["list_threads"]:
-            if "launch_{}".format(id_app) not in threads["list_threads"][0]:
-                this_app_status = "pending, other application in the queue."
+        if not "launch_{}".format(id_app) in current_thread:
+            for item in q_t:
+                if "launch_{}".format(id_app) in item.getName():
+                    this_app_status = "pending, other application in the queue."
 
 
 
