@@ -15,7 +15,7 @@ import logging
 config = SubmitterConfig()
 LEVEL = config.main_config['log_level']
 FILENAME = config.main_config['path_log']
-logging.basicConfig(filename=FILENAME, level=LEVEL, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(filename=FILENAME, level=LEVEL, format="%(asctime)s - %(lineno)d - %(name)s - %(levelname)s - %(message)s")
 logger=logging.getLogger("submitter."+__name__)
 
 """define the Handler which write message to sys.stderr"""
@@ -65,7 +65,8 @@ class SubmitterEngine(object):
             launch method to accept another parameter to be able to choose which engine to
             launch
         """
-        logger.info("Launching the application located there {} and with params {}".format(path_to_file, parsed_params))
+
+        logger.info("******  Launching the application ****** \n****** located there {} and with params {}******".format(path_to_file, parsed_params))
         if self.app_list and not self.object_config.main_config['dry_run']:
             raise Exception("An application is already running, MiCADO doesn't currently support multi applications")
             return
@@ -81,17 +82,29 @@ class SubmitterEngine(object):
 
         self._engine(dict_object_adaptors, template, id_app)
 
+        logger.info("launched process done")
+        logger.info("*********************")
         return id_app
 
-    def undeploy(self, id_app):
+    def undeploy(self, id_app, force=False):
         """
         Undeploy method will remove the application from the infrastructure.
         :params: id
         :type: string
         """
-        logger.info("proceding to the undeployment of the application")
-        if id_app not in self.app_list.keys():
-            raise ("application doesn't exist")
+        logger.info("****** proceding to the undeployment of the application *****")
+
+        try:
+            if id_app not in self.app_list.keys() and not force:
+                raise Exception("application doesn't exist")
+        except AttributeError:
+            logger.error("no application has been detected on the infrastructure trying to see if force flag present")
+            if not force:
+                raise Exception("no application detected")
+            else:
+                logger.info("force flag detected, preceeding to undeploy")
+
+
         dict_object_adaptors = self._instantiate_adaptors(id_app)
         logger.debug("{}".format(dict_object_adaptors))
 
@@ -99,8 +112,11 @@ class SubmitterEngine(object):
         self._undeploy(dict_object_adaptors)
 
         self._cleanup(id_app, dict_object_adaptors)
-        self.app_list.pop(id_app)
-        self._update_json()
+        if self.app_list:
+            self.app_list.pop(id_app)
+            self._update_json()
+        logger.info("undeploy process done")
+        logger.info("*********************")
 
 
     def update(self, id_app, path_to_file, parsed_params = None):
@@ -118,13 +134,15 @@ class SubmitterEngine(object):
 
         """
 
-        logger.info("proceding to the update of the application {}".format(id_app))
+        logger.info("****** proceding to the update of the application {}******".format(id_app))
 
         template = self._micado_parser_upload(path_to_file, parsed_params)
         self.object_config.mapping(template)
         dict_object_adaptors = self._instantiate_adaptors(id_app, template)
         logger.debug("list of adaptor created: {}".format(dict_object_adaptors))
         self._update(dict_object_adaptors, id_app)
+        logger.info("update process done")
+        logger.info("*******************")
 
 
     def _engine(self,adaptors, template, app_id):

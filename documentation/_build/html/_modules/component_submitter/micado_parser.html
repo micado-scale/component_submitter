@@ -95,14 +95,9 @@
     <span class="k">try</span><span class="p">:</span>
         <span class="n">template</span> <span class="o">=</span> <span class="n">ToscaTemplate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">,</span> <span class="n">isfile</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">tb</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">2</span><span class="p">]</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">with_traceback</span><span class="p">(</span><span class="n">tb</span><span class="p">))</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
-        <span class="n">traceback</span><span class="o">.</span><span class="n">print_tb</span><span class="p">(</span><span class="n">tb</span><span class="p">)</span>
-        <span class="n">frames</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">trace</span><span class="p">()</span>
-        <span class="n">argvalues</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getargvalues</span><span class="p">(</span><span class="n">frames</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
-        <span class="n">log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;argvalues: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">formatargvalues</span><span class="p">(</span><span class="o">*</span><span class="n">argvalues</span><span class="p">))</span>
-        <span class="c1">#logger.info(dir(tb.tb_next.tb_frame.f_code.co_name))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;error happened: </span><span class="si">{}</span><span class="s2">, This might be due to the wrong type in the TOSCA template, check if all the type exist or that the import section is correct.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;An error occured while parsing, This might be due to the a wrong type in the TOSCA template, check if all the types exist, or that the import section is correct.&quot;</span><span class="p">)</span>
+
 
 
 

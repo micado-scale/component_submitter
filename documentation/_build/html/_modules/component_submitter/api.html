@@ -15,7 +15,7 @@
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
@@ -27,33 +27,72 @@
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
       </ul>
-    </div>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body" role="main">
-
+            
   <h1>Source code for component_submitter.api</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">flask</span> <span class="k">import</span> <span class="n">request</span><span class="p">,</span> <span class="n">url_for</span><span class="p">,</span> <span class="n">Flask</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">render_template</span><span class="p">,</span> <span class="n">flash</span><span class="p">,</span> <span class="n">redirect</span>
 <span class="kn">from</span> <span class="nn">submitter_engine</span> <span class="k">import</span> <span class="n">SubmitterEngine</span>
 <span class="kn">from</span> <span class="nn">toscaparser.common.exception</span> <span class="k">import</span> <span class="o">*</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">url_map</span><span class="o">.</span><span class="n">strict_slashes</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">ast</span>
 <span class="kn">import</span> <span class="nn">utils</span>
 <span class="kn">import</span> <span class="nn">yaml</span>
-
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">queue</span>
 
 <span class="k">def</span> <span class="nf">__init__</span><span class="p">():</span>
 
-    <span class="k">global</span> <span class="n">logger</span><span class="p">,</span> <span class="n">submitter</span>
-
+    <span class="k">global</span> <span class="n">logger</span><span class="p">,</span> <span class="n">submitter</span><span class="p">,</span> <span class="n">queue_exception</span><span class="p">,</span> <span class="n">queue_threading</span><span class="p">,</span> <span class="n">apps</span>
+    <span class="n">apps</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
     <span class="n">logger</span> <span class="o">=</span>  <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;submitter.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
     <span class="n">submitter</span> <span class="o">=</span> <span class="n">SubmitterEngine</span><span class="p">()</span>
+    <span class="n">queue_exception</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">queue_threading</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+    <span class="n">thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">threads_management</span><span class="p">)</span>
+    <span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+
+
+<div class="viewcode-block" id="ExecSubmitterThread"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.ExecSubmitterThread">[docs]</a><span class="k">class</span> <span class="nc">ExecSubmitterThread</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ExecSubmitterThread</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">q</span> <span class="o">=</span> <span class="n">q</span>
+
+<div class="viewcode-block" id="ExecSubmitterThread.run"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.ExecSubmitterThread.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_args</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_kwargs</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">q</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div></div>
+
+
+
+<div class="viewcode-block" id="threads_management"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.threads_management">[docs]</a><span class="k">def</span> <span class="nf">threads_management</span><span class="p">():</span>
+    <span class="k">global</span> <span class="n">current_thread</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">queue_threading</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+           <span class="n">thread</span> <span class="o">=</span> <span class="n">queue_threading</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+           <span class="n">current_thread</span> <span class="o">=</span> <span class="n">thread</span><span class="o">.</span><span class="n">getName</span><span class="p">()</span>
+           <span class="n">thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+           <span class="n">thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+           <span class="k">if</span> <span class="s1">&#39;undeploy&#39;</span> <span class="ow">in</span> <span class="n">current_thread</span><span class="p">:</span>
+               <span class="n">apps</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">current_thread</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">try</span><span class="p">:</span>
+           <span class="k">if</span> <span class="ow">not</span> <span class="n">queue_exception</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+               <span class="k">raise</span> <span class="n">queue_exception</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+           <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span></div>
+
 
 <span class="fm">__init__</span><span class="p">()</span>
 <div class="viewcode-block" id="RequestError"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.RequestError">[docs]</a><span class="k">class</span> <span class="nc">RequestError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
@@ -72,7 +111,6 @@
         <span class="k">return</span> <span class="n">rv</span></div></div>
 
 
-
 <div class="viewcode-block" id="keyboardInterrupt"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.keyboardInterrupt">[docs]</a><span class="k">def</span> <span class="nf">keyboardInterrupt</span><span class="p">():</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Ctrl+C - Exiting.&#39;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">manager</span><span class="o">.</span><span class="n">process_table</span><span class="o">.</span><span class="n">iterkeys</span><span class="p">():</span>
@@ -83,7 +121,7 @@
     <span class="kn">import</span> <span class="nn">traceback</span> <span class="k">as</span> <span class="nn">tb</span>
     <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;An unhandle exception occured:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">error</span><span class="p">))</span>
     <span class="n">response</span> <span class="o">=</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)))</span>
-    <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">500</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">status_code</span><span class="o">=</span> <span class="mi">500</span>
     <span class="k">return</span> <span class="n">response</span></div>
 
 <div class="viewcode-block" id="handle_request_error"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.handle_request_error">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">errorhandler</span><span class="p">(</span><span class="n">RequestError</span><span class="p">)</span>
@@ -94,8 +132,8 @@
 
 
 
-<div class="viewcode-block" id="engine_url"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.engine_url">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/app/launch/url/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
-<span class="k">def</span> <span class="nf">engine_url</span><span class="p">():</span>
+<div class="viewcode-block" id="launch"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.launch">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/app/launch/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">launch</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot; API functions to launch a application</span>
 
 <span class="sd">        :params intput: path to the file wanted</span>
@@ -104,42 +142,23 @@
 <span class="sd">        :params params: dictionary with the update of input.</span>
 <span class="sd">        :type params: dictionary</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;serving request </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">method</span><span class="p">))</span>
-
-
-    <span class="n">path_to_file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;path_to_file: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">))</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">[])</span>
+    <span class="n">path_to_file</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">id_app</span> <span class="o">=</span>  <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;no id params has been sent, setting it to None&quot;</span><span class="p">)</span>
-        <span class="n">id_app</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">path_to_file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;no input provided&quot;</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;params is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">params</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">path_to_file</span><span class="p">:</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;no file provided&quot;</span><span class="p">)</span>
 
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;exception is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-        <span class="n">id_app</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span><span class="o">=</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">id_app</span><span class="o">=</span><span class="n">id_app</span><span class="p">)</span>
-
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">parsed_params</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-        <span class="n">id_app</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span><span class="o">=</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="n">parsed_params</span><span class="p">,</span> <span class="n">id_app</span><span class="o">=</span><span class="n">id_app</span><span class="p">)</span>
-    <span class="n">response</span> <span class="o">=</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;app:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)))</span>
-    <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">200</span>
-    <span class="k">return</span> <span class="n">response</span></div>
-
-<div class="viewcode-block" id="engine_file"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.engine_file">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/app/launch/file/&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
-<span class="k">def</span> <span class="nf">engine_file</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot; API functions to launch an application</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">template</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span>
     <span class="k">try</span><span class="p">:</span>
          <span class="n">id_app</span><span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
          <span class="n">id_app</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
-
     <span class="k">try</span><span class="p">:</span>
          <span class="n">params</span><span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
@@ -147,17 +166,23 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">parsed_params</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
-    <span class="n">template</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/files/templates/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">root_path</span><span class="p">,</span><span class="n">id_app</span><span class="p">))</span>
-    <span class="n">path_to_file</span> <span class="o">=</span> <span class="s2">&quot;files/templates/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
-    <span class="n">id_app</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span> <span class="o">=</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="n">parsed_params</span><span class="p">,</span> <span class="n">id_app</span><span class="o">=</span><span class="n">id_app</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">template</span><span class="p">:</span>
+        <span class="n">template</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/files/templates/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">root_path</span><span class="p">,</span><span class="n">id_app</span><span class="p">))</span>
+        <span class="n">path_to_file</span> <span class="o">=</span> <span class="s2">&quot;files/templates/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">id_app</span> <span class="ow">in</span> <span class="n">apps</span><span class="p">:</span>
+        <span class="n">response</span><span class="p">[</span><span class="s2">&quot;message&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;id already register on this service&quot;</span>
+        <span class="n">response</span><span class="p">[</span><span class="s2">&quot;status_code&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">400</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
 
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">id_app</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">(</span><span class="n">path_to_file</span> <span class="o">=</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="n">parsed_params</span><span class="p">,</span> <span class="n">id_app</span><span class="o">=</span><span class="n">id_app</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;exception was raised: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-    <span class="n">response</span> <span class="o">=</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;app:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)))</span>
-    <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">200</span>
-    <span class="k">return</span> <span class="n">response</span></div>
+    <span class="n">apps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+    <span class="n">thread</span> <span class="o">=</span> <span class="n">ExecSubmitterThread</span><span class="p">(</span><span class="n">q</span><span class="o">=</span><span class="n">queue_exception</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">submitter</span><span class="o">.</span><span class="n">launch</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">id_app</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">),</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">thread</span><span class="o">.</span><span class="n">setName</span><span class="p">(</span><span class="s2">&quot;launch_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">))</span>
+    <span class="n">queue_threading</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">thread</span><span class="p">)</span>
+
+    <span class="n">response</span><span class="p">[</span><span class="s2">&quot;message&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Thread to deploy application launched. To check process curl http://YOUR_HOST/v1.0/</span><span class="si">{}</span><span class="s2">/status&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+    <span class="n">response</span><span class="p">[</span><span class="s2">&quot;status_code&quot;</span><span class="p">]</span><span class="o">=</span> <span class="mi">200</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
+
 
 
 
@@ -165,40 +190,54 @@
 <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="n">id_app</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; API function to undeploy the application with a specific ID</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">response</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">undeploy</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;undeployed </span><span class="si">{}</span><span class="s2"> correctly&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">),</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">200</span><span class="p">))</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;something undexpected happened&quot;</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">500</span><span class="p">))</span></div>
-
-<div class="viewcode-block" id="update_url"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.update_url">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/app/update/url/&lt;id_app&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PUT&#39;</span><span class="p">])</span>
-<span class="k">def</span> <span class="nf">update_url</span><span class="p">(</span><span class="n">id_app</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; API function to update the application with a specific ID from a url&quot;&quot;&quot;</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;id is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">))</span>
-    <span class="n">path_to_file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;path_to_file is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">))</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">[])</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;params is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">params</span><span class="p">))</span>
-        <span class="n">parsed_params</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;exception is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">path_to_file</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;correctly updated&quot;</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">200</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;update failed&quot;</span><span class="p">,</span> <span class="n">status_cod</span><span class="o">=</span><span class="mi">500</span><span class="p">))</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">response</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;correctly updated&quot;</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">200</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;update failed&quot;</span><span class="p">,</span> <span class="n">status_cod</span><span class="o">=</span><span class="mi">500</span><span class="p">))</span></div>
+        <span class="k">if</span> <span class="s1">&#39;force&#39;</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">:</span>
+            <span class="n">thread</span> <span class="o">=</span> <span class="n">ExecSubmitterThread</span><span class="p">(</span><span class="n">q</span><span class="o">=</span><span class="n">queue_exception</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">submitter</span><span class="o">.</span><span class="n">undeploy</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">thread</span><span class="o">.</span><span class="n">setName</span><span class="p">(</span><span class="s2">&quot;undeploy_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">))</span>
+            <span class="n">queue_threading</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">thread</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;force flag found&quot;</span><span class="p">)</span>
+            <span class="n">response</span><span class="p">[</span><span class="s2">&quot;status_code&quot;</span><span class="p">]</span><span class="o">=</span><span class="mi">200</span>
+            <span class="n">response</span><span class="p">[</span><span class="s2">&quot;message&quot;</span><span class="p">]</span><span class="o">=</span> <span class="s2">&quot;correctly send force undeploy command to MiCADO master.&quot;</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;no force flag found&quot;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="update_file"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.update_file">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/app/update/file/&lt;id_app&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PUT&#39;</span><span class="p">])</span>
-<span class="k">def</span> <span class="nf">update_file</span><span class="p">(</span><span class="n">id_app</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; API function to update the application with a specific ID from a file&quot;&quot;&quot;</span>
-    <span class="n">template</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">queue_threading</span><span class="o">.</span><span class="n">queue</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;undeploy_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">getName</span><span class="p">():</span>
+            <span class="n">response</span><span class="p">[</span><span class="s2">&quot;message&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;this application has already undeploy action pending.&quot;</span>
+            <span class="n">response</span><span class="p">[</span><span class="s1">&#39;status_code&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">400</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+    <span class="n">thread</span> <span class="o">=</span> <span class="n">ExecSubmitterThread</span><span class="p">(</span><span class="n">q</span><span class="o">=</span><span class="n">queue_exception</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">submitter</span><span class="o">.</span><span class="n">undeploy</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">id_app</span><span class="p">,),</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">thread</span><span class="o">.</span><span class="n">setName</span><span class="p">(</span><span class="s2">&quot;undeploy_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">))</span>
+    <span class="n">queue_threading</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">thread</span><span class="p">)</span>
+
+    <span class="n">response</span><span class="p">[</span><span class="s2">&quot;message&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;successfully send undeployed for </span><span class="si">{}</span><span class="s2"> to MiCADO master&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+    <span class="n">response</span><span class="p">[</span><span class="s2">&quot;status_code&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">200</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="update"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.update">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/app/update/&lt;id_app&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;PUT&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="n">id_app</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; API function to update the application with a specific ID&quot;&quot;&quot;</span>
+
+    <span class="n">response</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">[])</span>
+    <span class="n">path_to_file</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">queue_threading</span><span class="o">.</span><span class="n">queue</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;update_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">getName</span><span class="p">():</span>
+            <span class="n">response</span><span class="p">[</span><span class="s2">&quot;message&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;this application has already an update pending, please wait for it to be completed before sending a new one.&quot;</span>
+            <span class="n">response</span><span class="p">[</span><span class="s2">&quot;status_code&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">400</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">path_to_file</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;input&#39;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;no input provided&quot;</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">path_to_file</span><span class="p">:</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;no file provided&quot;</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
          <span class="n">params</span><span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]</span>
     <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
@@ -206,29 +245,90 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">parsed_params</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
-    <span class="n">template</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/files/templates/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">root_path</span><span class="p">,</span><span class="n">id_app</span><span class="p">))</span>
-    <span class="n">path_to_file</span> <span class="o">=</span> <span class="s2">&quot;files/templates/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
-    <span class="n">response</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">path_to_file</span><span class="o">=</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="n">parsed_params</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">response</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;correctly updated&quot;</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="mi">200</span><span class="p">))</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;update failed&quot;</span><span class="p">,</span> <span class="n">status_cod</span><span class="o">=</span><span class="mi">500</span><span class="p">))</span></div>
+    <span class="k">if</span> <span class="n">template</span><span class="p">:</span>
+        <span class="n">template</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/files/templates/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app</span><span class="o">.</span><span class="n">root_path</span><span class="p">,</span><span class="n">id_app</span><span class="p">))</span>
+        <span class="n">path_to_file</span> <span class="o">=</span> <span class="s2">&quot;files/templates/</span><span class="si">{}</span><span class="s2">.yaml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">thread</span> <span class="o">=</span> <span class="n">ExecSubmitterThread</span><span class="p">(</span><span class="n">q</span><span class="o">=</span><span class="n">queue_exception</span><span class="p">,</span> <span class="n">target</span><span class="o">=</span><span class="n">submitter</span><span class="o">.</span><span class="n">update</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">id_app</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">),</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">thread</span><span class="o">.</span><span class="n">setName</span><span class="p">(</span><span class="s2">&quot;update_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">))</span>
+        <span class="n">queue_threading</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">thread</span><span class="p">)</span>
+
+        <span class="n">response</span><span class="p">[</span><span class="s2">&quot;message&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Thread to update the application </span><span class="si">{}</span><span class="s2"> is launch. To check process curl http://YOUR_HOST/v1.0/</span><span class="si">{}</span><span class="s2">/status &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+        <span class="n">response</span><span class="p">[</span><span class="s2">&quot;status_code&quot;</span><span class="p">]</span><span class="o">=</span> <span class="mi">200</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">response</span><span class="p">[</span><span class="s2">&quot;message&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> update failed&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+        <span class="n">response</span><span class="p">[</span><span class="s2">&quot;status_code&quot;</span><span class="p">]</span><span class="o">=</span> <span class="mi">500</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="info_app"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.info_app">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/app/&lt;id_app&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
 <span class="k">def</span> <span class="nf">info_app</span><span class="p">(</span><span class="n">id_app</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; API function to get the information on a given id &quot;&quot;&quot;</span>
-    <span class="n">response</span> <span class="o">=</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">message</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">submitter</span><span class="o">.</span><span class="n">app_list</span><span class="p">[</span><span class="n">id_app</span><span class="p">])))</span>
-    <span class="n">response</span><span class="o">.</span><span class="n">status_code</span> <span class="o">=</span> <span class="mi">500</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">[])</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">this_app</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">app_list</span><span class="p">[</span><span class="n">id_app</span><span class="p">]</span>
+        <span class="n">this_app_status</span> <span class="o">=</span> <span class="n">submitter</span><span class="o">.</span><span class="n">get_status</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">response</span></div>
+        <span class="k">if</span> <span class="s2">&quot;launch_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">[</span><span class="s2">&quot;list_threads&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="s2">&quot;launch_</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">threads</span><span class="p">[</span><span class="s2">&quot;list_threads&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">this_app_status</span> <span class="o">=</span> <span class="s2">&quot;pending, other application in the queue.&quot;</span>
+
+
+
+    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="n">response</span><span class="p">[</span><span class="s2">&quot;status_code&quot;</span><span class="p">]</span><span class="o">=</span><span class="mi">404</span>
+        <span class="n">response</span><span class="p">[</span><span class="s2">&quot;message&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;App with ID </span><span class="si">{}</span><span class="s2"> does not exist&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">response</span><span class="p">[</span><span class="s2">&quot;status_code&quot;</span><span class="p">]</span><span class="o">=</span><span class="mi">200</span>
+
+        <span class="n">response</span><span class="p">[</span><span class="s2">&quot;message&quot;</span><span class="p">]</span><span class="o">=</span><span class="s2">&quot;Detail application </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+        <span class="n">response</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;application&quot;</span><span class="p">,</span>
+                                <span class="nb">id</span><span class="o">=</span><span class="n">id_app</span><span class="p">,</span>
+                                <span class="n">outputs</span><span class="o">=</span><span class="n">this_app</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">],</span>
+                                <span class="n">components</span><span class="o">=</span><span class="n">this_app</span><span class="p">[</span><span class="s2">&quot;components&quot;</span><span class="p">],</span>
+                                <span class="n">status</span><span class="o">=</span><span class="n">this_app_status</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="query"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.query">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/app/query/&lt;id_app&gt;&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="n">id_app</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; API call to query running services &quot;&quot;&quot;</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;List running nodes&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">[])</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="p">[</span><span class="s1">&#39;query&#39;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">submitter</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">id_app</span><span class="p">):</span>
+        <span class="n">response</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="list_thread"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.list_thread">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/info_threads&#39;</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">list_thread</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot; API call to query the info on the thread being executed&quot;&quot;&quot;</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;Info on Thread&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">[])</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">q_t</span><span class="o">=</span><span class="nb">list</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">queue_threading</span><span class="o">.</span><span class="n">queue</span><span class="p">:</span>
+            <span class="n">q_t</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">getName</span><span class="p">())</span>
+        <span class="n">response</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;thread being executed&quot;</span><span class="p">:</span> <span class="n">current_thread</span> <span class="p">,</span> <span class="s2">&quot;list of threads waiting&quot;</span> <span class="p">:</span> <span class="n">q_t</span><span class="p">}</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="n">response</span><span class="p">[</span><span class="s2">&quot;status_code&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">500</span>
+        <span class="n">response</span><span class="p">[</span><span class="s2">&quot;message&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;failed retriving info of threads&quot;</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="list_app"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.api.list_app">[docs]</a><span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/v1.0/list_app&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
 <span class="k">def</span> <span class="nf">list_app</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot; API function to list all the running aplications&quot;&quot;&quot;</span>
-    <span class="n">response</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s2">&quot;List running applications&quot;</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="p">[])</span>
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">submitter</span><span class="o">.</span><span class="n">app_list</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">response</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;id: </span><span class="si">{}</span><span class="s2">, outputs: </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span><span class="n">value</span><span class="p">))</span>
-    <span class="k">return</span> <span class="s2">&quot;&lt;h1&gt;here is the id list of applications </span><span class="se">\n</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&lt;/h1&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
+        <span class="n">response</span><span class="p">[</span><span class="s2">&quot;data&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;application&quot;</span><span class="p">,</span>
+                                     <span class="nb">id</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
+                                     <span class="n">outputs</span><span class="o">=</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">],</span>
+                                     <span class="n">components</span><span class="o">=</span><span class="n">value</span><span class="p">[</span><span class="s2">&quot;components&quot;</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">response</span><span class="p">)</span></div>
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
     <span class="fm">__init__</span><span class="p">()</span>
@@ -266,7 +366,7 @@
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

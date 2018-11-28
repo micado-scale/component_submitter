@@ -9,36 +9,52 @@ import ast
 import utils
 import yaml
 import threading
-import time
+import queue
 
 def __init__():
 
-    global logger, submitter, threads
-    threads = dict()
-    threads["list_threads"] = []
-    threads["apps"] = []
+    global logger, submitter, queue_exception, queue_threading, apps
+    apps = list()
     logger =  logging.getLogger("submitter."+__name__)
     submitter = SubmitterEngine()
+    queue_exception = queue.Queue()
+    queue_threading = queue.Queue()
     thread = threading.Thread(target=threads_management)
     thread.start()
 
+
+
+class ExecSubmitterThread(threading.Thread):
+    def __init__(self, q, *args, **kwargs):
+        super(ExecSubmitterThread, self).__init__(*args, **kwargs)
+
+        self.q = q
+
+    def run(self):
+        try:
+            self._target(*self._args, **self._kwargs)
+        except Exception as e:
+            self.q.put(e)
+
+
+
 def threads_management():
+    global current_thread
     while True:
-        if threads["list_threads"]:
-            logger.info("execute first thread of the list")
-            name_thread_to_execute = threads["list_threads"][0]
+        if not queue_threading.empty():
+           thread = queue_threading.get()
+           current_thread = thread.getName()
+           thread.start()
+           thread.join()
+           if 'undeploy' in current_thread:
+               apps.pop(current_thread.split('_', 1 )[1])
+        try:
+           if not queue_exception.empty():
+               raise queue_exception.get()
+        except Exception as e:
+           logger.info("{}".format(e))
 
-            logger.info("{}".format(threads.get(name_thread_to_execute)))
-            threads.get(name_thread_to_execute).start()
-            threads.get(name_thread_to_execute).join()
-            threads.pop(name_thread_to_execute)
-            threads["list_threads"].pop(0)
-            if "undeploy" in name_thread_to_execute:
-                threads["apps"].pop(threads["apps"].index(name_thread_to_execute[9:]))
 
-            time.sleep(2)
-        else:
-            time.sleep(2)
 __init__()
 class RequestError(Exception):
     status_code = 400
@@ -104,11 +120,6 @@ def launch():
          id_app= request.form['id']
     except Exception:
          id_app = utils.id_generator()
-    if id_app in threads["apps"]:
-         response["message"] = "this id is already in use, please choose another one and try again."
-         response["status_code"] = 400
-         return jsonify(response)
-
     try:
          params= request.form['params']
     except Exception:
@@ -119,11 +130,16 @@ def launch():
     if template:
         template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
         path_to_file = "files/templates/{}.yaml".format(id_app)
+    if id_app in apps:
+        response["message"] = "id already register on this service"
+        response["status_code"] = 400
+        return jsonify(response)
 
-    thread = threading.Thread(target=submitter.launch,args=(path_to_file, id_app, parsed_params), daemon=True)
-    threads["list_threads"].append("launch_{}".format(id_app))
-    threads["launch_{}".format(id_app)] = thread
-    threads["apps"].append(id_app)
+    apps.append(id_app)
+    thread = ExecSubmitterThread(q=queue_exception, target=submitter.launch, args=(path_to_file, id_app, parsed_params), daemon=True)
+    thread.setName("launch_{}".format(id_app))
+    queue_threading.put(thread)
+
     response["message"] = "Thread to deploy application launched. To check process curl http://YOUR_HOST/v1.0/{}/status".format(id_app)
     response["status_code"]= 200
     return jsonify(response)
@@ -136,27 +152,30 @@ def undeploy(id_app):
     """ API function to undeploy the application with a specific ID
     """
     response = dict(status_code="", message="", data=[])
-
     try:
-        if "undeploy_{}".format(id_app) in threads["list_threads"]:
-            response["message"] = "this application has already undeploy acction  pending."
-            repsonse["status_code"] = 400
+        if 'force' in request.form:
+            thread = ExecSubmitterThread(q=queue_exception, target=submitter.undeploy, args=(id_app, True), daemon=True)
+            thread.setName("undeploy_{}".format(id_app))
+            queue_threading.put(thread)
+            logger.info("force flag found")
+            response["status_code"]=200
+            response["message"]= "correctly send force undeploy command to MiCADO master."
             return jsonify(response)
-
-        thread = threading.Thread(target=submitter.undeploy, args=(id_app,), daemon=True)
-        threads["list_threads"].append("undeploy_{}".format(id_app))
-        threads["undeploy_{}".format(id_app)] = thread
-        response["message"] = "successfully undeployed {}".format(id_app)
-        response["status_code"] = 200
-        return jsonify(response)
     except Exception:
-        response["message"] = "application {} doesn't exist".format(id_app)
-        response["status_code"] = 404
-        return jsonify(response)
-    else:
-        response["message"] = "something unexpected happened, contact your MiCADO Admin for more details"
-        response["status_code"]= 500
-        return jsonify(response)
+        logger.info("no force flag found")
+
+    for item in queue_threading.queue:
+        if "undeploy_{}".format(id_app) in item.getName():
+            response["message"] = "this application has already undeploy action pending."
+            response['status_code'] = 400
+            return jsonify(response)
+    thread = ExecSubmitterThread(q=queue_exception, target=submitter.undeploy, args=(id_app,), daemon=True)
+    thread.setName("undeploy_{}".format(id_app))
+    queue_threading.put(thread)
+
+    response["message"] = "successfully send undeployed for {} to MiCADO master".format(id_app)
+    response["status_code"] = 200
+    return jsonify(response)
 
 
 @app.route('/v1.0/app/update/<id_app>', methods=['PUT'])
@@ -165,13 +184,14 @@ def update(id_app):
 
     response = dict(status_code="", message="", data=[])
     path_to_file = None
-    if "update_{}".format(id_app) in threads["list_threads"]:
-        response["message"] = "this application has already an update pending, please wait for it to be completed before sending a new one."
-        response["status_code"] = 400
-        return jsonify(response)
+    for item in queue_threading.queue:
+        if "update_{}".format(id_app) in item.getName():
+            response["message"] = "this application has already an update pending, please wait for it to be completed before sending a new one."
+            response["status_code"] = 400
+            return jsonify(response)
     try:
         path_to_file = request.form['input']
-    except Exception:
+    except AttributeError:
         logger.info("no input provided")
 
     try:
@@ -190,9 +210,10 @@ def update(id_app):
         template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
         path_to_file = "files/templates/{}.yaml".format(id_app)
     try:
-        thread = threading.Thread(target=submitter.update, args=(id_app, path_to_file, parsed_params), daemon=True)
-        threads["list_threads"].append("update_{}".format(id_app))
-        threads["launch_{}".format(id_app)] = thread
+        thread = ExecSubmitterThread(q=queue_exception, target=submitter.update, args=(path_to_file, id_app, parsed_params), daemon=True)
+        thread.setName("update_{}".format(id_app))
+        queue_threading.put(thread)
+
         response["message"] = "Thread to update the application {} is launch. To check process curl http://YOUR_HOST/v1.0/{}/status ".format(id_app)
         response["status_code"]= 200
         return jsonify(response)
@@ -249,8 +270,12 @@ def list_thread():
     """ API call to query the info on the thread being executed"""
     response = dict(status_code=200, message="Info on Thread", data=[])
     try:
-        response['data']={"thread being executed": threads["list_threads"][0], "list of threads waiting" : threads["list_threads"][1:]}
-    except:
+        q_t=list()
+        for item in queue_threading.queue:
+            q_t.append(item.getName())
+        response['data']={"thread being executed": current_thread , "list of threads waiting" : q_t}
+    except Exception as e:
+        logger.info(e)
         response["status_code"] = 500
         response["message"] = "failed retriving info of threads"
     return jsonify(response)

@@ -15,7 +15,7 @@
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
@@ -27,15 +27,15 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
       </ul>
-    </div>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body" role="main">
-
+            
   <h1>Source code for component_submitter.adaptors.scalingpolicy_adaptor</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">MiCADO Submitter Engine ScalingPolicy Adaptor</span>
@@ -66,7 +66,6 @@
 <span class="n">PATH_TO_POLICY</span> <span class="o">=</span> <span class="s2">&quot;system/scaling_policy.yaml&quot;</span>
 <span class="n">PATH_TO_PROM</span> <span class="o">=</span> <span class="s2">&quot;system/&quot;</span>
 
-
 <div class="viewcode-block" id="ScalingPolicyAdaptor"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.scalingpolicy_adaptor.ScalingPolicyAdaptor">[docs]</a><span class="k">class</span> <span class="nc">ScalingPolicyAdaptor</span><span class="p">(</span><span class="n">abco</span><span class="o">.</span><span class="n">Adaptor</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adaptor_id</span><span class="p">,</span> <span class="n">config</span><span class="p">,</span> <span class="n">template</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -75,7 +74,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
         <span class="k">if</span> <span class="n">template</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">ToscaTemplate</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Template is not a valid TOSCAParser object&quot;</span><span class="p">)</span>
-
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;init&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">adaptor_id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span> <span class="o">=</span> <span class="n">template</span>
         <span class="k">try</span><span class="p">:</span>
@@ -86,6 +85,7 @@
 
 <div class="viewcode-block" id="ScalingPolicyAdaptor.translate"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.scalingpolicy_adaptor.ScalingPolicyAdaptor.translate">[docs]</a>    <span class="k">def</span> <span class="nf">translate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Translate from TOSCA to scaling_policy.yaml &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;translating&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting ScalingPolicy translation&quot;</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">policy</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="o">.</span><span class="n">policies</span><span class="p">:</span>
@@ -97,14 +97,17 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">sp_data</span><span class="p">[</span><span class="s2">&quot;services&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
                         <span class="p">{</span><span class="n">target</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;scaledown&quot;</span><span class="p">:</span> <span class="n">min_cpu</span><span class="p">,</span> <span class="s2">&quot;scaleup&quot;</span><span class="p">:</span> <span class="n">max_cpu</span><span class="p">}})</span>
 
-        <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sp_data</span><span class="p">,</span> <span class="n">PATH_TO_POLICY</span><span class="p">)</span></div>
+        <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sp_data</span><span class="p">,</span> <span class="n">PATH_TO_POLICY</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;translated&quot;</span></div>
 
 <div class="viewcode-block" id="ScalingPolicyAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.scalingpolicy_adaptor.ScalingPolicyAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Do nothing to the alertgenerator &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;executed&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Doing nothing for ScalingPolicy execution&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ScalingPolicyAdaptor.undeploy"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.scalingpolicy_adaptor.ScalingPolicyAdaptor.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Remove the relevant policy from scaling_policy.yaml &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;undeploying&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">f</span><span class="s1">&#39;Remove policy in scaling_policy with id </span><span class="si">{self.ID}</span><span class="s1">&#39;</span><span class="p">)</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sp_data</span><span class="p">[</span><span class="s2">&quot;services&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
@@ -120,7 +123,8 @@
                     <span class="k">if</span> <span class="n">update</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_force_removal</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
 
-        <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sp_data</span><span class="p">,</span> <span class="n">PATH_TO_POLICY</span><span class="p">)</span></div>
+        <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sp_data</span><span class="p">,</span> <span class="n">PATH_TO_POLICY</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;undeployed&quot;</span></div>
 
     <span class="k">def</span> <span class="nf">_force_removal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Force deletion of *.rules files &quot;&quot;&quot;</span>
@@ -171,7 +175,7 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
