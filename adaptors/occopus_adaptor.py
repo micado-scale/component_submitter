@@ -23,6 +23,7 @@ class OccopusAdaptor(abco.Adaptor):
         """
         if template and not isinstance(template, ToscaTemplate):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")
+        self.status = "init"
         self.config = config
         self.node_name = "node_def:worker"
         self.worker_infra_name = "micado_worker_infra"
@@ -68,6 +69,7 @@ class OccopusAdaptor(abco.Adaptor):
         nova = False
         cloudbroker = False
         cloudsigma = False
+        self.status = "translating"
 
         for node in self.template.nodetemplates:
             if "tosca.nodes.MiCADO.Occopus.CloudSigma.Compute" in node.type:
@@ -127,6 +129,7 @@ class OccopusAdaptor(abco.Adaptor):
                 utils.dump_order_yaml(self.cloudsigma, self.node_path_tmp)
             else:
                 utils.dump_order_yaml(self.nova, self.node_path)
+        self.status = "translated"
 
     def execute(self):
         """
@@ -135,6 +138,7 @@ class OccopusAdaptor(abco.Adaptor):
         contener and then the build process could go on REST API
         """
         logger.info("Starting Occopus execution {}".format(self.ID))
+        self.status = "executing"
         if self.created:
             run = False
             i = 0
@@ -169,15 +173,17 @@ class OccopusAdaptor(abco.Adaptor):
                 logger.error("Occopus import was unsuccessful!")
         else:
             logger.error("Occopus is not created!")
-
+        self.status = "executed"
     def undeploy(self):
         """
         Undeploy Occopus infrastructure through Occopus rest API
         """
+        self.status = "undeploying"
         logger.info("Undeploy {} infrastructure".format(self.ID))
         requests.delete("http://{0}/infrastructures/{1}".format(self.occopus_address, self.worker_infra_name))
         # self.occopus.exec_run("occopus-destroy --auth_data_path {0} -i {1}"
         # .format(self.auth_data_file, self.worker_infra_name))
+        self.status = "undeployed"
 
     def cleanup(self):
         """
@@ -196,6 +202,7 @@ class OccopusAdaptor(abco.Adaptor):
         If the node definition changed then rerun the build process. If the node definition
         changed first undeploy the infrastructure and rebuild it with the modified parameter.
         """
+        self.status = "updating"
         self.min_instances = 1
         self.max_instances = 1
         logger.info("Updating the component config {}".format(self.ID))
@@ -222,6 +229,7 @@ class OccopusAdaptor(abco.Adaptor):
                 os.remove(self.infra_def_path_output_tmp)
             except OSError as e:
                 logger.warning(e)
+        self.status = "updated"
 
     def _node_data_get_interface(self, node, key):
         """

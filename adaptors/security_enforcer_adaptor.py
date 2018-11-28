@@ -56,6 +56,7 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
         self.tpl = template
         self.ID = adaptor_id
         self.config = config
+        self.status = "init"
         if template is not None:
             self.policies = self.tpl.policies
         logger.debug("Initialising the SE adaptor with the ID and TPL")
@@ -64,6 +65,7 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
         pass
 
     def execute(self):
+        self.status = "executing"
         """ Send to the Security Enforcer the informations
             retrieved from the TOSCA template"""
         for policy in self.policies:
@@ -83,6 +85,7 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
                             logger.info("link the secret")
                             data_keys = {'secret':key, 'service':"{}_{}".format(self.IDtarget, target)}
                             response = requests.post("{}/add_secret".format(self.config['endpoint']), data = data_keys)
+        self.status = "executed"
 
     def undeploy(self):
         """ Send to the Security Enforcer the id of the policy to undeploy """

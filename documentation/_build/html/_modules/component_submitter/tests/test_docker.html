@@ -15,7 +15,7 @@
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
@@ -27,15 +27,15 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
       </ul>
-    </div>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body" role="main">
-
+            
   <h1>Source code for component_submitter.tests.test_docker</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">unittest</span>
 
@@ -50,7 +50,8 @@
 <div class="viewcode-block" id="TestDockerAdaptor.setUp"><a class="viewcode-back" href="../../../source/component_submitter.tests.html#component_submitter.tests.test_docker.TestDockerAdaptor.setUp">[docs]</a>    <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Prep a good TOSCA template &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span> <span class="o">=</span> <span class="n">ToscaTemplate</span><span class="p">(</span><span class="s2">&quot;tests/templates/good_tosca.yaml&quot;</span><span class="p">)</span>
-        <span class="n">instantiation_config</span> <span class="o">=</span> <span class="n">SubmitterConfig</span><span class="p">()</span><span class="o">.</span><span class="n">mapping</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+        <span class="n">instantiation_config</span> <span class="o">=</span> <span class="n">SubmitterConfig</span><span class="p">()</span>
+        <span class="n">instantiation_config</span><span class="o">.</span><span class="n">mapping</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">=</span> <span class="n">instantiation_config</span><span class="o">.</span><span class="n">adaptor_config</span><span class="p">[</span><span class="s1">&#39;DockerAdaptor&#39;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">adapt</span> <span class="o">=</span> <span class="n">DockerAdaptor</span><span class="p">(</span><span class="s2">&quot;main_adapt&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpl</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">compose_data</span> <span class="o">=</span> <span class="p">{}</span></div>
@@ -170,7 +171,7 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
