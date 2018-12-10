@@ -10,6 +10,7 @@ import json
 import filecmp
 import logging
 import docker
+import shutil
 
 from toscaparser.tosca_template import ToscaTemplate
 import utils
@@ -28,7 +29,7 @@ DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_NETWORK, DOCKER_VOLUME, DOCKER_IMAGE,
                  "tosca.artifacts.Deployment.Image.Container.Docker",
                  "network", "location")
 
-COMPOSE_VERSION = "3"
+COMPOSE_VERSION = "3" #Supported by Kompose
 
 class K8sAdaptor(abco.Adaptor):
 
@@ -74,10 +75,11 @@ class K8sAdaptor(abco.Adaptor):
         logger.debug("\t\t\t\t\t {}".format(config))
         self.ID = adaptor_id
         self.path = "{}{}.yaml".format(self.config['volume'], self.ID)
-        self.tmp_path = "{}tmp_{}.yaml".format(
-                                            self.config['volume'], self.ID)
+        self.tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
         self.tpl = template
         self.output = dict()
+
+        self.vol_type = "hostPath"
         self.mtu = 1500
         logger.info("DockerAdaptor ready to go!")
 
@@ -112,6 +114,7 @@ class K8sAdaptor(abco.Adaptor):
             elif DOCKER_NETWORK in node.type:
                 self._compose_properties(node, "networks")
             elif DOCKER_VOLUME in node.type:
+                self.vol_type = "persistentVolumeClaim"
                 self._compose_properties(node, "volumes")
 
         if not self.compose_data.get("services"):
@@ -128,13 +131,23 @@ class K8sAdaptor(abco.Adaptor):
         """Quick convert"""
         try:
             if self.config['dry_run'] is False:
-                subprocess.run(["kompose", "-f", path, "convert", "-o", path],
-                stderr=subprocess.PIPE, check=True)
+                rootpath = "/tmpkompose"
+                shutil.copy(path, rootpath)
+                cmd_list = ["kompose", "-f", rootpath, "convert", "-o", path, "--volumes", self.vol_type]
+                subprocess.run(cmd_list, stderr=subprocess.PIPE, check=True)
             else:
                 logger.info("dry run kompose convert")
 
-        except subprocess.CalledProcessError as e:
+        except subprocess.CalledProcessError:
             raise AdaptorCritical("Cannot execute Kompose")
+
+        #Inject default dnsPolicy
+        kubed = utils.get_yaml_data(path)
+        for keys in kubed['items']:
+            if keys['kind'] == 'Deployment':
+                keys['spec']['template']['spec'].update({'dnsPolicy':'Default'})
+        utils.dump_order_yaml(kubed, path)
+
 
     def execute(self, tmp=False):
         """ Deploy the stack onto the Swarm
@@ -155,9 +168,9 @@ class K8sAdaptor(abco.Adaptor):
             else:
                 logger.info("dry run kompose up")
 
-        except subprocess.CalledProcessError as e:
-            raise AdaptorCritical("Cannot execute Docker")
+        except subprocess.CalledProcessError:            
             logger.error("Cannot execute Docker")
+            raise AdaptorCritical("Cannot execute Docker")
         logger.info("K8s running, trying to get outputs...")
         self._get_outputs()
 
@@ -174,7 +187,7 @@ class K8sAdaptor(abco.Adaptor):
                 subprocess.run(["kubectl", "delete", "-f", self.path], check=True)
                 logger.debug("Undeploy application with ID: {}".format(self.ID))
             else:
-                logger.debug(f'Dry undeploy application with ID: {self.ID}')
+                logger.debug("Dry undeploy application with ID: {}".format(self.ID))
 
         except subprocess.CalledProcessError:
             logger.error("Cannot undeploy the stack")
