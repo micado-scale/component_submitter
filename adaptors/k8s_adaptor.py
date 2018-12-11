@@ -197,10 +197,10 @@ class K8sAdaptor(abco.Adaptor):
         
         if query == 'nodes':
             client = kubernetes.client.CoreV1Api()
-            return [x for x in client.list_node().items if not x.spec.taints]
+            return [x.metadata.to_dict() for x in client.list_node().items if not x.spec.taints]
         elif query == 'services':
             client = kubernetes.client.ExtensionsV1beta1Api()
-            return client.read_namespaced_deployment(self.ID.split("_")[0], "default")
+            return [x.metadata.to_dict() for x in client.list_namespaced_deployment("default").items]
 
     def cleanup(self):
         """ Remove the associated Compose file
