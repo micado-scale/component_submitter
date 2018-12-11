@@ -12,6 +12,9 @@ import logging
 import docker
 import shutil
 
+import kubernetes.client
+import kubernetes.config
+
 from toscaparser.tosca_template import ToscaTemplate
 import utils
 from abstracts import base_adaptor as abco
@@ -141,13 +144,6 @@ class K8sAdaptor(abco.Adaptor):
         except subprocess.CalledProcessError:
             raise AdaptorCritical("Cannot execute Kompose")
 
-        #Inject default dnsPolicy
-        kubed = utils.get_yaml_data(path)
-        for keys in kubed['items']:
-            if keys['kind'] == 'Deployment':
-                keys['spec']['template']['spec'].update({'dnsPolicy':'Default'})
-        utils.dump_order_yaml(kubed, path)
-
 
     def execute(self, tmp=False):
         """ Deploy the stack onto the Swarm
@@ -196,7 +192,15 @@ class K8sAdaptor(abco.Adaptor):
 
     def query(self, query):
         """ Queries """
-        logger.info("Query ID {} does nothing".format(self.ID))
+        logger.info("Query ID {}".format(self.ID))
+        kubernetes.config.load_kube_config()
+        
+        if query == 'nodes':
+            client = kubernetes.client.CoreV1Api()
+            return [x for x in client.list_node().items if not x.spec.taints]
+        elif query == 'services':
+            client = kubernetes.client.ExtensionsV1beta1Api()
+            return client.read_namespaced_deployment(self.ID.split("_")[0], "default")
 
     def cleanup(self):
         """ Remove the associated Compose file
