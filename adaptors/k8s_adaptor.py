@@ -99,16 +99,6 @@ class K8sAdaptor(abco.Adaptor):
         logger.info("Starting translation to compose...")
         self.compose_data = {"version": COMPOSE_VERSION}
 
-        #Get the MTU from default bridge network
-        try:
-            inspect = json.loads(
-                subprocess.check_output(['docker','network','inspect','bridge']))[0]
-            self.mtu = inspect.get("Options").get("com.docker.network.driver.mtu")
-        except (subprocess.CalledProcessError, FileNotFoundError):
-            logger.error("Could not get MTU from default network, using 1500!")
-        if not self.mtu:
-            self.mtu = 1500
-
         for node in self.tpl.nodetemplates:
             if DOCKER_CONTAINER in node.type:
                 self._compose_properties(node, "services")
@@ -215,7 +205,8 @@ class K8sAdaptor(abco.Adaptor):
         except OSError as e:
             logger.warning(e)
         try:
-            subprocess.run(["docker", "exec", "occopus_redis", "redis-cli", "FLUSHALL"], check=True)
+            cmd = ["/bin/sh", "-c", "docker", "exec", "occopus_redis", "redis-cli", "FLUSHALL"]
+            subprocess.run(cmd, check=True)
         except subprocess.CalledProcessError:
             logger.warning("Could not flush occopus_redis")
 
