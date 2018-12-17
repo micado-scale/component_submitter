@@ -117,8 +117,9 @@ class K8sAdaptor(abco.Adaptor):
             utils.dump_order_yaml(self.compose_data, self.path)
             self._kompose_convert(self.path)
         else:
-            utils.dump_order_yaml(self.compose_data, self.tmp_path)
-            self._kompose_convert(self.tmp_path)
+            shutil.copy(self.path, self.tmp_path)
+            utils.dump_order_yaml(self.compose_data, self.path)
+            self._kompose_convert(self.path)
 
     def _kompose_convert(self, path):
         """Quick convert"""
@@ -224,18 +225,32 @@ class K8sAdaptor(abco.Adaptor):
 
         if not self._differentiate():
             logger.debug("tmp file different, replacing old config and executing")
-            os.rename(self.tmp_path, self.path)
+            os.remove(self.tmp_path)
             self.execute(True)
         else:
-            try:
-                logger.debug("tmp file is the same, removing the tmp file")
-                os.remove(self.tmp_path)
-            except OSError as e:
-                logger.warning(e)
+            logger.debug("tmp file is the same, removing the tmp file")
+            os.rename(self.tmp_path, self.path)
 
     def _get_outputs(self):
         """ Get outputs and their resultant attributes """
-        logger.info("not implemented")
+        logger.info("Fetching outputs")
+
+        def get_attribute(service, query):
+            kubernetes.config.load_kube_config()
+            if query == 'ip_address':
+                client = kubernetes.client.CoreV1Api()
+                result = [x.to_dict() for x in client.read_namespaced_service(service,"default").spec.ports]
+                self.output.update({service: result})
+
+        for output in self.tpl.outputs:
+            node = output.value.get_referenced_node_template()
+            if node.type == DOCKER_CONTAINER:
+                service = node.name
+                logger.debug("Inspect service: {}".format(service))
+                query = output.value.attribute_name
+                get_attribute(service, query)
+            else:
+                logger.warning("{} is not a Docker container!".format(node.name))
 
     def _differentiate(self):
         """ Compare two compose files """
