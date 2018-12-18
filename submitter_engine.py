@@ -141,8 +141,6 @@ class SubmitterEngine(object):
         except MultiError as e:
             raise
         except AdaptorCritical as e:
-            raise
-        except AdaptorCritical as e:
             for adaptor in reversed(executed_adaptors):
                 self._undeploy(adaptor, id_app)
             raise
@@ -222,6 +220,7 @@ class SubmitterEngine(object):
         """ method called by the engine to launch the adaptors execute methods """
         logger.info("launch of the execute methods in each adaptors in a serial way")
         executed_adaptors = []
+        self.app_list[app_id]["output"] = {}
         for step in self.object_config.step_config['execute']:
             adaptors[step].execute()
             executed_adaptors.append(adaptors[step])

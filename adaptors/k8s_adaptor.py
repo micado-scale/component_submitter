@@ -237,7 +237,7 @@ class K8sAdaptor(abco.Adaptor):
 
         def get_attribute(service, query):
             kubernetes.config.load_kube_config()
-            if query == 'ip_address':
+            if query == 'port':
                 client = kubernetes.client.CoreV1Api()
                 result = [x.to_dict() for x in client.read_namespaced_service(service,"default").spec.ports]
                 self.output.update({service: result})
