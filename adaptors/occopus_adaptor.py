@@ -1,5 +1,7 @@
 import filecmp
 import os
+import json
+import shutil
 import logging
 import docker
 import ruamel.yaml as yaml
@@ -73,29 +75,29 @@ class OccopusAdaptor(abco.Adaptor):
             if "tosca.nodes.MiCADO.Occopus.CloudSigma.Compute" in node.type:
                 logger.info("CloudSigma resource detected")
                 self._node_data_get_interface(node, "resource")
-                self._node_data_get_cloudsigma_host_properties(node, "resource")
                 self._get_policies()
+                self._node_data_get_cloudsigma_host_properties(node, "resource")
                 self._get_infra_def(tmp)
                 cloudsigma = True
             if "tosca.nodes.MiCADO.Occopus.EC2.Compute" in node.type:
                 logger.info("EC2 resource detected")
                 self._node_data_get_interface(node, "resource")
-                self._node_data_get_ec2_host_properties(node, "resource")
                 self._get_policies()
+                self._node_data_get_ec2_host_properties(node, "resource")
                 self._get_infra_def(tmp)
                 ec2 = True
             if "tosca.nodes.MiCADO.Occopus.CloudBroker.Compute" in node.type:
                 logger.info("CloudBroker resource detected")
                 self._node_data_get_interface(node, "resource")
-                self._node_data_get_cloudbroker_host_properties(node, "resource")
                 self._get_policies()
+                self._node_data_get_cloudbroker_host_properties(node, "resource")
                 self._get_infra_def(tmp)
                 cloudbroker = True
             if "tosca.nodes.MiCADO.Occopus.Nova.Compute" in node.type:
                 logger.info("Nova resource detected")
                 self._node_data_get_interface(node, "resource")
-                self._node_data_get_nova_host_properties(node, "resource")
                 self._get_policies()
+                self._node_data_get_nova_host_properties(node, "resource")
                 self._get_infra_def(tmp)
                 nova = True
 
@@ -187,6 +189,7 @@ class OccopusAdaptor(abco.Adaptor):
         try:
             os.remove(self.node_path)
             os.remove(self.infra_def_path_output)
+            os.remove("{}_{}".format(self.cloudinit_path, self.ID.split("_")[0]))
         except OSError as e:
             logger.warning(e)
 
@@ -424,6 +427,30 @@ class OccopusAdaptor(abco.Adaptor):
                         properties = policy.get_properties()
                         self.min_instances = properties["min_instances"].value
                         self.max_instances = properties["max_instances"].value
+                sources = policy.get_property_value("sources")
+                if sources:
+                    for source in sources:
+                        if "consul:" in source:
+                            port = int(source.split(':')[1])
+                            self._add_service_to_consul(port)
+
+    def _add_service_to_consul(self, port):
+        """ Edit the cloud_init """        
+        cloudinit = utils.get_yaml_data(self.cloudinit_path)
+        name = "{}_cluster".format(self.ID.split("_")[0])
+
+        for config in cloudinit.get("write_files", []):
+            if "consul/config" in config.get("path", []):
+                content = json.loads(config["content"])
+                content.get("services", []).append({'name': "{}_cluster".format(name), 'port': port})
+                config["content"] = json.dumps(content)
+                break
+        else:
+            return
+
+        cloudinit_path_tmp = "{}_{}".format(self.cloudinit_path, name)
+        utils.dump_order_yaml(cloudinit, cloudinit_path_tmp)
+        self.cloudinit_path = cloudinit_path_tmp
 
     def _differentiate(self, path, tmp_path):
         """ Compare two files """
