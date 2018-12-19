@@ -427,30 +427,6 @@ class OccopusAdaptor(abco.Adaptor):
                         properties = policy.get_properties()
                         self.min_instances = properties["min_instances"].value
                         self.max_instances = properties["max_instances"].value
-                sources = policy.get_property_value("sources")
-                if sources:
-                    for source in sources:
-                        if "consul:" in source:
-                            port = int(source.split(':')[1])
-                            self._add_service_to_consul(port)
-
-    def _add_service_to_consul(self, port):
-        """ Edit the cloud_init """        
-        cloudinit = utils.get_yaml_data(self.cloudinit_path)
-        name = "{}_cluster".format(self.ID.split("_")[0])
-
-        for config in cloudinit.get("write_files", []):
-            if "consul/config" in config.get("path", []):
-                content = json.loads(config["content"])
-                content.get("services", []).append({'name': "{}_cluster".format(name), 'port': port})
-                config["content"] = json.dumps(content)
-                break
-        else:
-            return
-
-        cloudinit_path_tmp = "{}_{}".format(self.cloudinit_path, name)
-        utils.dump_order_yaml(cloudinit, cloudinit_path_tmp)
-        self.cloudinit_path = cloudinit_path_tmp
 
     def _differentiate(self, path, tmp_path):
         """ Compare two files """
