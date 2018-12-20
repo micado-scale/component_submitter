@@ -141,8 +141,6 @@ class SubmitterEngine(object):
         except MultiError as e:
             raise
         except AdaptorCritical as e:
-            raise
-        except AdaptorCritical as e:
             for adaptor in reversed(executed_adaptors):
                 self._undeploy(adaptor, id_app)
             raise
@@ -222,14 +220,13 @@ class SubmitterEngine(object):
         """ method called by the engine to launch the adaptors execute methods """
         logger.info("launch of the execute methods in each adaptors in a serial way")
         executed_adaptors = []
+        self.app_list[app_id]["output"] = {}
         for step in self.object_config.step_config['execute']:
             adaptors[step].execute()
             executed_adaptors.append(adaptors[step])
-            try:
-                self.app_list[app_id]["output"] = adaptors[step].output
-            except AttributeError as e:
-                self.app_list[app_id]["output"] = "no output available"
-                logger.warning("the adaptor doesn't provice a output attribute")
+            output = getattr(adaptors[step], "output", None)
+            if output:
+                self.app_list[app_id]["output"].update({step:output})
 
         # for adaptor in adaptors:
         #         logger.debug("\t execute adaptor: {}".format(adaptor))
@@ -259,14 +256,10 @@ class SubmitterEngine(object):
         """ method that will translate first the new component and then see if there's a difference, and then execute"""
         logger.info("update of each components related to the application wanted")
         for step in self.object_config.step_config['update']:
-            #Step(adaptor).update()
             adaptors[step].update()
-            try:
-                #self.app_list.update(app_id, Step(adaptor).output)
-                logger.info(adaptors[step].output)
-                self.app_list[app_id]["output"] = adaptors[step].output
-            except AttributeError as e:
-                logger.warning("the Adaptor doesn't provide a output attribute")
+            output = getattr(adaptors[step], "output", None)
+            if output:
+                self.app_list[app_id]["output"].update({step:output})
 
     def query(self, query, app_id):
         """ query """
