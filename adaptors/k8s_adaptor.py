@@ -206,7 +206,7 @@ class K8sAdaptor(abco.Adaptor):
         except OSError as e:
             logger.warning(e)
         try:
-            cmd = ["/bin/sh", "-c", "docker", "exec", "occopus_redis", "redis-cli", "FLUSHALL"]
+            cmd = ["docker", "exec", "occopus_redis", "redis-cli", "FLUSHALL"]
             subprocess.run(cmd, check=True)
         except subprocess.CalledProcessError:
             logger.warning("Could not flush occopus_redis")
