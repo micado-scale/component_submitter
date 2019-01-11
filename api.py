@@ -213,7 +213,7 @@ def update(id_app):
         template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
         path_to_file = "files/templates/{}.yaml".format(id_app)
     try:
-        thread = ExecSubmitterThread(q=queue_exception, target=submitter.update, args=(path_to_file, id_app, parsed_params), daemon=True)
+        thread = ExecSubmitterThread(q=queue_exception, target=submitter.update, args=(id_app, path_to_file, parsed_params), daemon=True)
         thread.setName("update_{}".format(id_app))
         queue_threading.put(thread)
 
