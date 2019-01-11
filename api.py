@@ -194,7 +194,7 @@ def update(id_app):
             return jsonify(response)
     try:
         path_to_file = request.form['input']
-    except AttributeError:
+    except Exception:
         logger.info("no input provided")
 
     try:
