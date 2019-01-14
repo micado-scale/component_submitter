@@ -217,7 +217,7 @@ def update(id_app):
         thread.setName("update_{}".format(id_app))
         queue_threading.put(thread)
 
-        response["message"] = "Thread to update the application {} is launch. To check process curl http://YOUR_HOST/v1.0/{}/status ".format(id_app)
+        response["message"] = "Thread to update the application {} is launch. To check process curl http://YOUR_HOST/v1.0/{}/status ".format(id_app, id_app)
         response["status_code"]= 200
         return jsonify(response)
     except Exception:
