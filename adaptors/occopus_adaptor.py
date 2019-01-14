@@ -72,30 +72,28 @@ class OccopusAdaptor(abco.Adaptor):
         self.status = "translating"
 
         for node in self.template.nodetemplates:
-            if "tosca.nodes.MiCADO.Occopus.CloudSigma.Compute" in node.type:
+
+            cloud_type = self._node_data_get_interface(node, "resource")
+            if cloud_type == "cloudsigma":
                 logger.info("CloudSigma resource detected")
-                self._node_data_get_interface(node, "resource")
                 self._node_data_get_cloudsigma_host_properties(node, "resource")
                 self._get_policies()
                 self._get_infra_def(tmp)
                 cloudsigma = True
-            if "tosca.nodes.MiCADO.Occopus.EC2.Compute" in node.type:
+            if cloud_type == "ec2":
                 logger.info("EC2 resource detected")
-                self._node_data_get_interface(node, "resource")
                 self._node_data_get_ec2_host_properties(node, "resource")
                 self._get_policies()
                 self._get_infra_def(tmp)
                 ec2 = True
-            if "tosca.nodes.MiCADO.Occopus.CloudBroker.Compute" in node.type:
+            if cloud_type == "cloudbroker":
                 logger.info("CloudBroker resource detected")
-                self._node_data_get_interface(node, "resource")
                 self._node_data_get_cloudbroker_host_properties(node, "resource")
                 self._get_policies()
                 self._get_infra_def(tmp)
                 cloudbroker = True
-            if "tosca.nodes.MiCADO.Occopus.Nova.Compute" in node.type:
+            if cloud_type == "nova":
                 logger.info("Nova resource detected")
-                self._node_data_get_interface(node, "resource")
                 self._node_data_get_nova_host_properties(node, "resource")
                 self._get_policies()
                 self._get_infra_def(tmp)
@@ -239,12 +237,14 @@ class OccopusAdaptor(abco.Adaptor):
         try:
             occo_inf = [inf for inf in interfaces if inf.type == "Occopus"][0]
         except (IndexError, AttributeError):
-            logger.info("Could not find any interface for Occopus!")
-            return
-        cloud_inputs = occo_inf.inputs
-        
-        self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
-        self.node_data.setdefault(key, {}).setdefault("endpoint", cloud_inputs["endpoint_cloud"])
+            logger.debug("No interface for Occopus in {}".format(node.name))
+        else:
+            cloud_inputs = occo_inf.inputs
+            self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
+            self.node_data.setdefault(key, {}).setdefault("endpoint", cloud_inputs["endpoint_cloud"])
+
+            return cloud_inputs["interface_cloud"]
+
 
     def _node_data_get_context_section(self):
         """
