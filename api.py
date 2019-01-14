@@ -143,11 +143,9 @@ def launch():
     thread.setName("launch_{}".format(id_app))
     queue_threading.put(thread)
 
-    response["message"] = "Thread to deploy application launched. To check process curl http://YOUR_HOST/v1.0/{}/status".format(id_app)
+    response["message"] = "Thread to deploy application launched. To check process curl http://YOUR_HOST/v1.0/app/{}/status".format(id_app)
     response["status_code"]= 200
     return jsonify(response)
-
-
 
 
 @app.route('/v1.0/app/undeploy/<id_app>', methods=['DELETE'])
@@ -194,7 +192,7 @@ def update(id_app):
             return jsonify(response)
     try:
         path_to_file = request.form['input']
-    except AttributeError:
+    except Exception:
         logger.info("no input provided")
 
     try:
@@ -213,11 +211,11 @@ def update(id_app):
         template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
         path_to_file = "files/templates/{}.yaml".format(id_app)
     try:
-        thread = ExecSubmitterThread(q=queue_exception, target=submitter.update, args=(path_to_file, id_app, parsed_params), daemon=True)
+        thread = ExecSubmitterThread(q=queue_exception, target=submitter.update, args=(id_app, path_to_file, parsed_params), daemon=True)
         thread.setName("update_{}".format(id_app))
         queue_threading.put(thread)
 
-        response["message"] = "Thread to update the application {} is launch. To check process curl http://YOUR_HOST/v1.0/{}/status ".format(id_app)
+        response["message"] = "Thread to update the application is launch. To check process curl http://YOUR_HOST/v1.0/app/{}/status ".format(id_app)
         response["status_code"]= 200
         return jsonify(response)
     except Exception:
@@ -226,7 +224,7 @@ def update(id_app):
         return jsonify(response)
 
 
-@app.route('/v1.0/app/<id_app>', methods=['GET'])
+@app.route('/v1.0/app/<id_app>/status', methods=['GET'])
 def info_app(id_app):
     """ API function to get the information on a given id """
     response = dict(status_code="", message="", data=[])
