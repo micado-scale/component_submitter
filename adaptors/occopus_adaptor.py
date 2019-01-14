@@ -412,23 +412,14 @@ class OccopusAdaptor(abco.Adaptor):
 
     def _get_policies(self):
         """ Get the TOSCA policies """
-        target_name = ""
-        i = 0
-        found = False
-        while i < len(self.template.nodetemplates) \
-                and "tosca.nodes.MiCADO.Occopus" not in self.template.nodetemplates[i].type:
-            i += 1
-        if i < len(self.template.nodetemplates):
-            target_name = self.template.nodetemplates[i].name
-            found = True
-        if found:
-            for policy in self.template.policies:
-                for target in policy.targets:
-                    if target == target_name:
-                        logger.debug("policy target found for Occopus")
-                        properties = policy.get_properties()
-                        self.min_instances = properties["min_instances"].value
-                        self.max_instances = properties["max_instances"].value
+        
+        for policy in self.template.policies:
+            for target in policy.targets_list:
+                if "Compute" in target.type:
+                    logger.debug("policy target found for compute node")
+                    properties = policy.get_properties()
+                    self.min_instances = properties["min_instances"].value
+                    self.max_instances = properties["max_instances"].value
 
     def _differentiate(self, path, tmp_path):
         """ Compare two files """
