@@ -235,16 +235,16 @@ class OccopusAdaptor(abco.Adaptor):
         """
         Get cloud relevant informations from tosca
         """
-        properties = node.get_properties()
-        entry = {}
-        for prop in properties:
-            try:
-                entry[prop] = node.get_property_value(prop).result()
-                node.get_property_value()
-            except AttributeError as e:
-                entry[prop] = node.get_property_value(prop)
-        self.node_data.setdefault(key, {}).setdefault("type", entry["cloud"]["interface_cloud"])
-        self.node_data.setdefault(key, {}).setdefault("endpoint", entry["cloud"]["endpoint_cloud"])
+        interfaces = node.interfaces
+        try:
+            occo_inf = [inf for inf in interfaces if inf.type == "Occopus"][0]
+        except (IndexError, AttributeError):
+            logger.info("Could not find any interface for Occopus!")
+            return
+        cloud_inputs = occo_inf.inputs
+        
+        self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
+        self.node_data.setdefault(key, {}).setdefault("endpoint", cloud_inputs["endpoint_cloud"])
 
     def _node_data_get_context_section(self):
         """
@@ -408,10 +408,7 @@ class OccopusAdaptor(abco.Adaptor):
 
     def _get_host_properties(self, node):
         """ Get host properties """
-        capabilites = node.get_capabilities()
-        entry = capabilites.get("host")
-        entry2 = entry.get_properties()
-        return entry2
+        return node.get_properties()
 
     def _get_policies(self):
         """ Get the TOSCA policies """
