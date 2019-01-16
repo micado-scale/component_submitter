@@ -234,39 +234,21 @@ class SubmitterEngine(object):
                     continue
                 break
 
-
-
-
     def _execute(self, app_id, adaptors):
         """ method called by the engine to launch the adaptors execute methods """
         logger.info("launch of the execute methods in each adaptors in a serial way")
         executed_adaptors = []
+        self.app_list[app_id]["output"] = {}
         for step in self.object_config.step_config['execute']:
             adaptors[step].execute()
             executed_adaptors.append(adaptors[step])
-            try:
-                self.app_list[app_id]["output"] = adaptors[step].output
-            except AttributeError as e:
-                self.app_list[app_id]["output"] = "no output available"
-                logger.warning("the adaptor doesn't provice a output attribute")
-
-        # for adaptor in adaptors:
-        #         logger.debug("\t execute adaptor: {}".format(adaptor))
-        #         #Step(adaptor).execute()
-        #         adaptor.execute()
-        #         try:
-        #             #self.app_list.update(app_id, Step(adaptor).output)
-        #             #self.app_list.update(app_id, adaptor.output)
-        #             self.app_list[app_id] = adaptor.output
-        #
-        #         except AttributeError as e:
-        #             logger.warning("the Adaptor doesn't provide a output attribute")
+            output = getattr(adaptors[step], "output", None)
+            if output:
+                self.app_list[app_id]["output"].update({step:output})
 
         self._update_json()
 
         return executed_adaptors
-
-
 
     def _undeploy(self, adaptors):
         """ method called by the engine to launch the adaptor undeploy method of a specific component identified by its ID"""
