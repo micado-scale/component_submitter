@@ -34,7 +34,8 @@ class ExecSubmitterThread(threading.Thread):
         try:
             self._target(*self._args, **self._kwargs)
         except Exception as e:
-            self.q.put(e)
+            exception = {"name":self.getName(), "exception": e}
+            self.q.put(exception)
 
 
 
@@ -53,7 +54,12 @@ def threads_management():
                    pass
         try:
            if not queue_exception.empty():
-               raise queue_exception.get()
+               exception = queue_exception.get()
+               logger.info("exception caught on thread {}".format(exception["name"]))
+               if "launch" in exception["name"]:
+                   apps.pop(apps.index(exception["name"].split('_',1)[1]))
+               raise exception["exception"]
+
         except Exception as e:
            logger.info("{}".format(e))
 
