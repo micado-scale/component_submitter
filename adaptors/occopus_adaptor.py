@@ -117,14 +117,14 @@ class OccopusAdaptor(abco.Adaptor):
             self.cloudbroker = {self.node_name: []}
             self.cloudbroker[self.node_name].append(self.node_data)
             if tmp:
-                utils.dump_order_yaml(self.cloudsigma, self.node_path_tmp)
+                utils.dump_order_yaml(self.cloudbroker, self.node_path_tmp)
             else:
                 utils.dump_order_yaml(self.cloudbroker, self.node_path)
         elif nova:
             self.nova = {self.node_name: []}
             self.nova[self.node_name].append(self.node_data)
             if tmp:
-                utils.dump_order_yaml(self.cloudsigma, self.node_path_tmp)
+                utils.dump_order_yaml(self.nova, self.node_path_tmp)
             else:
                 utils.dump_order_yaml(self.nova, self.node_path)
         self.status = "translated"
@@ -208,7 +208,7 @@ class OccopusAdaptor(abco.Adaptor):
 
         if not self._differentiate(self.node_path,self.node_path_tmp):
             logger.debug("Node tmp file different, replacing old config and executing")
-            os.rename(self.node_path, self.node_path_tmp)
+            os.rename(self.node_path_tmp, self.node_path)
             os.rename(self.infra_def_path_output_tmp, self.infra_def_path_output)
             # Undeploy the infra and rebuild
             self.undeploy()

@@ -220,7 +220,6 @@ def update(id_app):
         thread = ExecSubmitterThread(q=queue_exception, target=submitter.update, args=(id_app, path_to_file, parsed_params), daemon=True)
         thread.setName("update_{}".format(id_app))
         queue_threading.put(thread)
-
         response["message"] = "Thread to update the application is launch. To check process curl http://YOUR_HOST/v1.0/app/{}/status ".format(id_app)
         response["status_code"]= 200
         return jsonify(response)
