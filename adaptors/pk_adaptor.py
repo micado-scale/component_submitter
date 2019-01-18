@@ -25,6 +25,7 @@ class PkAdaptor(abco.Adaptor):
         self.config = config
         self.pk_data = {}
         self.ID = adaptor_id
+        self.status = "init"
         try:
             self.path = "{}{}.yaml".format(self.config['volume'], self.ID)
             self.tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
@@ -34,7 +35,7 @@ class PkAdaptor(abco.Adaptor):
         logger.info("Pk adaptor initialised")
 
     def translate(self, tmp=False):
-
+        self.status = "translating"
         logger.info("Starting PK translation")
         # Hard-coded file structure
         self.pk_data = {STACK: self.ID.split("_")[0],
@@ -66,8 +67,10 @@ class PkAdaptor(abco.Adaptor):
         else:
             self._yaml_write(self.tmp_path)
             logger.info("Updated PK file created")
+        self.status = "translated"
 
     def execute(self):
+        self.status = "executing"
         logger.info("Starting Pk execution")
         headers = {'Content-Type': 'application/x-yaml'}
         try:
@@ -79,15 +82,18 @@ class PkAdaptor(abco.Adaptor):
                 logger.info("Policy with {0} id is sent.".format(self.ID))
         except Exception as e:
             logger.error(e)
+        self.status = "executed"
 
 
     def undeploy(self):
+        self.status = "undeploying"
         logger.info("Removing the policy in Pk service with id {0}".format(self.ID))
         try:
             requests.post("http://{0}/policy/stop".format(self.config['endpoint']))
         except Exception as e:
             logger.error(e)
         logger.info("Policy {0} removed.".format(self.ID))
+        self.status = "undeployed"
 
 
     def cleanup(self):

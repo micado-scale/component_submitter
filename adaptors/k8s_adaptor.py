@@ -81,6 +81,7 @@ class K8sAdaptor(abco.Adaptor):
         self.tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
         self.tpl = template
         self.output = dict()
+        self.status = "init"
 
         self.vol_type = "hostPath"
         self.mtu = 1500
@@ -95,10 +96,10 @@ class K8sAdaptor(abco.Adaptor):
         :param bool tmp: Set ``True`` for update() - outputfile gets prefix ``tmp_``
         :raises: AdaptorCritical
         """
-
+        
         logger.info("Starting translation to compose...")
         self.compose_data = {"version": COMPOSE_VERSION}
-
+        self.status = "translating"
         for node in self.tpl.nodetemplates:
             if DOCKER_CONTAINER in node.type:
                 self._compose_properties(node, "services")
@@ -120,6 +121,7 @@ class K8sAdaptor(abco.Adaptor):
             shutil.copy(self.path, self.tmp_path)
             utils.dump_order_yaml(self.compose_data, self.path)
             self._kompose_convert(self.path)
+        self.status = "translated"
 
     def _kompose_convert(self, path):
         """Quick convert"""
@@ -143,6 +145,7 @@ class K8sAdaptor(abco.Adaptor):
         which was created in ``translate()``
         :raises: AdaptorCritical
         """
+        self.status = "executing"
         logger.info("Starting k8s execution...")
         if tmp:
             operation = ["kubectl", 'apply', "-f", self.path]
@@ -160,6 +163,7 @@ class K8sAdaptor(abco.Adaptor):
             raise AdaptorCritical("Cannot execute Docker")
         logger.info("K8s running, trying to get outputs...")
         self._get_outputs()
+        self.status = "executed"
 
     def undeploy(self):
         """ Undeploy the stack from Docker
@@ -168,7 +172,7 @@ class K8sAdaptor(abco.Adaptor):
         :raises: AdaptorCritical
         """
         logger.info("Undeploying the application")
-
+        self.status = "undeploying"
         try:
             if self.config['dry_run'] is False:
                 subprocess.run(["kubectl", "delete", "-f", self.path], check=True)
@@ -180,6 +184,7 @@ class K8sAdaptor(abco.Adaptor):
             logger.error("Cannot undeploy the stack")
             raise AdaptorCritical("Cannot undeploy the stack")
         logger.info("Stack is down...")
+        self.status = "undeployed"
 
     def query(self, query):
         """ Queries """
@@ -219,6 +224,7 @@ class K8sAdaptor(abco.Adaptor):
         with the current compose file. If different, replace current compose with
         ``tmp`` compose, and call execute().
         """
+        self.status = "updating"
         logger.info("Starting the update...")
         logger.debug("Creating temporary template...")
         self.translate(True)
@@ -230,6 +236,7 @@ class K8sAdaptor(abco.Adaptor):
         else:
             logger.debug("tmp file is the same, removing the tmp file")
             os.rename(self.tmp_path, self.path)
+        self.status = "updated"
 
     def _get_outputs(self):
         """ Get outputs and their resultant attributes """

@@ -63,11 +63,6 @@
 <li class="toctree-l3"><a class="reference internal" href="component_submitter.adaptors.html#micado-submitter-engine-docker-adaptor">MiCADO Submitter Engine Docker Adaptor</a></li>
 </ul>
 </li>
-<<<<<<< HEAD
-=======
-<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_occopus_adaptor">component_submitter.adaptors.dummy_occopus_adaptor module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.dummy_se_adaptor">component_submitter.adaptors.dummy_se_adaptor module</a></li>
->>>>>>> master
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.occopus_adaptor">component_submitter.adaptors.occopus_adaptor module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.pk_adaptor">component_submitter.adaptors.pk_adaptor module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="component_submitter.adaptors.html#module-component_submitter.adaptors.scalingpolicy_adaptor">component_submitter.adaptors.scalingpolicy_adaptor module</a><ul>
@@ -96,10 +91,26 @@
 </div>
 <div class="section" id="module-component_submitter.api">
 <span id="component-submitter-api-module"></span><h2>component_submitter.api module<a class="headerlink" href="#module-component_submitter.api" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="component_submitter.api.ExecSubmitterThread">
+<em class="property">class </em><code class="descclassname">component_submitter.api.</code><code class="descname">ExecSubmitterThread</code><span class="sig-paren">(</span><em>q</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#ExecSubmitterThread"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.ExecSubmitterThread" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/threading.html#threading.Thread" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">threading.Thread</span></code></a></p>
+<dl class="method">
+<dt id="component_submitter.api.ExecSubmitterThread.run">
+<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#ExecSubmitterThread.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.ExecSubmitterThread.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Method representing the thread’s activity.</p>
+<p>You may override this method in a subclass. The standard run() method
+invokes the callable object passed to the object’s constructor as the
+target argument, if any, with sequential and keyword arguments taken
+from the args and kwargs arguments, respectively.</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="exception">
 <dt id="component_submitter.api.RequestError">
 <em class="property">exception </em><code class="descclassname">component_submitter.api.</code><code class="descname">RequestError</code><span class="sig-paren">(</span><em>message</em>, <em>status_code=None</em>, <em>payload=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#RequestError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.RequestError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
 <dl class="attribute">
 <dt id="component_submitter.api.RequestError.status_code">
 <code class="descname">status_code</code><em class="property"> = 400</em><a class="headerlink" href="#component_submitter.api.RequestError.status_code" title="Permalink to this definition">¶</a></dt>
@@ -110,28 +121,6 @@
 <code class="descname">to_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#RequestError.to_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.RequestError.to_dict" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</dd></dl>
-
-<dl class="function">
-<dt id="component_submitter.api.engine_file">
-<code class="descclassname">component_submitter.api.</code><code class="descname">engine_file</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#engine_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.engine_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>API functions to launch an application</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="component_submitter.api.engine_url">
-<code class="descclassname">component_submitter.api.</code><code class="descname">engine_url</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#engine_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.engine_url" title="Permalink to this definition">¶</a></dt>
-<dd><p>API functions to launch a application</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Params intput:</th><td class="field-body">path to the file wanted</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Params params:</th><td class="field-body">dictionary with the update of input.</td>
-</tr>
-</tbody>
-</table>
 </dd></dl>
 
 <dl class="function">
@@ -151,10 +140,43 @@
 <dd></dd></dl>
 
 <dl class="function">
+<dt id="component_submitter.api.launch">
+<code class="descclassname">component_submitter.api.</code><code class="descname">launch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#launch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.launch" title="Permalink to this definition">¶</a></dt>
+<dd><p>API functions to launch a application</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Params intput:</th><td class="field-body">path to the file wanted</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Params params:</th><td class="field-body">dictionary with the update of input.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="component_submitter.api.list_app">
 <code class="descclassname">component_submitter.api.</code><code class="descname">list_app</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#list_app"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.list_app" title="Permalink to this definition">¶</a></dt>
 <dd><p>API function to list all the running aplications</p>
 </dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.api.list_thread">
+<code class="descclassname">component_submitter.api.</code><code class="descname">list_thread</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#list_thread"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.list_thread" title="Permalink to this definition">¶</a></dt>
+<dd><p>API call to query the info on the thread being executed</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.api.query">
+<code class="descclassname">component_submitter.api.</code><code class="descname">query</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.query" title="Permalink to this definition">¶</a></dt>
+<dd><p>API call to query running services</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="component_submitter.api.threads_management">
+<code class="descclassname">component_submitter.api.</code><code class="descname">threads_management</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#threads_management"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.threads_management" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="function">
 <dt id="component_submitter.api.undeploy">
@@ -168,21 +190,9 @@
 <dd></dd></dl>
 
 <dl class="function">
-<<<<<<< HEAD
 <dt id="component_submitter.api.update">
 <code class="descclassname">component_submitter.api.</code><code class="descname">update</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.update" title="Permalink to this definition">¶</a></dt>
-<dd><p>API function to deploy the application with a specific ID</p>
-=======
-<dt id="component_submitter.api.update_file">
-<code class="descclassname">component_submitter.api.</code><code class="descname">update_file</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#update_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.update_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>API function to update the application with a specific ID from a file</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="component_submitter.api.update_url">
-<code class="descclassname">component_submitter.api.</code><code class="descname">update_url</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/api.html#update_url"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.api.update_url" title="Permalink to this definition">¶</a></dt>
-<dd><p>API function to update the application with a specific ID from a url</p>
->>>>>>> master
+<dd><p>API function to update the application with a specific ID</p>
 </dd></dl>
 
 </div>
@@ -192,48 +202,6 @@
 <h3>MiCADO Command Line Interface<a class="headerlink" href="#micado-command-line-interface" title="Permalink to this headline">¶</a></h3>
 <p>Component to create the command line interface that will talk to the submitter
 to launch, update, undeploy the application</p>
-<<<<<<< HEAD
-=======
-</div>
-</div>
-<div class="section" id="module-component_submitter.key_lists">
-<span id="component-submitter-key-lists-module"></span><h2>component_submitter.key_lists module<a class="headerlink" href="#module-component_submitter.key_lists" title="Permalink to this headline">¶</a></h2>
-<dl class="class">
-<dt id="component_submitter.key_lists.KeyLists">
-<em class="property">class </em><code class="descclassname">component_submitter.key_lists.</code><code class="descname">KeyLists</code><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<dl class="method">
-<dt id="component_submitter.key_lists.KeyLists.get_KeyLists">
-<code class="descname">get_KeyLists</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.get_KeyLists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.get_KeyLists" title="Permalink to this definition">¶</a></dt>
-<dd><p>retrieve the whole dictionary</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.key_lists.KeyLists.get_dict">
-<code class="descname">get_dict</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.get_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.get_dict" title="Permalink to this definition">¶</a></dt>
-<dd><p>retrieve the dictionary wanted</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.key_lists.KeyLists.get_list_adaptors">
-<code class="descname">get_list_adaptors</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.get_list_adaptors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.get_list_adaptors" title="Permalink to this definition">¶</a></dt>
-<dd><p>return list of adaptors to use</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.key_lists.KeyLists.get_node_from_type">
-<code class="descname">get_node_from_type</code><span class="sig-paren">(</span><em>type</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.get_node_from_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.get_node_from_type" title="Permalink to this definition">¶</a></dt>
-<dd><p>retrieve wanted node through its type</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.key_lists.KeyLists.set_dictionary">
-<code class="descname">set_dictionary</code><span class="sig-paren">(</span><em>template=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/key_lists.html#KeyLists.set_dictionary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.key_lists.KeyLists.set_dictionary" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
->>>>>>> master
 </div>
 </div>
 <div class="section" id="module-component_submitter.micado_parser">
@@ -241,7 +209,7 @@ to launch, update, undeploy the application</p>
 <dl class="class">
 <dt id="component_submitter.micado_parser.MiCADOParser">
 <em class="property">class </em><code class="descclassname">component_submitter.micado_parser.</code><code class="descname">MiCADOParser</code><a class="reference internal" href="../_modules/component_submitter/micado_parser.html#MiCADOParser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_parser.MiCADOParser" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>MiCADO class that is going to take care of parsing the topology template, check if the
 file is correct and Readable by MiCADO submitter. The set_template method is returning
 the topology template object.</p>
@@ -292,7 +260,7 @@ repositories and the requirements and relationships of custom defined types.</p>
 <dl class="exception">
 <dt id="component_submitter.micado_validator.ValidationError">
 <em class="property">exception </em><code class="descclassname">component_submitter.micado_validator.</code><code class="descname">ValidationError</code><a class="reference internal" href="../_modules/component_submitter/micado_validator.html#ValidationError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.micado_validator.ValidationError" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
 <p>Base error for validation</p>
 </dd></dl>
 
@@ -376,7 +344,7 @@ list. Raises a MultiError on failed validation. On success, says so.</p>
 <dl class="class">
 <dt id="component_submitter.plugins_gestion.PluginsGestion">
 <em class="property">class </em><code class="descclassname">component_submitter.plugins_gestion.</code><code class="descname">PluginsGestion</code><a class="reference internal" href="../_modules/component_submitter/plugins_gestion.html#PluginsGestion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.plugins_gestion.PluginsGestion" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <dl class="method">
 <dt id="component_submitter.plugins_gestion.PluginsGestion.get_plugin">
 <code class="descname">get_plugin</code><span class="sig-paren">(</span><em>plugin_name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/plugins_gestion.html#PluginsGestion.get_plugin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.plugins_gestion.PluginsGestion.get_plugin" title="Permalink to this definition">¶</a></dt>
@@ -389,32 +357,25 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
 </div>
 <div class="section" id="module-component_submitter.submitter_config">
 <span id="component-submitter-submitter-config-module"></span><h2>component_submitter.submitter_config module<a class="headerlink" href="#module-component_submitter.submitter_config" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="micado-submitter-engine-submitter-config">
+<h3>MiCADO Submitter Engine Submitter Config<a class="headerlink" href="#micado-submitter-engine-submitter-config" title="Permalink to this headline">¶</a></h3>
+<p>A module allowing the configuration of the whole submitter</p>
 <dl class="class">
 <dt id="component_submitter.submitter_config.SubmitterConfig">
-<em class="property">class </em><code class="descclassname">component_submitter.submitter_config.</code><code class="descname">SubmitterConfig</code><a class="reference internal" href="../_modules/component_submitter/submitter_config.html#SubmitterConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_config.SubmitterConfig" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<dl class="method">
-<dt id="component_submitter.submitter_config.SubmitterConfig.get_SubmitterConfig">
-<code class="descname">get_SubmitterConfig</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_config.html#SubmitterConfig.get_SubmitterConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_config.SubmitterConfig.get_SubmitterConfig" title="Permalink to this definition">¶</a></dt>
-<dd><p>retrieve the whole dictionary</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.submitter_config.SubmitterConfig.get_dict">
-<code class="descname">get_dict</code><span class="sig-paren">(</span><em>key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_config.html#SubmitterConfig.get_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_config.SubmitterConfig.get_dict" title="Permalink to this definition">¶</a></dt>
-<dd><p>retrieve the dictionary wanted</p>
-</dd></dl>
-
+<em class="property">class </em><code class="descclassname">component_submitter.submitter_config.</code><code class="descname">SubmitterConfig</code><span class="sig-paren">(</span><em>testing=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_config.html#SubmitterConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_config.SubmitterConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>This is the SubmitterConfig,
+in charge of the configuration of the whole submitter.
+It has <code class="docutils literal notranslate"><span class="pre">__init__()</span></code>, <code class="docutils literal notranslate"><span class="pre">get_list_adaptors()</span></code>, <code class="docutils literal notranslate"><span class="pre">_retrieve_custom_type()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">_reading_config()</span></code>, <code class="docutils literal notranslate"><span class="pre">_check_re()</span></code>, <code class="docutils literal notranslate"><span class="pre">_list_for_re()</span></code>, <code class="docutils literal notranslate"><span class="pre">mapping()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">_look_through_template()</span></code>, <code class="docutils literal notranslate"><span class="pre">_find_get_input()</span></code>, <code class="docutils literal notranslate"><span class="pre">_contains_inputs()</span></code>,
+<code class="docutils literal notranslate"><span class="pre">get_SubmitterConfig()</span></code>, <code class="docutils literal notranslate"><span class="pre">get_dict()</span></code> and <code class="docutils literal notranslate"><span class="pre">get_node_from_type()</span></code>.</p>
+<p>Optional testing parameter can be passed to __init__ to define which key_config files
+to take for test purposes.</p>
 <dl class="method">
 <dt id="component_submitter.submitter_config.SubmitterConfig.get_list_adaptors">
 <code class="descname">get_list_adaptors</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_config.html#SubmitterConfig.get_list_adaptors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_config.SubmitterConfig.get_list_adaptors" title="Permalink to this definition">¶</a></dt>
 <dd><p>return list of adaptors to use</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="component_submitter.submitter_config.SubmitterConfig.get_node_from_type">
-<code class="descname">get_node_from_type</code><span class="sig-paren">(</span><em>type</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_config.html#SubmitterConfig.get_node_from_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_config.SubmitterConfig.get_node_from_type" title="Permalink to this definition">¶</a></dt>
-<dd><p>retrieve wanted node through its type</p>
 </dd></dl>
 
 <dl class="method">
@@ -425,31 +386,43 @@ or (None, None) if the plugin isn’t listed in the available plugins.</p>
 </dd></dl>
 
 </div>
+</div>
 <div class="section" id="module-component_submitter.submitter_engine">
 <span id="component-submitter-submitter-engine-module"></span><h2>component_submitter.submitter_engine module<a class="headerlink" href="#module-component_submitter.submitter_engine" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
 <dt id="component_submitter.submitter_engine.SubmitterEngine">
 <em class="property">class </em><code class="descclassname">component_submitter.submitter_engine.</code><code class="descname">SubmitterEngine</code><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.6)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>SubmitterEngine class that is the main one that is used to treat with the application.</p>
 <dl class="method">
+<dt id="component_submitter.submitter_engine.SubmitterEngine.get_status">
+<code class="descname">get_status</code><span class="sig-paren">(</span><em>app_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.get_status"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.get_status" title="Permalink to this definition">¶</a></dt>
+<dd><p>method to retrieve the status of the differents adaptor</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="component_submitter.submitter_engine.SubmitterEngine.launch">
-<code class="descname">launch</code><span class="sig-paren">(</span><em>path_to_file</em>, <em>parsed_params=None</em>, <em>id_app=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.launch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.launch" title="Permalink to this definition">¶</a></dt>
+<code class="descname">launch</code><span class="sig-paren">(</span><em>path_to_file</em>, <em>id_app</em>, <em>parsed_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.launch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.launch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Launch method, that will call the in-method egine to execute the application
 Creating empty list for the whole class adaptor and executed adaptor
 :params: path_to_file, parsed_params
-:types: string, dictionary</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">For the time being we only have one “workflow engine” but we could extend this
-launch method to accept another parameter to be able to choose which engine to
-launch</p>
+:types: string, dictionary
+.. note:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">For</span> <span class="n">the</span> <span class="n">time</span> <span class="n">being</span> <span class="n">we</span> <span class="n">only</span> <span class="n">have</span> <span class="n">one</span> <span class="s2">&quot;workflow engine&quot;</span> <span class="n">but</span> <span class="n">we</span> <span class="n">could</span> <span class="n">extend</span> <span class="n">this</span>
+<span class="n">launch</span> <span class="n">method</span> <span class="n">to</span> <span class="n">accept</span> <span class="n">another</span> <span class="n">parameter</span> <span class="n">to</span> <span class="n">be</span> <span class="n">able</span> <span class="n">to</span> <span class="n">choose</span> <span class="n">which</span> <span class="n">engine</span> <span class="n">to</span>
+<span class="n">launch</span>
+</pre></div>
 </div>
 </dd></dl>
 
 <dl class="method">
+<dt id="component_submitter.submitter_engine.SubmitterEngine.query">
+<code class="descname">query</code><span class="sig-paren">(</span><em>query</em>, <em>app_id</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.query"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.query" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="component_submitter.submitter_engine.SubmitterEngine.undeploy">
-<code class="descname">undeploy</code><span class="sig-paren">(</span><em>id_app</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.undeploy" title="Permalink to this definition">¶</a></dt>
+<code class="descname">undeploy</code><span class="sig-paren">(</span><em>id_app</em>, <em>force=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/component_submitter/submitter_engine.html#SubmitterEngine.undeploy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#component_submitter.submitter_engine.SubmitterEngine.undeploy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Undeploy method will remove the application from the infrastructure.
 :params: id
 :type: string</p>
@@ -485,7 +458,7 @@ launch</p>
 
 <dl class="data">
 <dt id="component_submitter.submitter_engine.logger">
-<code class="descclassname">component_submitter.submitter_engine.</code><code class="descname">logger</code><em class="property"> = &lt;Logger submitter.component_submitter.submitter_engine (DEBUG)&gt;</em><a class="headerlink" href="#component_submitter.submitter_engine.logger" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">component_submitter.submitter_engine.</code><code class="descname">logger</code><em class="property"> = &lt;Logger submitter.component_submitter.submitter_engine (INFO)&gt;</em><a class="headerlink" href="#component_submitter.submitter_engine.logger" title="Permalink to this definition">¶</a></dt>
 <dd><p>define the Handler which write message to sys.stderr</p>
 </dd></dl>
 
@@ -532,18 +505,16 @@ launch</p>
 <li><a class="reference internal" href="#micado-command-line-interface">MiCADO Command Line Interface</a></li>
 </ul>
 </li>
-<<<<<<< HEAD
-=======
-<li><a class="reference internal" href="#module-component_submitter.key_lists">component_submitter.key_lists module</a></li>
-<li><a class="reference internal" href="#module-component_submitter.mapper">component_submitter.mapper module</a></li>
->>>>>>> master
 <li><a class="reference internal" href="#module-component_submitter.micado_parser">component_submitter.micado_parser module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.micado_validator">component_submitter.micado_validator module</a><ul>
 <li><a class="reference internal" href="#micado-submission-engine-tosca-validator">MiCADO Submission Engine TOSCA Validator</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-component_submitter.plugins_gestion">component_submitter.plugins_gestion module</a></li>
-<li><a class="reference internal" href="#module-component_submitter.submitter_config">component_submitter.submitter_config module</a></li>
+<li><a class="reference internal" href="#module-component_submitter.submitter_config">component_submitter.submitter_config module</a><ul>
+<li><a class="reference internal" href="#micado-submitter-engine-submitter-config">MiCADO Submitter Engine Submitter Config</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#module-component_submitter.submitter_engine">component_submitter.submitter_engine module</a></li>
 <li><a class="reference internal" href="#module-component_submitter.utils">component_submitter.utils module</a></li>
 <li><a class="reference internal" href="#module-component_submitter">Module contents</a></li>
