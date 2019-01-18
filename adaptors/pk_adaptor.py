@@ -41,25 +41,17 @@ class PkAdaptor(abco.Adaptor):
         self.pk_data = {STACK: self.ID.split("_")[0],
                         SCALING: {}}
 
-        i = 0
-        node_name = None
-        while i < len(self.tpl.nodetemplates) \
-                and "tosca.nodes.MiCADO.Occopus" not in self.tpl.nodetemplates[i].type:
-            i += 1
-        if i < len(self.tpl.nodetemplates):
-            node_name = self.tpl.nodetemplates[i].name
-
         for policy in self.tpl.policies:
-            for target in policy.targets:
-                if target == node_name:
+            for target in policy.targets_list:
+                if "Compute" in target.type:
                     self.pk_data[SCALING][NODES] = self._pk_scaling_properties(policy)
                 else:
                     if self.pk_data[SCALING].get(SERVICES) is None:
                         self.pk_data[SCALING][SERVICES] = []
-                    service = {"name": target}
+                    service = {"name": target.name}
                     service.update(self._pk_scaling_properties(policy))
                     self.pk_data[SCALING][SERVICES].append(service)
-            logger.info("Policy of {0} is translated".format(target))
+            logger.info("Policy of {0} is translated".format(target.name))
 
         if tmp is False:
             self._yaml_write(self.path)

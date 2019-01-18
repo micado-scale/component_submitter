@@ -232,9 +232,6 @@ class SubmitterEngine(object):
                     continue
                 break
 
-
-
-
     def _execute(self, app_id, adaptors):
         """ method called by the engine to launch the adaptors execute methods """
         logger.info("launch of the execute methods in each adaptors in a serial way")
@@ -246,24 +243,10 @@ class SubmitterEngine(object):
             output = getattr(adaptors[step], "output", None)
             if output:
                 self.app_list[app_id]["output"].update({step:output})
-
-        # for adaptor in adaptors:
-        #         logger.debug("\t execute adaptor: {}".format(adaptor))
-        #         #Step(adaptor).execute()
-        #         adaptor.execute()
-        #         try:
-        #             #self.app_list.update(app_id, Step(adaptor).output)
-        #             #self.app_list.update(app_id, adaptor.output)
-        #             self.app_list[app_id] = adaptor.output
-        #
-        #         except AttributeError as e:
-        #             logger.warning("the Adaptor doesn't provide a output attribute")
-
+                
         self._update_json()
 
         return executed_adaptors
-
-
 
     def _undeploy(self, adaptors):
         """ method called by the engine to launch the adaptor undeploy method of a specific component identified by its ID"""

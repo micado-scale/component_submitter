@@ -72,30 +72,28 @@ class OccopusAdaptor(abco.Adaptor):
         self.status = "translating"
 
         for node in self.template.nodetemplates:
-            if "tosca.nodes.MiCADO.Occopus.CloudSigma.Compute" in node.type:
+
+            cloud_type = self._node_data_get_interface(node, "resource")
+            if cloud_type == "cloudsigma":
                 logger.info("CloudSigma resource detected")
-                self._node_data_get_interface(node, "resource")
                 self._node_data_get_cloudsigma_host_properties(node, "resource")
                 self._get_policies()
                 self._get_infra_def(tmp)
                 cloudsigma = True
-            if "tosca.nodes.MiCADO.Occopus.EC2.Compute" in node.type:
+            if cloud_type == "ec2":
                 logger.info("EC2 resource detected")
-                self._node_data_get_interface(node, "resource")
                 self._node_data_get_ec2_host_properties(node, "resource")
                 self._get_policies()
                 self._get_infra_def(tmp)
                 ec2 = True
-            if "tosca.nodes.MiCADO.Occopus.CloudBroker.Compute" in node.type:
+            if cloud_type == "cloudbroker":
                 logger.info("CloudBroker resource detected")
-                self._node_data_get_interface(node, "resource")
                 self._node_data_get_cloudbroker_host_properties(node, "resource")
                 self._get_policies()
                 self._get_infra_def(tmp)
                 cloudbroker = True
-            if "tosca.nodes.MiCADO.Occopus.Nova.Compute" in node.type:
+            if cloud_type == "nova":
                 logger.info("Nova resource detected")
-                self._node_data_get_interface(node, "resource")
                 self._node_data_get_nova_host_properties(node, "resource")
                 self._get_policies()
                 self._get_infra_def(tmp)
@@ -235,16 +233,18 @@ class OccopusAdaptor(abco.Adaptor):
         """
         Get cloud relevant informations from tosca
         """
-        properties = node.get_properties()
-        entry = {}
-        for prop in properties:
-            try:
-                entry[prop] = node.get_property_value(prop).result()
-                node.get_property_value()
-            except AttributeError as e:
-                entry[prop] = node.get_property_value(prop)
-        self.node_data.setdefault(key, {}).setdefault("type", entry["cloud"]["interface_cloud"])
-        self.node_data.setdefault(key, {}).setdefault("endpoint", entry["cloud"]["endpoint_cloud"])
+        interfaces = node.interfaces
+        try:
+            occo_inf = [inf for inf in interfaces if inf.type == "Occopus"][0]
+        except (IndexError, AttributeError):
+            logger.debug("No interface for Occopus in {}".format(node.name))
+        else:
+            cloud_inputs = occo_inf.inputs
+            self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
+            self.node_data.setdefault(key, {}).setdefault("endpoint", cloud_inputs["endpoint_cloud"])
+
+            return cloud_inputs["interface_cloud"]
+
 
     def _node_data_get_context_section(self):
         """
@@ -408,30 +408,18 @@ class OccopusAdaptor(abco.Adaptor):
 
     def _get_host_properties(self, node):
         """ Get host properties """
-        capabilites = node.get_capabilities()
-        entry = capabilites.get("host")
-        entry2 = entry.get_properties()
-        return entry2
+        return node.get_properties()
 
     def _get_policies(self):
         """ Get the TOSCA policies """
-        target_name = ""
-        i = 0
-        found = False
-        while i < len(self.template.nodetemplates) \
-                and "tosca.nodes.MiCADO.Occopus" not in self.template.nodetemplates[i].type:
-            i += 1
-        if i < len(self.template.nodetemplates):
-            target_name = self.template.nodetemplates[i].name
-            found = True
-        if found:
-            for policy in self.template.policies:
-                for target in policy.targets:
-                    if target == target_name:
-                        logger.debug("policy target found for Occopus")
-                        properties = policy.get_properties()
-                        self.min_instances = properties["min_instances"].value
-                        self.max_instances = properties["max_instances"].value
+        
+        for policy in self.template.policies:
+            for target in policy.targets_list:
+                if "Compute" in target.type:
+                    logger.debug("policy target found for compute node")
+                    properties = policy.get_properties()
+                    self.min_instances = properties["min_instances"].value
+                    self.max_instances = properties["max_instances"].value
 
     def _differentiate(self, path, tmp_path):
         """ Compare two files """

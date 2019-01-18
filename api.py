@@ -55,7 +55,7 @@ def threads_management():
         try:
            if not queue_exception.empty():
                exception = queue_exception.get()
-               logger.info("exception caught on therad {}".format(exception["name"])
+               logger.info("exception caught on thread {}".format(exception["name"]))
                if "launch" in exception["name"]:
                    apps.pop(apps.index(exception["name"].split('_',1)[1]))
                raise exception["exception"]
@@ -154,8 +154,6 @@ def launch():
     return jsonify(response)
 
 
-
-
 @app.route('/v1.0/app/undeploy/<id_app>', methods=['DELETE'])
 def undeploy(id_app):
     """ API function to undeploy the application with a specific ID
@@ -222,8 +220,7 @@ def update(id_app):
         thread = ExecSubmitterThread(q=queue_exception, target=submitter.update, args=(id_app, path_to_file, parsed_params), daemon=True)
         thread.setName("update_{}".format(id_app))
         queue_threading.put(thread)
-
-        response["message"] = "Thread to update the application {} is launch. To check process curl http://YOUR_HOST/v1.0/app/{}/status ".format(id_app, id_app)
+        response["message"] = "Thread to update the application is launch. To check process curl http://YOUR_HOST/v1.0/app/{}/status ".format(id_app)
         response["status_code"]= 200
         return jsonify(response)
     except Exception:

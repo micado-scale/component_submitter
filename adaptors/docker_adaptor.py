@@ -28,6 +28,9 @@ DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_NETWORK, DOCKER_VOLUME, DOCKER_IMAGE,
                  "tosca.artifacts.Deployment.Image.Container.Docker",
                  "network", "location")
 
+
+TOP_LEVEL_PROPERTIES = ["ports"]
+
 COMPOSE_VERSION = "3.4"
 
 class DockerAdaptor(abco.Adaptor):
@@ -107,7 +110,7 @@ class DockerAdaptor(abco.Adaptor):
 
         for node in self.tpl.nodetemplates:
             if DOCKER_CONTAINER in node.type:
-                self._compose_properties(node, "services")
+                self._compose_services(node)
                 self._compose_artifacts(node, self.tpl.repositories)
                 self._compose_requirements(node)
             elif DOCKER_NETWORK in node.type:
@@ -179,7 +182,7 @@ class DockerAdaptor(abco.Adaptor):
                 subprocess.run(["docker", "stack", "down", self.ID.split("_")[0]], check=True)
                 logger.debug("Undeploy application with ID: {}".format(self.ID))
             else:
-                logger.debug(f'Undeploy application with ID: {self.ID}')
+                logger.debug("Undeploy application with ID: {}".format(self.ID))
 
         except subprocess.CalledProcessError:
             logger.error("Cannot undeploy the stack")
@@ -280,6 +283,34 @@ class DockerAdaptor(abco.Adaptor):
     def _differentiate(self):
         """ Compare two compose files """
         return filecmp.cmp(self.path, self.tmp_path)
+
+    def _compose_services(self, node):
+        """ Get TOSCA interfaces & properties, write compose services """
+        interfaces = node.interfaces
+        try:
+            swarm_inf = [inf for inf in interfaces if inf.type == "Swarm"][0]
+        except (IndexError, AttributeError):
+            logger.info("Could not find any interface for Swarm!")
+            return
+        compose_inputs = swarm_inf.inputs
+
+        top_level = {}
+        properties = node.get_properties_objects()
+        for prop in properties:
+            if prop.name == "ports":
+                for port in prop.value:
+                    try:
+                        port_spec = {"target":port["target"],
+                                     "source":port.get("source",port["target"]),
+                                     "protocol":port.get("protocol","tcp"),
+                                     "mode":port.get("mode","host")}
+                    except Exception:
+                        logger.info("Bad port spec in properties of {}".format(node))
+                    else:
+                        top_level.setdefault("ports",[]).append(port_spec)
+        
+        compose_inputs.update(top_level)
+        self.compose_data.setdefault("services", {}).setdefault(node.name, {}).update(compose_inputs)
 
     def _compose_properties(self, node, key):
         """ Get TOSCA properties, write compose entries """
