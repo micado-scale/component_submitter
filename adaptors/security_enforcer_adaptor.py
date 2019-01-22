@@ -80,15 +80,36 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
                     elif self.config["dry_run"] is False:
                         data_keys = {'name':key, 'value':value}
                         logger.info("launch secret")
-                        response = requests.post("{}/create_secret".format(self.config['endpoint']), data = data_keys)
+                        #response = requests.post("{}/appsecrets".format(self.config['endpoint']), data = data_keys)
                         for target in policy.targets:
                             logger.info("link the secret")
-                            data_keys = {'secret':key, 'service':"{}_{}".format(self.IDtarget, target)}
-                            response = requests.post("{}/add_secret".format(self.config['endpoint']), data = data_keys)
+                            data_keys = {'name':key, 'value': value, 'service':"{}".format(target)}
+                            response = requests.post("{}/appsecrets".format(self.config['endpoint']), data = data_keys)
         self.status = "executed"
 
     def undeploy(self):
         """ Send to the Security Enforcer the id of the policy to undeploy """
+        self.status = "undeploying"
+        """ Send to the Security Enforcer the informations
+            retrieved from the TOSCA template"""
+        for policy in self.policies:
+            if "tosca.policies.DockerSecretDistribution" in policy.type:
+                _interm_dict = policy.get_properties()["text_secrets"].value
+                for key, value in _interm_dict.items():
+                    if self.config["dry_run"] is True:
+                        logger.info("launch api command with params name={} and value={} to {}/create_secret".format(key,value,self.config['endpoint']))
+                        for target in policy.targets:
+                            logger.info("link the secret {} to the service {} by using the command line to {}/add_secret".format(key,target, self.config['endpoint']))
+
+                    elif self.config["dry_run"] is False:
+                        logger.info("delete secret")
+                        response = requests.delete("{}/secrets/{}".format(self.config['endpoint'], key))
+                       # response = requests.post("{}/create_secret".format(self.config['endpoint']), data = data_keys)
+                        #for target in policy.targets:
+                         #   logger.info("link the secret")
+                          #  data_keys = {'secret':key, 'service':"{}_{}".format(self.IDtarget, target)}
+                           # response = requests.post("{}/add_secret".format(self.config['endpoint']), data = data_keys)
+        self.status = "undeployed"
 
     def cleanup(self):
         pass
