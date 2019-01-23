@@ -6,17 +6,23 @@ import codecs
 import logging
 logger=logging.getLogger("submitter."+__name__)
 
+class NoAliasRTDumper(yaml.RoundTripDumper):
+    """ Turn off aliases, preserve order """
+    def ignore_aliases(self, data):
+        return True
 
 def dump_order_yaml(data, path):
-    """ Dump the dictionary to a Docker-Compose file """
-
-    class NoAliasRTDumper(yaml.RoundTripDumper):
-        """ Turn off aliases, preserve order """
-        def ignore_aliases(self, data):
-            return True
+    """ Dump the dictionary to a yaml file """    
 
     with open(path, 'w') as file:
         yaml.dump(data, file,
+                  default_flow_style=False, Dumper=NoAliasRTDumper)
+
+def dump_list_yaml(data, path):
+    """ Dump a list of dictionaries to a single yaml file """    
+
+    with open(path, 'w') as file:
+        yaml.dump_all(data, file,
                   default_flow_style=False, Dumper=NoAliasRTDumper)
 
 def get_yaml_data(path):
