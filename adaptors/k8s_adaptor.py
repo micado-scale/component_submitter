@@ -1,193 +1,170 @@
-"""
-MiCADO Submitter Engine Docker Adaptor
---------------------------------------
-A TOSCA to Docker (Swarm) adaptor.
-"""
-
-import subprocess
 import os
-import json
-import filecmp
+import subprocess
 import logging
-import docker
 import shutil
+import filecmp
 
 import kubernetes.client
 import kubernetes.config
-
 from toscaparser.tosca_template import ToscaTemplate
+
 import utils
-from abstracts import base_adaptor as abco
+from abstracts import base_adaptor
 from abstracts.exceptions import AdaptorCritical
 
-logger = logging.getLogger("adaptors."+__name__)
+logger = logging.getLogger("adaptors." + __name__)
 
-#Some hard-coded TOSCA types that are relevant to Docker in this
-#implementation of MiCADO
-DOCKER_THINGS = (DOCKER_CONTAINER, DOCKER_NETWORK, DOCKER_VOLUME, DOCKER_IMAGE,
-                 CONNECT_PROP, ATTACH_PROP) = \
-                ("tosca.nodes.MiCADO.Container.Application.Docker",
-                 "tosca.nodes.MiCADO.network.Network.Docker",
-                 "tosca.nodes.MiCADO.Volume.Docker",
-                 "tosca.artifacts.Deployment.Image.Container.Docker",
-                 "network", "location")
+TOSCA_TYPES = (DOCKER_CONTAINER, CONTAINER_VOLUME, 
+               VOLUME_ATTACHMENT, KUBERNETES_INTERFACE) = \
+              ("tosca.nodes.MiCADO.Container.Application.Docker", "tosca.nodes.MiCADO.Container.Volume", 
+               "tosca.relationships.AttachesTo", "Kubernetes")
 
-COMPOSE_VERSION = "3" #Supported by Kompose
+class KubernetesAdaptor(base_adaptor.Adaptor):
 
-class K8sAdaptor(abco.Adaptor):
+    """ The Kubernetes Adaptor class
 
-    """ The Docker adaptor class
-
-    Carries out the deployment of a Dockerised application or application stack
-    based on a description of an application provided by a YAML file which
-    follows the OpenStack TOSCA language specification.
-    Implements abstract methods ``__init__()``, ``translate()``, ``execute()``,
-    ``undeploy()`` and ``cleanup()``. Accepts as parameters an **adaptor_id**
-    (required) and a **template** (optional). The ``translate()`` and ``update()``
-    methods require both an **adaptor_id** and **template**. The ``execute()``,
-    ``undeploy()`` and ``cleanup()`` methods require only the **adaptor_id** .
-    :param string adaptor_id: The generated ID of the current application stack
-    :param template: The ADT / ToscaTemplate of the current application stack
-    :type template: ToscaTemplate <toscaparser.tosca_template.ToscaTemplate>
-
-    Usage:
-        >>> from docker_adaptor import DockerAdaptor
-        >>> container_adapt = DockerAdaptor(<adaptor_id>, <ToscaTemplate>)
-        >>> container_adapt.translate()
-            (writes compose file to file/output_configs/<adaptor_id>.yaml)
-        >>> container_adapt.execute()
-            (stack deployed)
-        >>> container_adapt.update()
-            (stack update if template is changed, otherwise nothing)
-        >>> container_adapt.undeploy()
-            (stack undeployed)
-        >>> container_adapt.cleanup()
-            (compose file removed from file/output_configs/)
+    Carry out a translation from a TOSCA ADT to a Kubernetes Manifest,
+    and the subsequent execution, update and undeployment of the translation.
+    
     """
-
+    
     def __init__(self, adaptor_id, config, template=None):
-        """ Constructor method of the Adaptor as described above """
+        """ init method of the Adaptor """ 
         super().__init__()
+
+        logger.debug("Initialising Kubernetes Adaptor class...")
+        self.status = "Initialising..."
+
         if template and not isinstance(template, ToscaTemplate):
-            raise AdaptorCritical("Template is not a valid TOSCAParser object")
+            raise AdaptorCritical("Template is not a valid TOSCAParser object")        
 
-        logger.debug("Initialising the K8s adaptor with ID & TPL...")
-
-        self.config = config
-        self.compose_data = {}
-        logger.debug("\t\t\t\t\t {}".format(config))
         self.ID = adaptor_id
-        self.path = "{}{}.yaml".format(self.config['volume'], self.ID)
-        self.tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
+        self.config = config
         self.tpl = template
-        self.output = dict()
-        self.status = "init"
+        self.manifest_path = "{}{}.yaml".format(self.config['volume'], self.ID)
+        self.manifest_tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
 
-        self.vol_type = "hostPath"
-        self.mtu = 1500
-        logger.info("DockerAdaptor ready to go!")
+        self.manifests = []
+        self.output = {}
 
-    def translate(self, tmp=False):
-        """ Translate the self.tpl subset to the Compose format
+        logger.info("Kubernetes Adaptor is ready.")
+        self.status = "Initialised"
 
-        Does the work of mapping the Docker relevant sections of TOSCA into a
-        dictionary following the Docker-Compose format, then dumping output to
-        a .yaml file in output_configs/
-        :param bool tmp: Set ``True`` for update() - outputfile gets prefix ``tmp_``
-        :raises: AdaptorCritical
-        """
+    def translate(self, update=False):
+        """ Translate the relevant sections of the ADT into a Kubernetes Manifest """
+        logger.info("Translating into Kubernetes Manifests")
+        self.status = "Translating..."
+
+        nodes = self.tpl.nodetemplates
+        repositories = self.tpl.repositories
         
-        logger.info("Starting translation to compose...")
-        self.compose_data = {"version": COMPOSE_VERSION}
-        self.status = "translating"
-        for node in self.tpl.nodetemplates:
-            if DOCKER_CONTAINER in node.type:
-                self._compose_properties(node, "services")
-                self._compose_artifacts(node, self.tpl.repositories)
-                self._compose_requirements(node)
-            elif DOCKER_NETWORK in node.type:
-                self._compose_properties(node, "networks")
-            elif DOCKER_VOLUME in node.type:
-                self.vol_type = "persistentVolumeClaim"
-                self._compose_properties(node, "volumes")
+        for node in nodes:
+            kube_interface = \
+                [x for x in node.interfaces if KUBERNETES_INTERFACE in x.type]
+            if DOCKER_CONTAINER in node.type and kube_interface:
+                kind = kube_interface[0].implementation or 'Deployment'
+                inputs = kube_interface[0].inputs
+                self._create_manifests(node, inputs, kind, repositories)
 
-        if not self.compose_data.get("services"):
-            logger.info("No Docker nodes in TOSCA. Do you need this adaptor?")
-
-        if tmp is False:
-            utils.dump_order_yaml(self.compose_data, self.path)
-            self._kompose_convert(self.path)
+        if update:
+            utils.dump_list_yaml(self.manifests, self.manifest_tmp_path)
         else:
-            shutil.copy(self.path, self.tmp_path)
-            utils.dump_order_yaml(self.compose_data, self.path)
-            self._kompose_convert(self.path)
-        self.status = "translated"
+            utils.dump_list_yaml(self.manifests, self.manifest_path)
 
-    def _kompose_convert(self, path):
-        """Quick convert"""
+        logger.info("Translation complete")
+        self.status = "Translated"
+
+    def execute(self, update=False):
+        """ Execute """
+        logger.info("Executing Kubernetes Manifests...")
+        self.status = "Executing..."
+
+        if update:
+            operation = ['kubectl', 'apply', '-f', self.manifest_path]
+        else:
+            operation = ['kubectl', 'create', '-f', self.manifest_path, '--save-config']
+
         try:
-            if self.config['dry_run'] is False:
-                rootpath = "/tmpkompose"
-                shutil.copy(path, rootpath)
-                cmd_list = ["kompose", "-f", rootpath, "convert", "-o", path, "--volumes", self.vol_type]
-                subprocess.run(cmd_list, stderr=subprocess.PIPE, check=True)
+            if self.config['dry_run']:
+                logger.info("DRY-RUN: kubectl creates workloads...")
             else:
-                logger.info("dry run kompose convert")
-
-        except subprocess.CalledProcessError:
-            raise AdaptorCritical("Cannot execute Kompose")
-
-
-    def execute(self, tmp=False):
-        """ Deploy the stack onto the Swarm
-
-        Executes the ``docker stack deploy`` command on the Docker-Compose file
-        which was created in ``translate()``
-        :raises: AdaptorCritical
-        """
-        self.status = "executing"
-        logger.info("Starting k8s execution...")
-        if tmp:
-            operation = ["kubectl", 'apply', "-f", self.path]
-        else:
-            operation = ["kubectl", 'create', "-f", self.path, "--save-config"]
-
-        try:
-            if self.config['dry_run'] is False:
+                logger.debug("Executing {}".format(operation))
                 subprocess.run(operation, stderr=subprocess.PIPE, check=True)
-            else:
-                logger.info("dry run kompose up")
 
         except subprocess.CalledProcessError:            
-            logger.error("Cannot execute Docker")
-            raise AdaptorCritical("Cannot execute Docker")
-        logger.info("K8s running, trying to get outputs...")
+            logger.error("Cannot execute kubectl")
+            raise AdaptorCritical("Cannot execute kubectl")
+
+        logger.info("Kube objects deployed, trying to get outputs...")
         self._get_outputs()
-        self.status = "executed"
+        logger.info("Execution complete")
+        self.status = "Executed"
 
+    def update(self):
+        """ Update """
+        logger.info("Updating Kubernetes Manifests")
+        last_status = self.status
+        self.status = "Updating..."
+
+        logger.debug("Creating tmp translation...")
+        self.translate(True)
+        
+        if filecmp.cmp(self.manifest_path, self.manifest_tmp_path):
+            logger.debug("No update - removing {}".format(self.manifest_tmp_path))
+            os.remove(self.manifest_tmp_path)
+            logger.info("Nothing to update")
+            self.status = last_status
+        else:
+            logger.debug("Updating - removing {}".format(self.manifest_path))
+            os.rename(self.manifest_tmp_path, self.manifest_path)
+            self.execute(True)
+            logger.info("Update complete")
+            self.status = "Updated"
+    
     def undeploy(self):
-        """ Undeploy the stack from Docker
+        """ Undeploy """
+        logger.info("Undeploying Kubernetes workloads")
+        self.status = "Undeploying..."
 
-        Runs ``docker stack down`` using the given ID to bring down the stack.
-        :raises: AdaptorCritical
-        """
-        logger.info("Undeploying the application")
-        self.status = "undeploying"
+        operation = ["kubectl", "delete", "-f", self.manifest_path]
+
         try:
-            if self.config['dry_run'] is False:
-                subprocess.run(["kubectl", "delete", "-f", self.path], check=True)
-                logger.debug("Undeploy application with ID: {}".format(self.ID))
+            if self.config['dry_run']:
+                logger.info("DRY-RUN: kubectl removes workloads...")
             else:
-                logger.debug("Dry undeploy application with ID: {}".format(self.ID))
+                logger.debug("Undeploy {}".format(operation))
+                subprocess.run(operation, stderr=subprocess.PIPE, check=True)                
 
         except subprocess.CalledProcessError:
-            logger.error("Cannot undeploy the stack")
-            raise AdaptorCritical("Cannot undeploy the stack")
-        logger.info("Stack is down...")
-        self.status = "undeployed"
+            logger.error("Cannot remove workloads...")
+            raise AdaptorCritical("Cannot remove workloads...")
+
+        logger.info("Undeployment complete")
+        self.status = "Undeployed"
+
+    def cleanup(self):
+        """ Cleanup """
+        logger.info("Cleaning-up...")
+        self.status = "Cleaning-up..."
+
+        try:
+            os.remove(self.manifest_path)
+        except OSError:
+            logger.warning("Could not remove manifest file")
+
+        try:
+            if self.config['dry_run']:
+                logger.info("DRY-RUN: cleaning up old manifests...")
+            else:
+                operation = ["docker", "exec", "occopus_redis", "redis-cli", "FLUSHALL"]
+                subprocess.run(operation, stderr=subprocess.PIPE, check=True)
+        except subprocess.CalledProcessError:
+            logger.warning("Could not flush occopus_redis")
+
+        self.status = "Clean!"
 
     def query(self, query):
-        """ Queries """
+        """ Query """
         logger.info("Query ID {}".format(self.ID))
         kubernetes.config.load_kube_config()
         
@@ -198,49 +175,9 @@ class K8sAdaptor(abco.Adaptor):
             client = kubernetes.client.ExtensionsV1beta1Api()
             return [x.metadata.to_dict() for x in client.list_namespaced_deployment("default").items]
 
-    def cleanup(self):
-        """ Remove the associated Compose file
-
-        Removes output file created for this stack from ``files/output_configs/``
-        .. note::
-              A warning will be logged if the Compose file cannot be removed
-        """
-        logger.info("Cleanup config for ID {}".format(self.ID))
-        try:
-            os.remove(self.path)
-        except OSError as e:
-            logger.warning(e)
-        try:
-            cmd = ["docker", "exec", "occopus_redis", "redis-cli", "FLUSHALL"]
-            subprocess.run(cmd, check=True)
-        except subprocess.CalledProcessError:
-            logger.warning("Could not flush occopus_redis")
-
-
-    def update(self):
-        """ Update an already deployed application stack with a changed ADT
-
-        Translates the template into a ``tmp`` compose file, differentiates ``tmp``
-        with the current compose file. If different, replace current compose with
-        ``tmp`` compose, and call execute().
-        """
-        self.status = "updating"
-        logger.info("Starting the update...")
-        logger.debug("Creating temporary template...")
-        self.translate(True)
-
-        if not self._differentiate():
-            logger.debug("tmp file different, replacing old config and executing")
-            os.remove(self.tmp_path)
-            self.execute(True)
-        else:
-            logger.debug("tmp file is the same, removing the tmp file")
-            os.rename(self.tmp_path, self.path)
-        self.status = "updated"
-
     def _get_outputs(self):
         """ Get outputs and their resultant attributes """
-        logger.info("Fetching outputs")
+        logger.info("Fetching outputs...")
 
         def get_attribute(service, query):
             kubernetes.config.load_kube_config()
@@ -258,115 +195,238 @@ class K8sAdaptor(abco.Adaptor):
                 get_attribute(service, query)
             else:
                 logger.warning("{} is not a Docker container!".format(node.name))
+        
+    def _create_manifests(self, node, inputs, kind, repositories):
+        """ Create the manifest from the given node """
 
-    def _differentiate(self):
-        """ Compare two compose files """
-        return filecmp.cmp(self.path, self.tmp_path)
+        # Set apiVersion and metadata
+        api_version = inputs.get('apiVersion', _get_api(kind))
+        name = '{}-{}'.format(node.name, kind.lower())
+        labels = {'app': node.name}
+        metadata = {'name': name, 'labels': labels}
 
-    def _compose_properties(self, node, key):
-        """ Get TOSCA properties, write compose entries """
-        properties = node.get_properties()
-        entry = {}
+        # Get volume info
+        volumes, volume_mounts = _get_volumes(node.related_nodes, node.requirements)
+        if volumes:
+            vol_list = inputs.setdefault('volumes', [])
+            vol_list += volumes
+        if volume_mounts:
+            vol_list = inputs.setdefault('volumeMounts', []) 
+            vol_list += volume_mounts
+        
+        # Set container spec
+        container_name = inputs.get('name', '{}-container'.format(node.name))
+        image = _get_image(node.entity_tpl, repositories) or inputs.get('image')
+        if not image:
+            raise AdaptorCritical("No image specified for {}!".format(node.name))
+        container = {'name': container_name, 'image': image, **inputs}
 
-        for prop in properties:
+        # Separate data for pod/job/deloyment/daemonset-statefulset
+        pod_keys = ['metadata','tolerations','volumes','terminationGracePeriodSeconds',
+                     'restartPolicy']     
+        pod_data = _separate_data(pod_keys, container)
+
+        job_keys = ['activeDeadlineSeconds', 'backoffLimit', 'ttlSecondsAfterFinished',
+                    'parallelism', 'completions']
+        job_data = _separate_data(job_keys, container)
+        
+        deploy_keys = ['strategy']
+        deploy_data = _separate_data(deploy_keys, container)
+
+        update_keys = ['updateStrategy']
+        update_data = _separate_data(update_keys, container)
+
+        # Set pod metadata, namespace and spec
+        pod_metadata = pod_data.pop('metadata', metadata)
+        namespace = pod_metadata.get('namespace')
+        if namespace:
+            metadata['namespace'] = namespace
+        pod_spec = {'containers':[container], **pod_data}
+
+        # Set pod labels and selector
+        pod_labels = pod_metadata.get('labels') or {'app': node.name}
+        selector = {'matchLabels': pod_labels}
+
+        # Find top level ports for service creation
+        ports = _get_ports(node.get_properties_objects(), node.name)
+        if ports:
+            idx = 0
+            cluster_ip = [x for x in ports if x.get('clusterIP')]
+            if cluster_ip:
+                cluster_ip = cluster_ip[0].get('clusterIP')
+
+            for port_type in ['ClusterIP', 'NodePort', 'LoadBalancer', 'ExternalName']:
+                same_ports = [x for x in ports if x.get('type') == port_type]
+                service_name = "{}-service".format(node.name)
+                if idx:
+                    service_name += "-{}".format(port_type.lower())
+                if same_ports:
+                    self._build_service(same_ports, port_type, pod_labels, service_name, cluster_ip)
+                    idx += 1
+
+        # Set template & pod spec
+        if kind == 'Pod':
+            metadata = pod_metadata
+            spec = pod_spec
+        elif kind == 'Job':
+            template = {'spec': pod_spec}
+            spec = {'template': template, **job_data}
+        else:
+            template = {'metadata': pod_metadata, 'spec': pod_spec}
+            spec = {'selector': selector, 'template': template}
+
+        # Set specific spec info for Deployments, StatefulSets and DaemonSets
+        if kind == 'Deployment' and deploy_data:
+            spec.update(deploy_data)
+        elif (kind == 'StatefulSet' or kind == 'DaemonSet') and update_data:
+            spec.update(update_data)
+
+        # Build manifests
+        manifest = {'apiVersion': api_version, 'kind': kind, 
+                    'metadata': metadata, 'spec': spec}
+        self.manifests.append(manifest)
+
+        return
+
+    def _build_service(self, ports, port_type, labels, service_name, cluster_ip):
+        """ Build a service based on the provided port spec and template """
+        # Set metadata and type
+        metadata = {'name': service_name, 'labels': labels}        
+        
+        # Set ports
+        spec_ports = []
+        for port in ports:
+            port.pop('type', None)
+            spec_ports.append(port)
+
+        # Set spec
+        spec = {'ports': spec_ports, 'selector': labels}
+        if port_type != 'ClusterIP':
+            spec.setdefault('type', port_type)
+        if cluster_ip:
+            spec.setdefault('clusterIP', cluster_ip)
+
+        manifest = {'apiVersion': 'v1', 'kind': 'Service',
+                    'metadata': metadata, 'spec': spec}
+        self.manifests.append(manifest)
+
+        return
+
+def _get_api(kind):
+    """ Return the apiVersion according to kind """
+    # List supported workloads & their api versions
+    api_versions = {'DaemonSet': 'apps/v1', 'Deployment': 'apps/v1', 'Job': 'batch/v1', 
+                    'Pod': 'v1', 'ReplicaSet': 'apps/v1', 'StatefulSet':'apps/v1',
+                    'Ingress': 'extensions/v1beta1', 'Service': 'v1',
+                    'PersistentVolumeClaim': 'v1', 'Volume': 'v1',
+                    'Namespace': 'v1'}
+
+    for resource, api in api_versions.items():
+        if kind.lower() == resource.lower():
+            return api
+    
+    logger.warning("Unknown kind: {}. Not supported...".format(kind))
+    return 'unknown'
+
+def _separate_data(key_names, container):
+    """ Separate workload specific data from the container spec """
+    data = {}
+    for x in key_names:
             try:
-                entry[prop] = node.get_property_value(prop).result()
-            except AttributeError as e:
-                logger.debug("Error caught {}, trying without .result()".format(e))
-                entry[prop] = node.get_property_value(prop)
-
-        if self.mtu != 1500 and key == 'networks':
-            entry.setdefault("driver_opts", {}) \
-                 .setdefault("com.docker.network.driver.mtu", self.mtu)
-        # Write the compose data
-        self.compose_data.setdefault(key, {}).setdefault(node.name, {}).update(entry)
-
-    def _compose_artifacts(self, node, repositories):
-        """ Get TOSCA artifacts, write compose entry"""
-        try:
-            artifacts = node.entity_tpl.get("artifacts").values()
-        except AttributeError:
-            raise AdaptorCritical("No artifacts found!")
-
-        for artifact in artifacts:
-            if DOCKER_IMAGE in artifact.get("type"):
-                break
-        else:
-            raise AdaptorCritical("No artifact of type <{}>".format(DOCKER_IMAGE))
-
-        repository = artifact.get("repository")
-        if repository and "docker_hub" not in repository:
-            for repo in repositories:
-                if repository == repo.name:
-                    repository = repo.reposit
-                    break
-        else:
-            repository = ""
-
-        image = "{}{}".format(repository, artifact["file"])
-
-        # Write the compose data
-        node = self.compose_data.setdefault("services", {}).setdefault(node.name, {})
-        node["image"] = image
-
-    def _compose_requirements(self, node):
-        """ Get TOSCA requirements, write compose entries """
-        for requirement in node.requirements:
-            req_vals = list(requirement.values())[0]
-            related_node = req_vals["node"]
-
-            #disable HostedOn until fully implemented
-            if "HostedOn" in str(req_vals):
-                #self._create_compose_constraint(node.name, related_node)
+                data[x] = container.pop(x)
+            except KeyError:
                 pass
+    return data
 
-            elif "ConnectsTo" in str(req_vals):
-                connector = req_vals["relationship"]["properties"][CONNECT_PROP]
-                self._create_compose_connection(node.name, related_node, connector)
+def _get_image(node, repositories):
+    """ Return the full path to the Docker container image """
+    details = node.get('artifacts', {}).get('image', {})
+    image = details.get('file')
+    repo = details.get('repository')
+    if not image or not repo or not repositories:
+        logger.warning("Missing top-level repository or file/repository in artifact - no image!")
+        return ''
 
-            elif "AttachesTo" in str(req_vals):
-                connector = req_vals["relationship"]["properties"][ATTACH_PROP]
-                self._create_compose_volume(node.name, related_node, connector)
+    if repo.lower().replace(' ','').replace('-','').replace('_','') != 'dockerhub':
+        path = [x.reposit for x in repositories if x.name == repo]
+        if path:
+            image = '/'.join([path[0].strip('/'), image])
+    
+    return image
 
-    def _create_compose_volume(self, node, volume, location):
-        """ Create a volume entry in the compose data under volumes """
-        volume_key = self.compose_data.setdefault("volumes", {})
-        volume_key.update({volume: {}})
+def _get_volumes(related, requirements):
+    """ Return the volume spec for the workload """
+    volumes = []
+    volume_mounts = []
 
-        # Add the entry for the volume under the current node's key in compose
-        node = self.compose_data.setdefault("services", {}) \
-                                .setdefault(node, {}).setdefault("volumes", [])
-        entry = "{}:{}".format(volume, location)
-        if entry not in node:
-            node.append(entry)
+    for node in related:
+        volume_mount_list = []
 
-    def _create_compose_connection(self, node, target, network):
-        """ Create a network entry in the compose data under networks """
-        network_key = self.compose_data.setdefault("networks", {})
-        network_key.update({network: {"driver":"overlay"}})
-        if self.mtu != 1500:
-            network_key[network].setdefault("driver_opts", {}) \
-                                .setdefault("com.docker.network.driver.mtu", self.mtu)
+        kube_interface = \
+            [x for x in node.interfaces if KUBERNETES_INTERFACE in x.type]
+        if node.type == CONTAINER_VOLUME and kube_interface:
+            inputs = kube_interface[0].inputs
+            name = inputs.pop('name', node.name)
+            volume_spec = {'name': name, **inputs}
+        else:
+            continue
 
-        # Add the entry for the network under the current node's key in compose
-        node = self.compose_data.setdefault("services", {}) \
-                                .setdefault(node, {}).setdefault("networks", [])
-        if network not in node:
-            node.append(network)
+        for requirement in requirements:
+            volume = requirement.get('volume',{})
+            relationship = volume.get('relationship', {}).get('type')
+            path = volume.get('relationship', {}).get('properties', {}).get('location')
+            if path and relationship == VOLUME_ATTACHMENT:
+                if volume.get('node') == node.name:
+                    volume_mount_spec = {'name': name, 'mountPath': path}
+                    volume_mount_list.append(volume_mount_spec)
+        
+        if volume_mount_list:         
+            volumes.append(volume_spec)
+            volume_mounts += volume_mount_list
 
-        # Add the entry for the network under the target node's key in compose
-        target = self.compose_data.setdefault("services", {}) \
-                                  .setdefault(target, {}).setdefault("networks", [])
-        if network not in target:
-            target.append(network)
+    return volumes, volume_mounts
+    
+def _get_ports(properties, node_name):
+    """ Return the port spec for the container """
+    port_list = []
+    for prop in properties:
+        
+        # Gets assigned cluster IP
+        if prop.name == "clusterIP" or prop.name == 'ip':
+            cluster_ip = prop.value.split('.')
+            # Check if the ip is within range (kind of)
+            if cluster_ip[0] == '10' and 96 <= int(cluster_ip[1]) <= 111:
+                port_list.append({'clusterIP': prop.value})
+            else:
+                logger.warning("ClusterIP out of range 10.96.x.x - 10.111.x.x Kubernetes will assign one")
 
-    def _create_compose_constraint(self, node, host):
-        """ Create a constraint entry in the compose data """
-        # Add the constraint under services key for the relevant node
-        node = self.compose_data.setdefault("services", {}).setdefault(node, {}) \
-                                .setdefault("deploy", {}) \
-                                .setdefault("placement", {}) \
-                                .setdefault("constraints", [])
-        entry = "node.labels.host == {}".format(host)
-        if entry not in node:
-            node.append(entry)
+        # Gets port info
+        elif prop.name == "ports":
+            for port in prop.value:
+                # Check if we have a valid target port
+                target = port.get("target", port.get("targetPort", port.get("port")))
+                if not target:
+                    logger.warning("Bad port spec in properties of {}".format(node_name))
+                    break
+
+                # Build a port spec
+                port_spec = {"targetPort": target,                                
+                             "port": port.get("source", port.get("port", target)),
+                             "protocol": port.get("protocol", "TCP"),
+                             "type": port.get("mode", port.get("type", 'ClusterIP'))}
+
+                # Assign name/nodeport if exist/valid
+                name = port.get('name')
+                if name:
+                    port_spec.setdefault('name', name)
+
+                node_port = port.get('nodePort')
+                if node_port:
+                    port_spec.setdefault('type', 'NodePort')
+                    if 30000 <= int(node_port) <= 32767:
+                        port_spec.setdefault('nodePort', node_port)
+                    else:
+                        logger.warning("nodePort out of range 30000-32767... Kubernetes will assign one")
+
+                port_list.append(port_spec)
+    return port_list
