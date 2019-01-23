@@ -215,7 +215,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             vol_list += volume_mounts
         
         # Set container spec
-        container_name = inputs.get('name', node.name)
+        container_name = inputs.get('name', '{}-container'.format(node.name))
         image = _get_image(node.entity_tpl, repositories) or inputs.get('image')
         if not image:
             raise AdaptorCritical("No image specified for {}!".format(node.name))
