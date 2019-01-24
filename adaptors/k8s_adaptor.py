@@ -201,9 +201,8 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         # Set apiVersion and metadata
         api_version = inputs.get('apiVersion', _get_api(kind))
-        name = '{}-{}'.format(node.name, kind.lower())
         labels = {'app': node.name}
-        metadata = {'name': name, 'labels': labels}
+        metadata = {'name': node.name, 'labels': labels}
 
         # Get volume info
         volumes, volume_mounts = _get_volumes(node.related_nodes, node.requirements)
@@ -241,7 +240,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         namespace = pod_metadata.get('namespace')
         if namespace:
             metadata['namespace'] = namespace
-        pod_spec = {'containers':[container], **pod_data}
+        pod_spec = {'containers': [container], **pod_data}
 
         # Set pod labels and selector
         pod_labels = pod_metadata.get('labels') or {'app': node.name}
