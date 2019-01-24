@@ -10,6 +10,7 @@ import utils
 import yaml
 import threading
 import queue
+import time
 
 def __init__():
 
@@ -42,6 +43,7 @@ class ExecSubmitterThread(threading.Thread):
 def threads_management():
     global current_thread
     while True:
+        time.sleep(3)
         if not queue_threading.empty():
            thread = queue_threading.get()
            current_thread = thread.getName()
