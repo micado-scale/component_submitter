@@ -67,7 +67,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 inputs = kube_interface[0].inputs
                 self._create_manifests(node, inputs, kind, repositories)
 
-        if not manifests:
+        if not self.manifests:
             logger.info("No nodes to orchestrate with Kubernetes. Do you need this adaptor?")
             self.status = "Skipped Translation"
             return
@@ -85,7 +85,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         logger.info("Executing Kubernetes Manifests...")
         self.status = "Executing..."
 
-        if not manifests:
+        if not self.manifests:
             logger.info("No nodes to orchestrate with Kubernetes. Do you need this adaptor?")
             self.status = "Skipped Execution"
             return
