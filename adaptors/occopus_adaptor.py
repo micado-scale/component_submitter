@@ -285,6 +285,8 @@ class OccopusAdaptor(abco.Adaptor):
         nics.append(dict)
         self.node_data[key]["description"]["nics"] = nics
         self._node_data_get_context_section()
+        self.node_data.setdefault("health_check", {}) \
+            .setdefault("ping",False)
 
     def _node_data_get_ec2_host_properties(self, node, key):
         """
@@ -309,6 +311,8 @@ class OccopusAdaptor(abco.Adaptor):
             security_groups = list()
             security_groups = capabilites["security_group_ids"].value
             self.node_data[key]["security_group_ids"] = security_groups
+        self.node_data.setdefault("health_check", {}) \
+            .setdefault("ping",False)
 
     def _node_data_get_cloudbroker_host_properties(self, node, key):
         """
@@ -356,6 +360,8 @@ class OccopusAdaptor(abco.Adaptor):
         if capabilites.get("security_groups") is not None:
             self.node_data[key]["security_groups"] = capabilites["security_groups"].value
         self._node_data_get_context_section()
+        self.node_data.setdefault("health_check", {}) \
+            .setdefault("ping",False)
 
     def _get_cloud_init(self):
         """
