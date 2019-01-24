@@ -45,7 +45,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.manifest_tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
 
         self.manifests = []
-        self.services = {}
+        self.services = []
         self.output = {}
 
         logger.info("Kubernetes Adaptor is ready.")
@@ -193,11 +193,13 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         def get_attribute(service, query):
             kubernetes.config.load_kube_config()
             if query == 'port':
-                name = self.services.get(service, {}).get('name')
-                namespace = self.services.get(service, {}).get('namespace')
-                client = kubernetes.client.CoreV1Api()
-                result = [x.to_dict() for x in client.read_namespaced_service(name, namespace).spec.ports]
-                self.output.update({service: result})
+                for svc in self.services:
+                    if svc.get('node') == service:
+                        name = svc.get('name')
+                        namespace = svc.get('namespace')
+                        client = kubernetes.client.CoreV1Api()
+                        result = [x.to_dict() for x in client.read_namespaced_service(name, namespace).spec.ports]
+                        self.output.setdefault(service, []).append(result)
 
         for output in self.tpl.outputs:
             node = output.value.get_referenced_node_template()
@@ -311,8 +313,8 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             namespace = 'default'
         
         # Set service info for outputs
-        service_info = {'name': service_name, 'namespace': namespace}
-        self.services.setdefault(node_name, service_info)
+        service_info = {'node': node_name, 'name': service_name, 'namespace': namespace}
+        self.services.append(service_info)
         
         # Set ports
         spec_ports = []
