@@ -252,7 +252,10 @@ class SubmitterEngine(object):
         """ method called by the engine to launch the adaptor undeploy method of a specific component identified by its ID"""
         logger.info("undeploying component")
         for step in self.object_config.step_config['undeploy']:
-            adaptors[step].undeploy()
+            try:
+                adaptors[step].undeploy()
+            except Exception as e:
+                logger.error("error: {}; proceeding to undepployment of the other adaptors".format(e))
 
     def _update(self, adaptors, app_id):
         """ method that will translate first the new component and then see if there's a difference, and then execute"""
@@ -293,7 +296,10 @@ class SubmitterEngine(object):
 
         logger.info("cleaning up the file after undeployment")
         for step in self.object_config.step_config['cleanup']:
-            adaptors[step].cleanup()
+            try:
+                adaptors[step].cleanup()
+            except Exception as e:
+                logger.error("error: {}; proceeding to cleanup of the other adaptors".format(e))
 
 
     def _update_json(self):
