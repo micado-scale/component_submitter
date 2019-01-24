@@ -45,6 +45,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.manifest_tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
 
         self.manifests = []
+        self.services = {}
         self.output = {}
 
         logger.info("Kubernetes Adaptor is ready.")
@@ -182,8 +183,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         def get_attribute(service, query):
             kubernetes.config.load_kube_config()
             if query == 'port':
+                name = self.services.get(service, {}).get('name')
+                namespace = self.services.get(service, {}).get('namespace')
                 client = kubernetes.client.CoreV1Api()
-                result = [x.to_dict() for x in client.read_namespaced_service(service,"default").spec.ports]
+                result = [x.to_dict() for x in client.read_namespaced_service(name, namespace).spec.ports]
                 self.output.update({service: result})
 
         for output in self.tpl.outputs:
@@ -260,7 +263,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 if idx:
                     service_name += "-{}".format(port_type.lower())
                 if same_ports:
-                    self._build_service(same_ports, port_type, pod_labels, service_name, cluster_ip)
+                    self._build_service(same_ports, port_type, pod_labels, service_name, cluster_ip, namespace, node.name)
                     idx += 1
 
         # Set template & pod spec
@@ -287,10 +290,19 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         return
 
-    def _build_service(self, ports, port_type, labels, service_name, cluster_ip):
+    def _build_service(self, ports, port_type, labels, service_name, cluster_ip, namespace, node_name):
         """ Build a service based on the provided port spec and template """
-        # Set metadata and type
-        metadata = {'name': service_name, 'labels': labels}        
+        
+        # Set metadata and type        
+        metadata = {'name': service_name, 'labels': labels}      
+        if namespace:
+            metadata['namespace'] = namespace
+        else:
+            namespace = 'default'
+        
+        # Set service info for outputs
+        service_info = {'name': service_name, 'namespace': namespace}
+        self.services.setdefault(node_name, service_info)
         
         # Set ports
         spec_ports = []
@@ -409,23 +421,34 @@ def _get_ports(properties, node_name):
                     break
 
                 # Build a port spec
-                port_spec = {"targetPort": target,                                
-                             "port": port.get("source", port.get("port", target)),
-                             "protocol": port.get("protocol", "TCP"),
-                             "type": port.get("mode", port.get("type", 'ClusterIP'))}
-
-                # Assign name/nodeport if exist/valid
-                name = port.get('name')
-                if name:
-                    port_spec.setdefault('name', name)
-
+                port_spec = {"targetPort": int(target),                                
+                             "port": int(port.get("source", port.get("port", target))),
+                             "protocol": port.get("protocol", "TCP").upper()}     
+                
+                # Assign node port if valid
                 node_port = port.get('nodePort')
                 if node_port:
+                    node_port = int(node_port)
                     port_spec.setdefault('type', 'NodePort')
-                    if 30000 <= int(node_port) <= 32767:
+                    if 30000 <= node_port <= 32767:
                         port_spec.setdefault('nodePort', node_port)
                     else:
-                        logger.warning("nodePort out of range 30000-32767... Kubernetes will assign one")
+                        logger.warning("nodePort out of range 30000-32767... Kubernetes will assign one")                            
+
+                # Assign name
+                name = port.get('name', '{}-{}'.format(target, port_spec['protocol'].lower()))
+                port_spec.setdefault('name', name)
+
+                # Assign type
+                port_type = port.get('type', port.get('mode'))
+                if port_type:
+                    port_spec.update({'type': port_type})
+                else:
+                    port_spec.setdefault('type', 'ClusterIP')
+
+
+
+                
 
                 port_list.append(port_spec)
     return port_list
