@@ -67,6 +67,11 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 inputs = kube_interface[0].inputs
                 self._create_manifests(node, inputs, kind, repositories)
 
+        if not manifests:
+            logger.info("No nodes to orchestrate with Kubernetes. Do you need this adaptor?")
+            self.status = "Skipped Translation"
+            return
+
         if update:
             utils.dump_list_yaml(self.manifests, self.manifest_tmp_path)
         else:
@@ -79,6 +84,11 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         """ Execute """
         logger.info("Executing Kubernetes Manifests...")
         self.status = "Executing..."
+
+        if not manifests:
+            logger.info("No nodes to orchestrate with Kubernetes. Do you need this adaptor?")
+            self.status = "Skipped Execution"
+            return
 
         if update:
             operation = ['kubectl', 'apply', '-f', self.manifest_path]
@@ -444,11 +454,7 @@ def _get_ports(properties, node_name):
                 if port_type:
                     port_spec.update({'type': port_type})
                 else:
-                    port_spec.setdefault('type', 'ClusterIP')
-
-
-
-                
+                    port_spec.setdefault('type', 'ClusterIP')               
 
                 port_list.append(port_spec)
     return port_list
