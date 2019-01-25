@@ -3,6 +3,7 @@ import subprocess
 import logging
 import shutil
 import filecmp
+import time
 
 import kubernetes.client
 import kubernetes.config
@@ -136,9 +137,19 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         """ Undeploy """
         logger.info("Undeploying Kubernetes workloads")
         self.status = "Undeploying..."
+        
+        operation = ["kubectl", "delete", "all", "-l", "volmount=flag"]
+        try:
+            if self.config['dry_run']:
+                logger.info("DRY-RUN: kubectl removes mounts...")
+            else:
+                logger.debug("Undeploy mounts {}".format(operation))
+                subprocess.run(operation, stderr=subprocess.PIPE, check=True)
+        except subprocess.CalledProcessError:
+            logger.debug("Tried to undeploy mounted vols first")
 
+        time.sleep(15)
         operation = ["kubectl", "delete", "-f", self.manifest_path]
-
         try:
             if self.config['dry_run']:
                 logger.info("DRY-RUN: kubectl removes workloads...")
@@ -147,8 +158,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 subprocess.run(operation, stderr=subprocess.PIPE, check=True)                
 
         except subprocess.CalledProcessError:
-            logger.error("Cannot remove workloads...")
-            raise AdaptorCritical("Cannot remove workloads...")
+            logger.info("Some workloads with mounted vols were removed first...")
 
         logger.info("Undeployment complete")
         self.status = "Undeployed"
@@ -300,7 +310,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         # Set volume mounted flag
         if volume_mounts:
-            metadata.get('labels', {}).setdefault('mounted_vol_flag', 'true')
+            metadata.setdefault('labels', {}).setdefault('volmount', 'flag')
 
         # Build manifests
         manifest = {'apiVersion': api_version, 'kind': kind, 
