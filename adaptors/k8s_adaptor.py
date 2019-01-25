@@ -261,7 +261,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         pod_labels = pod_metadata.get('labels') or {'app': node.name}
         selector = {'matchLabels': pod_labels}
 
-        # Find top level ports for service creation
+        # Find top level ports/clusterIP for service creation
         ports = _get_ports(node.get_properties_objects(), node.name)
         if ports:
             idx = 0
@@ -269,13 +269,15 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             if cluster_ip:
                 cluster_ip = cluster_ip[0].get('clusterIP')
 
+            # Create a different service for each type
             for port_type in ['ClusterIP', 'NodePort', 'LoadBalancer', 'ExternalName']:
                 same_ports = [x for x in ports if x.get('type') == port_type]
-                service_name = "{}-service".format(node.name)
+                service_name = node.name
                 if idx:
                     service_name += "-{}".format(port_type.lower())
                 if same_ports:
-                    self._build_service(same_ports, port_type, pod_labels, service_name, cluster_ip, namespace, node.name)
+                    self._build_service(same_ports, port_type, pod_labels, service_name, 
+                                        cluster_ip, namespace, node.name)
                     idx += 1
 
         # Set template & pod spec
