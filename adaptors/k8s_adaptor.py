@@ -138,7 +138,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         """ Undeploy """
         logger.info("Undeploying Kubernetes workloads")
         self.status = "Undeploying..."
+        mountflag = False
         
+        # Try to delete workloads with mounted volumes first (WORKAROUND)
         operation = ["kubectl", "delete", "all", "-l", "volmount=flag"]
         try:
             if self.config['dry_run']:
@@ -147,19 +149,24 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 logger.debug("Undeploy mounts {}".format(operation))
                 subprocess.run(operation, stderr=subprocess.PIPE, check=True)
         except subprocess.CalledProcessError:
-            logger.debug("Tried to undeploy mounted vols first")
+            logger.debug("Found no mounted vols to remove first...")
+        else:
+            logger.info("Some workloads with mounted vols were removed first...")
+            mountflag = True
+            time.sleep(15)
 
-        time.sleep(15)
+        # Normal deletion of workloads
         operation = ["kubectl", "delete", "-f", self.manifest_path]
         try:
             if self.config['dry_run']:
                 logger.info("DRY-RUN: kubectl removes workloads...")
             else:
                 logger.debug("Undeploy {}".format(operation))
-                subprocess.run(operation, stderr=subprocess.PIPE, check=True)                
-
+                subprocess.run(operation, stderr=subprocess.PIPE, check=True)          
         except subprocess.CalledProcessError:
-            logger.info("Some workloads with mounted vols were removed first...")
+            if not mountflag:
+                logger.debug("Had some trouble removing workloads...")
+                raise AdaptorCritical("Had some trouble removing workloads!")
 
         logger.info("Undeployment complete")
         self.status = "Undeployed"
