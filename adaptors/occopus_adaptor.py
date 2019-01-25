@@ -259,27 +259,27 @@ class OccopusAdaptor(abco.Adaptor):
         """
         Get CloudSigma properties and create node definition
         """
-        capabilites = self._get_host_properties(node)
+        properties = self._get_host_properties(node)
         nics = dict()
 
         self.node_data.setdefault(key, {})\
-            .setdefault("libdrive_id", capabilites["libdrive_id"].value)
+            .setdefault("libdrive_id", properties["libdrive_id"].value)
         self.node_data.setdefault(key, {})\
             .setdefault("description", {})\
-            .setdefault("cpu", capabilites["num_cpus"].value)
+            .setdefault("cpu", properties["num_cpus"].value)
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("mem", capabilites["mem_size"].value)
+            .setdefault("mem", properties["mem_size"].value)
         self.node_data.setdefault(key, {})\
             .setdefault("description", {})\
-            .setdefault("vnc_password", capabilites["vnc_password"].value)
-        if capabilites.get("public_key_id") is not None:
+            .setdefault("vnc_password", properties["vnc_password"].value)
+        if properties.get("public_key_id") is not None:
             pubkeys = list()
-            pubkeys.append(capabilites["public_key_id"].value)
+            pubkeys.append(properties["public_key_id"].value)
             self.node_data[key]["description"]["pubkeys"] = pubkeys
-        if capabilites.get("firewall_policy") is not None:
-            dict["firewall_policy"] = capabilites["firewall_policy"].value
-        nics=capabilites.get("nics").value
+        if properties.get("firewall_policy") is not None:
+            dict["firewall_policy"] = properties["firewall_policy"].value
+        nics=properties.get("nics").value
         self.node_data[key]["description"]["nics"] = nics
         self._node_data_get_context_section()
         self.node_data.setdefault("health_check", {}) \
@@ -289,24 +289,24 @@ class OccopusAdaptor(abco.Adaptor):
         """
         Get EC2 properties and create node definition
         """
-        capabilites = self._get_host_properties(node)
+        properties = self._get_host_properties(node)
 
         self.node_data.setdefault(key, {}) \
-            .setdefault("regionname", capabilites["region_name"].value)
+            .setdefault("regionname", properties["region_name"].value)
         self.node_data.setdefault(key, {}) \
-            .setdefault("image_id", capabilites["image_id"].value)
+            .setdefault("image_id", properties["image_id"].value)
         self.node_data.setdefault(key, {}) \
-            .setdefault("instance_type", capabilites["instance_type"].value)
+            .setdefault("instance_type", properties["instance_type"].value)
         self._node_data_get_context_section()
-        if capabilites.get("key_name") is not None:
+        if properties.get("key_name") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("key_name", capabilites["key_name"].value)
-        if capabilites.get("subnet_id") is not None:
+              .setdefault("key_name", properties["key_name"].value)
+        if properties.get("subnet_id") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("subnet_id", capabilites["subnet_id"].value)
-        if capabilites.get("security_group_ids") is not None:
+              .setdefault("subnet_id", properties["subnet_id"].value)
+        if properties.get("security_group_ids") is not None:
             security_groups = list()
-            security_groups = capabilites["security_group_ids"].value
+            security_groups = properties["security_group_ids"].value
             self.node_data[key]["security_group_ids"] = security_groups
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
@@ -315,21 +315,21 @@ class OccopusAdaptor(abco.Adaptor):
         """
         Get CloudBroker properties and create node definition
         """
-        capabilites = self._get_host_properties(node)
+        properties = self._get_host_properties(node)
 
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("deployment_id", capabilites["deployment_id"].value)
+            .setdefault("deployment_id", properties["deployment_id"].value)
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("instance_type_id", capabilites["instance_type_id"].value)
+            .setdefault("instance_type_id", properties["instance_type_id"].value)
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("key_pair_id", capabilites["key_pair_id"].value)
-        if capabilites.get("opened_port") is not None:
+            .setdefault("key_pair_id", properties["key_pair_id"].value)
+        if properties.get("opened_port") is not None:
             self.node_data.setdefault(key, {}) \
               .setdefault("description", {}) \
-              .setdefault("opened_port", capabilites["opened_port"].value)
+              .setdefault("opened_port", properties["opened_port"].value)
         self._node_data_get_context_section()
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
@@ -338,24 +338,24 @@ class OccopusAdaptor(abco.Adaptor):
         """
         Get NOVA properties and create node definition
         """
-        capabilites = self._get_host_properties(node)
+        properties = self._get_host_properties(node)
 
         self.node_data.setdefault(key, {}) \
-            .setdefault("project_id", capabilites["project_id"].value)
+            .setdefault("project_id", properties["project_id"].value)
         self.node_data.setdefault(key, {}) \
-            .setdefault("image_id", capabilites["image_id"].value)
+            .setdefault("image_id", properties["image_id"].value)
         self.node_data.setdefault(key, {}) \
-            .setdefault("network_id", capabilites["network_id"].value)
+            .setdefault("network_id", properties["network_id"].value)
         self.node_data.setdefault(key, {}) \
-            .setdefault("flavor_name", capabilites["flavor_name"].value)
-        if capabilites.get("server_name") is not None:
+            .setdefault("flavor_name", properties["flavor_name"].value)
+        if properties.get("server_name") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("server_name", capabilites["server_name"].value)
-        if capabilites.get("key_name") is not None:
+              .setdefault("server_name", properties["server_name"].value)
+        if properties.get("key_name") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("key_name", capabilites["key_name"].value)
-        if capabilites.get("security_groups") is not None:
-            self.node_data[key]["security_groups"] = capabilites["security_groups"].value
+              .setdefault("key_name", properties["key_name"].value)
+        if properties.get("security_groups") is not None:
+            self.node_data[key]["security_groups"] = properties["security_groups"].value
         self._node_data_get_context_section()
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
