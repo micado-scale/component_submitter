@@ -40,6 +40,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")        
 
         self.ID = adaptor_id
+        self.short_id = '_'.join(adaptor_id.split('_')[:-1])
         self.config = config
         self.tpl = template
         self.manifest_path = "{}{}.yaml".format(self.config['volume'], self.ID)
@@ -226,7 +227,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         # Set apiVersion and metadata
         api_version = inputs.get('apiVersion', _get_api(kind))
-        labels = {'app': self.ID}
+        labels = {'app': self.short_id}
         metadata = {'name': node.name, 'labels': labels}
 
         # Get volume info
@@ -262,14 +263,14 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         # Set pod metadata, namespace and spec
         pod_metadata = pod_data.pop('metadata', metadata)
-        pod_metadata.setdefault('labels', {}).setdefault('app', self.ID)
+        pod_metadata.setdefault('labels', {}).setdefault('app', self.short_id)
         namespace = pod_metadata.get('namespace')
         if namespace:
             metadata['namespace'] = namespace
         pod_spec = {'containers': [container], **pod_data}
 
         # Set pod labels and selector
-        pod_labels = pod_metadata.get('labels', {'app': self.ID})
+        pod_labels = pod_metadata.get('labels', {'app': self.short_id})
         selector = {'matchLabels': pod_labels}
 
         # Find top level ports/clusterIP for service creation
