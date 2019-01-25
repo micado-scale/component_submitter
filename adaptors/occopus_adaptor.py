@@ -280,8 +280,7 @@ class OccopusAdaptor(abco.Adaptor):
             self.node_data[key]["description"]["pubkeys"] = pubkeys
         if capabilites.get("firewall_policy") is not None:
             dict["firewall_policy"] = capabilites["firewall_policy"].value
-        dict["ip_v4_conf"] = {}
-        dict["ip_v4_conf"]["conf"] = "dhcp"
+        dict=capabilites.get("nics")
         nics.append(dict)
         self.node_data[key]["description"]["nics"] = nics
         self._node_data_get_context_section()
