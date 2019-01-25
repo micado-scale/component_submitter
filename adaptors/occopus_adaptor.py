@@ -269,8 +269,6 @@ class OccopusAdaptor(abco.Adaptor):
             pubkeys = list()
             pubkeys.append(properties["public_key_id"].value)
             self.node_data[key]["description"]["pubkeys"] = pubkeys
-        if properties.get("firewall_policy") is not None:
-            dict["firewall_policy"] = properties["firewall_policy"].value
         nics=properties.get("nics").value
         self.node_data[key]["description"]["nics"] = nics
         self._node_data_get_context_section()
