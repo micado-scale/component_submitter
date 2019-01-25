@@ -66,7 +66,7 @@ class SubmitterEngine(object):
             launch
         """
 
-        logger.info("******  Launching the application ****** \n****** located there {}}******".format(path_to_file))
+        logger.info("******  Launching the application ****** \n****** located there {}******".format(path_to_file))
         if self.app_list and not self.object_config.main_config['dry_run']:
             raise Exception("An application is already running, MiCADO doesn't currently support multi applications")
             return
