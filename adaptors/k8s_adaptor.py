@@ -65,6 +65,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             kube_interface = \
                 [x for x in node.interfaces if KUBERNETES_INTERFACE in x.type]
             if DOCKER_CONTAINER in node.type and kube_interface:
+                if '_' in node.name:
+                    logger.error("ERROR: Use of underscores in Kubernetes workload name prohibited")
+                    raise AdaptorCritical("ERROR: Use of underscores in Kubernetes workload name prohibited")
                 kind = kube_interface[0].implementation or 'Deployment'
                 inputs = kube_interface[0].inputs
                 self._create_manifests(node, inputs, kind, repositories)
@@ -296,7 +299,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                     service_name += "-{}".format(port_type.lower())
                 if same_ports:
                     self._build_service(same_ports, port_type, pod_labels, service_name, 
-                                        cluster_ip, namespace, node.name, metadata.get('labels'))
+                                        cluster_ip, namespace, node.name)
                     idx += 1
 
         # Set template & pod spec
@@ -327,11 +330,12 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         return
 
-    def _build_service(self, ports, port_type, selector, service_name, cluster_ip, namespace, node_name, meta_labels):
+    def _build_service(self, ports, port_type, selector, service_name, cluster_ip, namespace, node_name):
         """ Build a service based on the provided port spec and template """
         
-        # Set metadata and type        
-        metadata = {'name': service_name, 'labels': meta_labels}      
+        # Set metadata and type
+        labels = {'app': self.short_id}
+        metadata = {'name': service_name, 'labels': labels}      
         if namespace:
             metadata['namespace'] = namespace
         else:
