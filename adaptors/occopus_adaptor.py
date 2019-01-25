@@ -260,7 +260,7 @@ class OccopusAdaptor(abco.Adaptor):
         Get CloudSigma properties and create node definition
         """
         capabilites = self._get_host_properties(node)
-        nics = list()
+        nics = dict()
 
         self.node_data.setdefault(key, {})\
             .setdefault("libdrive_id", capabilites["libdrive_id"].value)
@@ -279,7 +279,7 @@ class OccopusAdaptor(abco.Adaptor):
             self.node_data[key]["description"]["pubkeys"] = pubkeys
         if capabilites.get("firewall_policy") is not None:
             dict["firewall_policy"] = capabilites["firewall_policy"].value
-        nics.append(capabilites.get("nics").value)
+        nics=capabilites.get("nics").value
         self.node_data[key]["description"]["nics"] = nics
         self._node_data_get_context_section()
         self.node_data.setdefault("health_check", {}) \
