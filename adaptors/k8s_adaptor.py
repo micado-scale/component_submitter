@@ -420,6 +420,8 @@ def _get_ports(properties, node_name):
             # Check if the ip is within range (kind of)
             if cluster_ip[0] == '10' and 96 <= int(cluster_ip[1]) <= 111:
                 port_list.append({'clusterIP': prop.value})
+            elif cluster_ip[0] == 'None':                
+                port_list.append({'clusterIP': 'None'})                
             else:
                 logger.warning("ClusterIP out of range 10.96.x.x - 10.111.x.x Kubernetes will assign one")
 
