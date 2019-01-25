@@ -252,7 +252,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         # Set pod metadata, namespace and spec
         pod_metadata = pod_data.pop('metadata', metadata)
-        pod_metadata.get('labels', {}).setdefault('app', self.ID)
+        pod_metadata.setdefault('labels', {}).setdefault('app', self.ID)
         namespace = pod_metadata.get('namespace')
         if namespace:
             metadata['namespace'] = namespace
@@ -297,6 +297,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             spec.update(deploy_data)
         elif (kind == 'StatefulSet' or kind == 'DaemonSet') and update_data:
             spec.update(update_data)
+
+        # Set volume mounted flag
+        if volume_mounts:
+            metadata.get('labels', {}).setdefault('mounted_vol_flag', 'true')
 
         # Build manifests
         manifest = {'apiVersion': api_version, 'kind': kind, 
