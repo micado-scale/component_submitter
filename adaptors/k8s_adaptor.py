@@ -216,7 +216,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         # Set apiVersion and metadata
         api_version = inputs.get('apiVersion', _get_api(kind))
-        labels = {'app': node.name}
+        labels = {'app': self.ID}
         metadata = {'name': node.name, 'labels': labels}
 
         # Get volume info
@@ -252,13 +252,14 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         # Set pod metadata, namespace and spec
         pod_metadata = pod_data.pop('metadata', metadata)
+        pod_metadata.get('labels', {}).setdefault('app', self.ID)
         namespace = pod_metadata.get('namespace')
         if namespace:
             metadata['namespace'] = namespace
         pod_spec = {'containers': [container], **pod_data}
 
         # Set pod labels and selector
-        pod_labels = pod_metadata.get('labels') or {'app': node.name}
+        pod_labels = pod_metadata.get('labels', {'app': self.ID})
         selector = {'matchLabels': pod_labels}
 
         # Find top level ports/clusterIP for service creation
