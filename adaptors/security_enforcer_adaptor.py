@@ -13,7 +13,7 @@ import logging
 import requests
 import utils
 import json
-
+import time
 TYPES=["tosca.policies.DockerSecretDistribution"]
 
 logger = logging.getLogger("adaptors."+__name__)
@@ -72,7 +72,7 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
         self.status = "executing"
         """ Send to the Security Enforcer the informations
             retrieved from the TOSCA template"""
-        secrets=[]
+        service = {self.ID: dict()}
         for policy in self.policies:
             if "tosca.policies.DockerSecretDistribution" in policy.type:
                 _interm_dict = policy.get_properties()["text_secrets"].value
@@ -83,15 +83,21 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
                             logger.info("link the secret {} to the service {} by using the command line to {}/add_secret".format(key,target, self.config['endpoint']))
 
                     elif self.config["dry_run"] is False:
-                        secrets.append(key)
+                        #secrets.append(key)
                         logger.info("launch secret")
                         #response = requests.post("{}/appsecrets".format(self.config['endpoint']), data = data_keys)
                         for target in policy.targets:
+                            try:
+                               service[self.ID]["{}_{}".format(self.ID.split('_')[0],target)].append(key)
+                            except KeyError:
+                               service[self.ID] ={"{}_{}".format(self.ID.split('_')[0],target): [key]}
+
                             logger.info("link the secret")
                             data_keys = {'name':key, 'value': value, 'service':"{}_{}".format(self.ID.split('_')[0], target)}
                             response = requests.post("{}/appsecrets".format(self.config['endpoint']), json= data_keys)
                             logger.info(response.json())
-        service = { self.ID : secrets }
+                            time.sleep(1)
+        #service = { self.ID : secrets }
         try:
             with open(self.path, 'w') as outfile:
                 json.dump(service, outfile)
@@ -113,15 +119,14 @@ class SecurityEnforcerAdaptor(abco.Adaptor):
             logger.debug("file {} doesn't exist so isntantiation of empty directory of app_list".format(self.path))
             raise Exception("no file found cannot remove the secrets")
 
-        for value in secrets[self.ID]:
+        for key, value in secrets[self.ID].items():
 
-            logger.info("delete secret")
-            response = requests.delete("{}/secrets/{}".format(self.config['endpoint'], value))
-                       # response = requests.post("{}/create_secret".format(self.config['endpoint']), data = data_keys)
-                        #for target in policy.targets:
-                         #   logger.info("link the secret")
-                          #  data_keys = {'secret':key, 'service':"{}_{}".format(self.IDtarget, target)}
-                           # response = requests.post("{}/add_secret".format(self.config['endpoint']), data = data_keys)
+            logger.info("delete secret for {}".format(key))
+            for secret in value:
+
+                response = requests.delete("{}/appsecrets/{}".format(self.config['endpoint'], secret), json= {'service':key})
+                logger.info(response.json)
+                time.sleep(1)
         secrets.pop(self.ID)
         try:
             with open(self.path, 'w') as outfile:
