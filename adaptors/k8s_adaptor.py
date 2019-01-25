@@ -3,6 +3,7 @@ import subprocess
 import logging
 import shutil
 import filecmp
+import time
 
 import kubernetes.client
 import kubernetes.config
@@ -39,6 +40,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")        
 
         self.ID = adaptor_id
+        self.short_id = '_'.join(adaptor_id.split('_')[:-1])
         self.config = config
         self.tpl = template
         self.manifest_path = "{}{}.yaml".format(self.config['volume'], self.ID)
@@ -63,6 +65,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             kube_interface = \
                 [x for x in node.interfaces if KUBERNETES_INTERFACE in x.type]
             if DOCKER_CONTAINER in node.type and kube_interface:
+                if '_' in node.name:
+                    logger.error("ERROR: Use of underscores in Kubernetes workload name prohibited")
+                    raise AdaptorCritical("ERROR: Use of underscores in Kubernetes workload name prohibited")
                 kind = kube_interface[0].implementation or 'Deployment'
                 inputs = kube_interface[0].inputs
                 self._create_manifests(node, inputs, kind, repositories)
@@ -136,19 +141,35 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         """ Undeploy """
         logger.info("Undeploying Kubernetes workloads")
         self.status = "Undeploying..."
+        mountflag = False
+        
+        # Try to delete workloads with mounted volumes first (WORKAROUND)
+        operation = ["kubectl", "delete", "all", "-l", "volmount=flag"]
+        try:
+            if self.config['dry_run']:
+                logger.info("DRY-RUN: kubectl removes mounts...")
+            else:
+                logger.debug("Undeploy mounts {}".format(operation))
+                subprocess.run(operation, stderr=subprocess.PIPE, check=True)
+        except subprocess.CalledProcessError:
+            logger.debug("Found no mounted vols to remove first...")
+        else:
+            logger.info("Some workloads with mounted vols were removed first...")
+            mountflag = True
+            time.sleep(15)
 
+        # Normal deletion of workloads
         operation = ["kubectl", "delete", "-f", self.manifest_path]
-
         try:
             if self.config['dry_run']:
                 logger.info("DRY-RUN: kubectl removes workloads...")
             else:
                 logger.debug("Undeploy {}".format(operation))
-                subprocess.run(operation, stderr=subprocess.PIPE, check=True)                
-
+                subprocess.run(operation, stderr=subprocess.PIPE, check=True)          
         except subprocess.CalledProcessError:
-            logger.error("Cannot remove workloads...")
-            raise AdaptorCritical("Cannot remove workloads...")
+            if not mountflag:
+                logger.debug("Had some trouble removing workloads...")
+                raise AdaptorCritical("Had some trouble removing workloads!")
 
         logger.info("Undeployment complete")
         self.status = "Undeployed"
@@ -216,7 +237,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         # Set apiVersion and metadata
         api_version = inputs.get('apiVersion', _get_api(kind))
-        labels = {'app': node.name}
+        labels = {'app': self.short_id}
         metadata = {'name': node.name, 'labels': labels}
 
         # Get volume info
@@ -252,13 +273,14 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         # Set pod metadata, namespace and spec
         pod_metadata = pod_data.pop('metadata', metadata)
+        pod_metadata.setdefault('labels', {}).setdefault('app', self.short_id)
         namespace = pod_metadata.get('namespace')
         if namespace:
             metadata['namespace'] = namespace
         pod_spec = {'containers': [container], **pod_data}
 
         # Set pod labels and selector
-        pod_labels = pod_metadata.get('labels') or {'app': node.name}
+        pod_labels = pod_metadata.get('labels', {'app': self.short_id})
         selector = {'matchLabels': pod_labels}
 
         # Find top level ports/clusterIP for service creation
@@ -297,6 +319,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         elif (kind == 'StatefulSet' or kind == 'DaemonSet') and update_data:
             spec.update(update_data)
 
+        # Set volume mounted flag
+        if volume_mounts:
+            metadata.setdefault('labels', {}).setdefault('volmount', 'flag')
+
         # Build manifests
         manifest = {'apiVersion': api_version, 'kind': kind, 
                     'metadata': metadata, 'spec': spec}
@@ -304,10 +330,11 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         return
 
-    def _build_service(self, ports, port_type, labels, service_name, cluster_ip, namespace, node_name):
+    def _build_service(self, ports, port_type, selector, service_name, cluster_ip, namespace, node_name):
         """ Build a service based on the provided port spec and template """
         
-        # Set metadata and type        
+        # Set metadata and type
+        labels = {'app': self.short_id}
         metadata = {'name': service_name, 'labels': labels}      
         if namespace:
             metadata['namespace'] = namespace
@@ -325,7 +352,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             spec_ports.append(port)
 
         # Set spec
-        spec = {'ports': spec_ports, 'selector': labels}
+        spec = {'ports': spec_ports, 'selector': selector}
         if port_type != 'ClusterIP':
             spec.setdefault('type', port_type)
         if cluster_ip:
