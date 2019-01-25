@@ -58,10 +58,7 @@ class OccopusAdaptor(abco.Adaptor):
     def translate(self, tmp=False):
         """
         Translate the self.tpl subset to Occopus node definition and infrastructure format
-        Does the work of mapping the Occopus relevant sections of TOSCA into a
-        dictionary, then dumping output to a .yaml files (infra and node def.) in output_configs/
-        :param tmp: It is helping variable for update method. More information under update method
-        :return:
+        The adaptor create a mapping between TOSCA and Occopus template descriptor.
         """
         self.node_data = {}
         logger.info("Starting OccoTranslation")
@@ -131,9 +128,8 @@ class OccopusAdaptor(abco.Adaptor):
 
     def execute(self):
         """
-        Deploy Occopus infrastructure through Occopus rest API
-        First the node definition should import in the Occopus
-        contener and then the build process could go on REST API
+        Import Occopus node definition, and build ip the infrastructure
+        through occopus container.
         """
         logger.info("Starting Occopus execution {}".format(self.ID))
         self.status = "executing"
@@ -154,10 +150,6 @@ class OccopusAdaptor(abco.Adaptor):
             if "Successfully imported" in result[1].decode("utf-8"):
                 try:
                     logger.info("Occopus build starting...")
-                    #headers = {'Content-Type': 'application/x-yaml'}
-                    #with open(self.infra_def_path_output, 'rb') as data:
-                    #    requests.post("http://{0}/infrastructures/"
-                    # .format(self.occopus_address), data=data, headers=headers)
                     buildinfo = self.occopus.exec_run("occopus-build {} -i {} --auth_data_path {} --parallelize"
                                                       .format(self.occo_infra_path,
                                                               self.worker_infra_name,
@@ -196,7 +188,7 @@ class OccopusAdaptor(abco.Adaptor):
 
     def update(self):
         """
-        Check that if it's any change in the node definition or in the cloud init file.
+        Check that if it's any change in the node definition or in the cloud-init file.
         If the node definition changed then rerun the build process. If the node definition
         changed first undeploy the infrastructure and rebuild it with the modified parameter.
         """
@@ -231,7 +223,7 @@ class OccopusAdaptor(abco.Adaptor):
 
     def _node_data_get_interface(self, node, key):
         """
-        Get cloud relevant informations from tosca
+        Get cloud relevant information from tosca
         """
         interfaces = node.interfaces
         try:
@@ -259,76 +251,75 @@ class OccopusAdaptor(abco.Adaptor):
         """
         Get CloudSigma properties and create node definition
         """
-        capabilites = self._get_host_properties(node)
-        nics = list()
-        dict = {}
+        properties = self._get_host_properties(node)
+        nics = dict()
 
         self.node_data.setdefault(key, {})\
-            .setdefault("libdrive_id", capabilites["libdrive_id"].value)
+            .setdefault("libdrive_id", properties["libdrive_id"].value)
         self.node_data.setdefault(key, {})\
             .setdefault("description", {})\
-            .setdefault("cpu", capabilites["num_cpus"].value)
+            .setdefault("cpu", properties["num_cpus"].value)
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("mem", capabilites["mem_size"].value)
+            .setdefault("mem", properties["mem_size"].value)
         self.node_data.setdefault(key, {})\
             .setdefault("description", {})\
-            .setdefault("vnc_password", capabilites["vnc_password"].value)
-        if capabilites.get("public_key_id") is not None:
+            .setdefault("vnc_password", properties["vnc_password"].value)
+        if properties.get("public_key_id") is not None:
             pubkeys = list()
-            pubkeys.append(capabilites["public_key_id"].value)
+            pubkeys.append(properties["public_key_id"].value)
             self.node_data[key]["description"]["pubkeys"] = pubkeys
-        if capabilites.get("firewall_policy") is not None:
-            dict["firewall_policy"] = capabilites["firewall_policy"].value
-        dict["ip_v4_conf"] = {}
-        dict["ip_v4_conf"]["conf"] = "dhcp"
-        nics.append(dict)
+        nics=properties.get("nics").value
         self.node_data[key]["description"]["nics"] = nics
         self._node_data_get_context_section()
+        self.node_data.setdefault("health_check", {}) \
+            .setdefault("ping",False)
 
     def _node_data_get_ec2_host_properties(self, node, key):
         """
         Get EC2 properties and create node definition
         """
-        capabilites = self._get_host_properties(node)
+        properties = self._get_host_properties(node)
 
         self.node_data.setdefault(key, {}) \
-            .setdefault("regionname", capabilites["region_name"].value)
+            .setdefault("regionname", properties["region_name"].value)
         self.node_data.setdefault(key, {}) \
-            .setdefault("image_id", capabilites["image_id"].value)
+            .setdefault("image_id", properties["image_id"].value)
         self.node_data.setdefault(key, {}) \
-            .setdefault("instance_type", capabilites["instance_type"].value)
+            .setdefault("instance_type", properties["instance_type"].value)
         self._node_data_get_context_section()
-        if capabilites.get("key_name") is not None:
+        if properties.get("key_name") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("key_name", capabilites["key_name"].value)
-        if capabilites.get("subnet_id") is not None:
+              .setdefault("key_name", properties["key_name"].value)
+        if properties.get("subnet_id") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("subnet_id", capabilites["subnet_id"].value)
-        if capabilites.get("security_group_ids") is not None:
+              .setdefault("subnet_id", properties["subnet_id"].value)
+        if properties.get("security_group_ids") is not None:
             security_groups = list()
-            security_groups = capabilites["security_group_ids"].value
+            security_groups = properties["security_group_ids"].value
             self.node_data[key]["security_group_ids"] = security_groups
+        self.node_data.setdefault("health_check", {}) \
+            .setdefault("ping",False)
 
     def _node_data_get_cloudbroker_host_properties(self, node, key):
         """
         Get CloudBroker properties and create node definition
         """
-        capabilites = self._get_host_properties(node)
+        properties = self._get_host_properties(node)
 
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("deployment_id", capabilites["deployment_id"].value)
+            .setdefault("deployment_id", properties["deployment_id"].value)
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("instance_type_id", capabilites["instance_type_id"].value)
+            .setdefault("instance_type_id", properties["instance_type_id"].value)
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("key_pair_id", capabilites["key_pair_id"].value)
-        if capabilites.get("opened_port") is not None:
+            .setdefault("key_pair_id", properties["key_pair_id"].value)
+        if properties.get("opened_port") is not None:
             self.node_data.setdefault(key, {}) \
               .setdefault("description", {}) \
-              .setdefault("opened_port", capabilites["opened_port"].value)
+              .setdefault("opened_port", properties["opened_port"].value)
         self._node_data_get_context_section()
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
@@ -337,30 +328,31 @@ class OccopusAdaptor(abco.Adaptor):
         """
         Get NOVA properties and create node definition
         """
-        capabilites = self._get_host_properties(node)
+        properties = self._get_host_properties(node)
 
         self.node_data.setdefault(key, {}) \
-            .setdefault("project_id", capabilites["project_id"].value)
+            .setdefault("project_id", properties["project_id"].value)
         self.node_data.setdefault(key, {}) \
-            .setdefault("image_id", capabilites["image_id"].value)
+            .setdefault("image_id", properties["image_id"].value)
         self.node_data.setdefault(key, {}) \
-            .setdefault("network_id", capabilites["network_id"].value)
+            .setdefault("network_id", properties["network_id"].value)
         self.node_data.setdefault(key, {}) \
-            .setdefault("flavor_name", capabilites["flavor_name"].value)
-        if capabilites.get("server_name") is not None:
+            .setdefault("flavor_name", properties["flavor_name"].value)
+        if properties.get("server_name") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("server_name", capabilites["server_name"].value)
-        if capabilites.get("key_name") is not None:
+              .setdefault("server_name", properties["server_name"].value)
+        if properties.get("key_name") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("key_name", capabilites["key_name"].value)
-        if capabilites.get("security_groups") is not None:
-            self.node_data[key]["security_groups"] = capabilites["security_groups"].value
+              .setdefault("key_name", properties["key_name"].value)
+        if properties.get("security_groups") is not None:
+            self.node_data[key]["security_groups"] = properties["security_groups"].value
         self._node_data_get_context_section()
+        self.node_data.setdefault("health_check", {}) \
+            .setdefault("ping",False)
 
     def _get_cloud_init(self):
         """
-        Get cloud-config from MICADO-ansible template
-        :return:
+        Get cloud-config from MiCADO cloud-init template
         """
         yaml.default_flow_style = False
         try:
@@ -372,8 +364,8 @@ class OccopusAdaptor(abco.Adaptor):
         return cloudinit
 
     def _get_infra_def(self, tmp):
-        """Read infra def and modify the min max instances according to the Tosca policies.
-        If the template doesn't have polcy section or it is invalid then set a default value """
+        """Read infra definition and modify the min max instances according to the TOSCA policies.
+        If the template doesn't have policy section or it is invalid then the adaptor set the default value """
         yaml.default_flow_style = False
 
         try:
@@ -412,7 +404,6 @@ class OccopusAdaptor(abco.Adaptor):
 
     def _get_policies(self):
         """ Get the TOSCA policies """
-        
         for policy in self.template.policies:
             for target in policy.targets_list:
                 if "Compute" in target.type:
