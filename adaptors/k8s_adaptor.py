@@ -296,7 +296,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                     service_name += "-{}".format(port_type.lower())
                 if same_ports:
                     self._build_service(same_ports, port_type, pod_labels, service_name, 
-                                        cluster_ip, namespace, node.name)
+                                        cluster_ip, namespace, node.name, metadata.get('labels'))
                     idx += 1
 
         # Set template & pod spec
@@ -327,11 +327,11 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         return
 
-    def _build_service(self, ports, port_type, labels, service_name, cluster_ip, namespace, node_name):
+    def _build_service(self, ports, port_type, selector, service_name, cluster_ip, namespace, node_name, meta_labels):
         """ Build a service based on the provided port spec and template """
         
         # Set metadata and type        
-        metadata = {'name': service_name, 'labels': labels}      
+        metadata = {'name': service_name, 'labels': meta_labels}      
         if namespace:
             metadata['namespace'] = namespace
         else:
@@ -348,7 +348,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             spec_ports.append(port)
 
         # Set spec
-        spec = {'ports': spec_ports, 'selector': labels}
+        spec = {'ports': spec_ports, 'selector': selector}
         if port_type != 'ClusterIP':
             spec.setdefault('type', port_type)
         if cluster_ip:
