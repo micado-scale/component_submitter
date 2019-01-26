@@ -125,6 +125,11 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         logger.debug("Creating tmp translation...")
         self.translate(True)
         
+        if not self.manifests:
+            logger.info("No nodes to orchestrate with Kubernetes. Do you need this adaptor?")
+            self.status = "Skipped Update"
+            return
+
         if filecmp.cmp(self.manifest_path, self.manifest_tmp_path):
             logger.debug("No update - removing {}".format(self.manifest_tmp_path))
             os.remove(self.manifest_tmp_path)
