@@ -66,11 +66,11 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 [x for x in node.interfaces if KUBERNETES_INTERFACE in x.type]
             if DOCKER_CONTAINER in node.type and kube_interface:
                 if '_' in node.name:
-                    logger.error("ERROR: Use of underscores in Kubernetes workload name prohibited")
-                    raise AdaptorCritical("ERROR: Use of underscores in Kubernetes workload name prohibited")
-                kind = kube_interface[0].implementation or 'Deployment'
+                    logger.error("ERROR: Use of underscores in {} workload name prohibited".format(node.name))
+                    raise AdaptorCritical("ERROR: Use of underscores in {} workload name prohibited".format(node.name))
+                implementation = kube_interface[0].implementation
                 inputs = kube_interface[0].inputs
-                self._create_manifests(node, inputs, kind, repositories)
+                self._create_manifests(node, inputs, implementation, repositories)
 
         if not self.manifests:
             logger.info("No nodes to orchestrate with Kubernetes. Do you need this adaptor?")
@@ -125,6 +125,11 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         logger.debug("Creating tmp translation...")
         self.translate(True)
         
+        if not self.manifests:
+            logger.info("No nodes to orchestrate with Kubernetes. Do you need this adaptor?")
+            self.status = "Skipped Update"
+            return
+
         if filecmp.cmp(self.manifest_path, self.manifest_tmp_path):
             logger.debug("No update - removing {}".format(self.manifest_tmp_path))
             os.remove(self.manifest_tmp_path)
@@ -141,36 +146,35 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         """ Undeploy """
         logger.info("Undeploying Kubernetes workloads")
         self.status = "Undeploying..."
-        mountflag = False
+        error = False
         
-        # Try to delete workloads with mounted volumes first (WORKAROUND)
-        operation = ["kubectl", "delete", "all", "-l", "volmount=flag"]
+        # Try to delete workloads relying on hosted mounts first (WORKAROUND)
+        operation = ["kubectl", "delete", "-f", self.manifest_path, "-l", "!hostedVol"]
         try:
             if self.config['dry_run']:
-                logger.info("DRY-RUN: kubectl removes mounts...")
+                logger.info("DRY-RUN: kubectl removes all workloads but hosted volumes...")
             else:
-                logger.debug("Undeploy mounts {}".format(operation))
+                logger.debug("Undeploy {}".format(operation))
                 subprocess.run(operation, stderr=subprocess.PIPE, check=True)
         except subprocess.CalledProcessError:
-            logger.debug("Found no mounted vols to remove first...")
-        else:
-            logger.info("Some workloads with mounted vols were removed first...")
-            mountflag = True
-            time.sleep(15)
+            logger.debug("Got error deleting non-hosted-mount workloads")
+            error = True
+        time.sleep(15)
 
-        # Normal deletion of workloads
-        operation = ["kubectl", "delete", "-f", self.manifest_path]
+        # Delete workloads hosting volumes
+        operation = ["kubectl", "delete", "-f", self.manifest_path, "-l", "hostedVol"]
         try:
             if self.config['dry_run']:
-                logger.info("DRY-RUN: kubectl removes workloads...")
+                logger.info("DRY-RUN: kubectl removes remaining workloads...")
             else:
                 logger.debug("Undeploy {}".format(operation))
                 subprocess.run(operation, stderr=subprocess.PIPE, check=True)          
         except subprocess.CalledProcessError:
-            if not mountflag:
-                logger.debug("Had some trouble removing workloads...")
-                raise AdaptorCritical("Had some trouble removing workloads!")
+            logger.debug("Had some trouble removing hosted volume workload...")
+            error = True
 
+        if error:            
+            raise AdaptorCritical("Had some trouble removing workloads!")
         logger.info("Undeployment complete")
         self.status = "Undeployed"
 
@@ -232,13 +236,20 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             else:
                 logger.warning("{} is not a Docker container!".format(node.name))
         
-    def _create_manifests(self, node, inputs, kind, repositories):
+    def _create_manifests(self, node, inputs, implementation, repositories):
         """ Create the manifest from the given node """
 
-        # Set apiVersion and metadata
-        api_version = inputs.get('apiVersion', _get_api(kind))
-        labels = {'app': self.short_id}
-        metadata = {'name': node.name, 'labels': labels}
+        # Set kind, apiVersion, labels, metadata
+        kind = 'Deployment'
+        if isinstance(implementation, str):
+            kind = implementation
+            implementation = {}
+        kind = implementation.get('kind', kind)
+        api_version = implementation.get('apiVersion', inputs.get('apiVersion', _get_api(kind)))
+        labels = implementation.get('labels', {})
+        name = implementation.get('name', node.name)
+        metadata = implementation.get('metadata', {'name': name, 'labels': labels})
+        metadata.setdefault('labels', {}).setdefault('app', self.short_id)
 
         # Get volume info
         volumes, volume_mounts = _get_volumes(node.related_nodes, node.requirements)
@@ -320,8 +331,8 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             spec.update(update_data)
 
         # Set volume mounted flag
-        if volume_mounts:
-            metadata.setdefault('labels', {}).setdefault('volmount', 'flag')
+        #if volume_mounts:
+        #    metadata.setdefault('labels', {}).setdefault('volmount', 'flag')
 
         # Build manifests
         manifest = {'apiVersion': api_version, 'kind': kind, 
