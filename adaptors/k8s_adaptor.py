@@ -246,9 +246,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             implementation = {}
         kind = implementation.get('kind', kind)
         api_version = implementation.get('apiVersion', inputs.get('apiVersion', _get_api(kind)))
-        labels = implementation.get('labels', {'app': self.short_id})
+        labels = implementation.get('labels', {})
         name = implementation.get('name', node.name)
         metadata = implementation.get('metadata', {'name': name, 'labels': labels})
+        metadata.setdefault('labels', {}).setdefault('app', self.short_id)
 
         # Get volume info
         volumes, volume_mounts = _get_volumes(node.related_nodes, node.requirements)
