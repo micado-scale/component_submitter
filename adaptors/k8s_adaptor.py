@@ -68,9 +68,8 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 if '_' in node.name:
                     logger.error("ERROR: Use of underscores in {} workload name prohibited".format(node.name))
                     raise AdaptorCritical("ERROR: Use of underscores in {} workload name prohibited".format(node.name))
-                implementation = kube_interface[0].implementation
-                inputs = kube_interface[0].inputs
-                self._create_manifests(node, inputs, implementation, repositories)
+                interface = kube_interface[0]
+                self._create_manifests(node, interface, repositories)
 
         if not self.manifests:
             logger.info("No nodes to orchestrate with Kubernetes. Do you need this adaptor?")
@@ -236,23 +235,15 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             else:
                 logger.warning("{} is not a Docker container!".format(node.name))
         
-    def _create_manifests(self, node, inputs, implementation, repositories):
+    def _create_manifests(self, node, interface, repositories):
         """ Create the manifest from the given node """
+        implementation = interface.implementation
+        inputs = interface.inputs
 
-        # Set kind, apiVersion, labels, metadata
-        kind = 'Deployment'
-        if isinstance(implementation, str):
-            kind = implementation
-            implementation = {}
-        kind = implementation.get('kind', kind)
-        api_version = implementation.get('apiVersion', inputs.get('apiVersion', _get_api(kind)))
-        labels = implementation.get('labels', {})
-        name = implementation.get('name', node.name)
-        metadata = implementation.get('metadata', {'name': name, 'labels': labels})
-        metadata.setdefault('labels', {}).setdefault('app', self.short_id)
+        metadata = _get_metadata(node, inputs, implementation)
 
-        # Get volume info
-        volumes, volume_mounts = _get_volumes(node.related_nodes, node.requirements)
+        # Get and set volume info
+        volumes, volume_mounts = _get_volumes(node)
         if volumes:
             vol_list = inputs.setdefault('volumes', [])
             vol_list += volumes
@@ -260,12 +251,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             vol_list = inputs.setdefault('volumeMounts', []) 
             vol_list += volume_mounts
         
-        # Set container spec
-        container_name = inputs.get('name', '{}-container'.format(node.name))
-        image = _get_image(node.entity_tpl, repositories) or inputs.get('image')
-        if not image:
-            raise AdaptorCritical("No image specified for {}!".format(node.name))
-        container = {'name': container_name, 'image': image, **inputs}
+        container = _get_container(node, repositories)
 
         # Separate data for pod/job/deloyment/daemonset-statefulset
         pod_keys = ['metadata','tolerations','volumes','terminationGracePeriodSeconds',
@@ -294,24 +280,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         pod_labels = pod_metadata.get('labels', {'app': self.short_id})
         selector = {'matchLabels': pod_labels}
 
-        # Find top level ports/clusterIP for service creation
-        ports = _get_ports(node.get_properties_objects(), node.name)
-        if ports:
-            idx = 0
-            cluster_ip = [x for x in ports if x.get('clusterIP')]
-            if cluster_ip:
-                cluster_ip = cluster_ip[0].get('clusterIP')
-
-            # Create a different service for each type
-            for port_type in ['ClusterIP', 'NodePort', 'LoadBalancer', 'ExternalName']:
-                same_ports = [x for x in ports if x.get('type') == port_type]
-                service_name = node.name
-                if idx:
-                    service_name += "-{}".format(port_type.lower())
-                if same_ports:
-                    self._build_service(same_ports, port_type, pod_labels, service_name, 
-                                        cluster_ip, namespace, node.name)
-                    idx += 1
+        
 
         # Set template & pod spec
         if kind == 'Pod':
@@ -377,7 +346,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
 def _get_api(kind):
     """ Return the apiVersion according to kind """
-    # List supported workloads & their api versions
+    # supported workloads & their api versions
     api_versions = {'DaemonSet': 'apps/v1', 'Deployment': 'apps/v1', 'Job': 'batch/v1', 
                     'Pod': 'v1', 'ReplicaSet': 'apps/v1', 'StatefulSet':'apps/v1',
                     'Ingress': 'extensions/v1beta1', 'Service': 'v1',
@@ -390,6 +359,64 @@ def _get_api(kind):
     
     logger.warning("Unknown kind: {}. Not supported...".format(kind))
     return 'unknown'
+
+def _get_metadata(nodes, inputs, implementation):
+    """ Build and return the metadata for the workload """
+    # kind
+    if isinstance(implementation, str):
+        kind = implementation
+        implementation = {}
+    kind = implementation.get('kind', 'Deployment')
+
+    # apiVersion and name
+    api_version = implementation.get('apiVersion', inputs.get('apiVersion', _get_api(kind)))
+    name = implementation.get('name', node.name)
+
+    # labels and metadata
+    labels = implementation.get('labels', {})
+    metadata = implementation.get('metadata', {'name': name, 'labels': labels})
+    metadata.setdefault('labels', {}).setdefault('app', self.short_id)
+
+    return metadata
+
+def _get_container(node, repositories):
+    """ Return container spec """
+    properties = {key:val.value for key, val in node.get_properties().items()}        
+
+    # Get name and image
+    name = properties.get('name', properties.get('container_name', node.name))
+    image = _get_image(node.entity_tpl, repositories)
+    if not image:
+        raise AdaptorCritical("No image specified for {}!".format(node.name))
+
+    # Find top level ports/clusterIP for service creation
+    ports = _get_ports(properties, node.name)
+    if ports:
+        idx = 0
+        cluster_ip = [x for x in ports if x.get('clusterIP')]
+        if cluster_ip:
+            cluster_ip = cluster_ip[0].get('clusterIP')
+
+        # Create a different service for each type
+        for port_type in ['ClusterIP', 'NodePort', 'LoadBalancer', 'ExternalName']:
+            same_ports = [x for x in ports if x.get('type') == port_type]
+            service_name = node.name
+            if idx:
+                service_name += "-{}".format(port_type.lower())
+            if same_ports:
+                self._build_service(same_ports, port_type, pod_labels, service_name, 
+                                    cluster_ip, namespace, node.name)
+                idx += 1
+
+    
+
+
+
+
+
+    container = {'name': name, 'image': image, **inputs}
+
+    return container
 
 def _separate_data(key_names, container):
     """ Separate workload specific data from the container spec """
@@ -417,8 +444,10 @@ def _get_image(node, repositories):
     
     return image
 
-def _get_volumes(related, requirements):
+def _get_volumes(node):
     """ Return the volume spec for the workload """
+    related = node.related_nodes
+    requirements = node.requirements
     volumes = []
     volume_mounts = []
 
@@ -452,53 +481,53 @@ def _get_volumes(related, requirements):
 def _get_ports(properties, node_name):
     """ Return the port spec for the container """
     port_list = []
-    for prop in properties:
-        
-        # Gets assigned cluster IP
-        if prop.name == "clusterIP" or prop.name == 'ip':
-            cluster_ip = prop.value.split('.')
-            # Check if the ip is within range (kind of)
-            if cluster_ip[0] == '10' and 96 <= int(cluster_ip[1]) <= 111:
-                port_list.append({'clusterIP': prop.value})
-            elif cluster_ip[0] == 'None':                
-                port_list.append({'clusterIP': 'None'})                
-            else:
-                logger.warning("ClusterIP out of range 10.96.x.x - 10.111.x.x Kubernetes will assign one")
+    cluster_ip = properties.pop('clusterIP', properties.pop('ip', None))
+    if cluster_ip:
+        ip_split = cluster_ip.split('.')
+        # Check if the ip is within range (kind of)
+        if ip_split[0] == '10' and 96 <= int(ip_split[1]) <= 111:
+            port_list.append({'clusterIP': cluster_ip})
+        elif ip_split[0] == 'None':                
+            port_list.append({'clusterIP': 'None'})                
+        else:
+            logger.warning("ClusterIP out of range 10.96.x.x - 10.111.x.x Kubernetes will assign one")
+    
+    ports = properties.pop('ports', None)
+    if ports:
+        for port in ports:
+            # Check if we have a valid target port
+            target = port.get("target", port.get("targetPort"))
+            if not target:
+                logger.warning("No target port in ports of {}".format(node_name))
+                break
+            if isinstance(target, str) and target.isdigit():
+                target = int(target)
 
-        # Gets port info
-        elif prop.name == "ports":
-            for port in prop.value:
-                # Check if we have a valid target port
-                target = port.get("target", port.get("targetPort", port.get("port")))
-                if not target:
-                    logger.warning("Bad port spec in properties of {}".format(node_name))
-                    break
-
-                # Build a port spec
-                port_spec = {"targetPort": int(target),                                
-                             "port": int(port.get("source", port.get("port", target))),
-                             "protocol": port.get("protocol", "TCP").upper()}     
-                
-                # Assign node port if valid
-                node_port = port.get('nodePort')
-                if node_port:
-                    node_port = int(node_port)
-                    port_spec.setdefault('type', 'NodePort')
-                    if 30000 <= node_port <= 32767:
-                        port_spec.setdefault('nodePort', node_port)
-                    else:
-                        logger.warning("nodePort out of range 30000-32767... Kubernetes will assign one")                            
-
-                # Assign name
-                name = port.get('name', '{}-{}'.format(target, port_spec['protocol'].lower()))
-                port_spec.setdefault('name', name)
-
-                # Assign type
-                port_type = port.get('type', port.get('mode'))
-                if port_type:
-                    port_spec.update({'type': port_type})
+            # Build a port spec
+            port_spec = {"targetPort": target,                                
+                         "port": int(port.get("port", port.get("published", target))),
+                         "protocol": port.get("protocol", "TCP").upper()}
+            
+            # Assign node port if valid
+            node_port = port.get('nodePort')
+            if node_port:
+                node_port = int(node_port)
+                port_spec.setdefault('type', 'NodePort')
+                if 30000 <= node_port <= 32767:
+                    port_spec.setdefault('nodePort', node_port)
                 else:
-                    port_spec.setdefault('type', 'ClusterIP')               
+                    logger.warning("nodePort out of range 30000-32767... Kubernetes will assign one")                            
 
-                port_list.append(port_spec)
+            # Assign name
+            name = port.get('name', '{}-{}'.format(target, port_spec['protocol'].lower()))
+            port_spec.setdefault('name', name)
+
+            # Assign type
+            port_type = port.get('type', port.get('mode'))
+            if port_type:
+                port_spec.update({'type': port_type})
+            else:
+                port_spec.setdefault('type', 'ClusterIP')               
+
+            port_list.append(port_spec)
     return port_list
