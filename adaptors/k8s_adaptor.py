@@ -5,9 +5,9 @@ import shutil
 import filecmp
 import time
 
-import kubernetes.client
-import kubernetes.config
-from toscaparser.tosca_template import ToscaTemplate
+#import kubernetes.client
+#import kubernetes.config
+#from toscaparser.tosca_template import ToscaTemplate
 
 import utils
 from abstracts import base_adaptor
@@ -20,6 +20,14 @@ TOSCA_TYPES = (DOCKER_CONTAINER, CONTAINER_VOLUME,
               ("tosca.nodes.MiCADO.Container.Application.Docker", "tosca.nodes.MiCADO.Container.Volume", 
                "tosca.relationships.AttachesTo", "Kubernetes")
 
+SWARM_PROPERTIES = ['expose']
+POD_SPEC_FIELDS = ('activeDeadlineSeconds', 'affinity', 'automountServiceAccountToken', 'dnsConfig', 
+                   'dnsPolicy', 'enableServiceLinks', 'hostAliases', 'hostIPC', 'hostNetwork', 'hostPID', 
+                   'hostname', 'imagePullSecrets', 'initContainers', 'nodeName', 'nodeSelector', 'priority', 
+                   'priorityClassName', 'readinessGates', 'restartPolicy', 'runtimeClassName', 'schedulerName', 
+                   'securityContext', 'serviceAccount', 'serviceAccountName', 'shareProcessNamespace', 'subdomain', 
+                   'terminationGracePeriodSeconds', 'tolerations', 'volumes')
+
 class KubernetesAdaptor(base_adaptor.Adaptor):
 
     """ The Kubernetes Adaptor class
@@ -29,22 +37,22 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     
     """
     
-    def __init__(self, adaptor_id, config, template=None):
+    def __init__(self, template):#adaptor_id, config, template=None):
         """ init method of the Adaptor """ 
         super().__init__()
 
         logger.debug("Initialising Kubernetes Adaptor class...")
         self.status = "Initialising..."
 
-        if template and not isinstance(template, ToscaTemplate):
-            raise AdaptorCritical("Template is not a valid TOSCAParser object")        
+        #if template and not isinstance(template, ToscaTemplate):
+        #    raise AdaptorCritical("Template is not a valid TOSCAParser object")        
 
-        self.ID = adaptor_id
-        self.short_id = '_'.join(adaptor_id.split('_')[:-1])
-        self.config = config
+        #self.ID = adaptor_id
+        self.short_id = 'wp' #'_'.join(adaptor_id.split('_')[:-1])
+        #self.config = config
         self.tpl = template
-        self.manifest_path = "{}{}.yaml".format(self.config['volume'], self.ID)
-        self.manifest_tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
+        self.manifest_path = "out.yaml"#"{}{}.yaml".format(self.config['volume'], self.ID)
+        self.manifest_tmp_path = "out.tmp.yaml"#"{}tmp_{}.yaml".format(self.config['volume'], self.ID)
 
         self.manifests = []
         self.services = []
@@ -239,8 +247,15 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         """ Create the manifest from the given node """
         implementation = interface.implementation
         inputs = interface.inputs
+        properties = {key:val.value for key, val in node.get_properties().items()}
 
-        metadata = _get_metadata(node, inputs, implementation)
+        resource = _get_resource(node, inputs, implementation, self.short_id)
+        kind = resource.get('kind')
+        resource_metadata = resource.get('metadata', {})
+        resource_namespace = resource_metadata.get('namespace')
+        resource_labels = resource_metadata.get('labels')
+
+        self._get_service_manifests(node, properties, resource, inputs)
 
         # Get and set volume info
         volumes, volume_mounts = _get_volumes(node)
@@ -248,101 +263,81 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             vol_list = inputs.setdefault('volumes', [])
             vol_list += volumes
         if volume_mounts:
-            vol_list = inputs.setdefault('volumeMounts', []) 
+            vol_list = properties.setdefault('volumeMounts', []) 
             vol_list += volume_mounts
-        
-        container = _get_container(node, repositories)
 
-        # Separate data for pod/job/deloyment/daemonset-statefulset
-        pod_keys = ['metadata','tolerations','volumes','terminationGracePeriodSeconds',
-                     'restartPolicy']     
-        pod_data = _separate_data(pod_keys, container)
+        # Get container spec
+        container = _get_container(node, properties, repositories, inputs)
 
-        job_keys = ['activeDeadlineSeconds', 'backoffLimit', 'ttlSecondsAfterFinished',
-                    'parallelism', 'completions']
-        job_data = _separate_data(job_keys, container)
-        
-        deploy_keys = ['strategy']
-        deploy_data = _separate_data(deploy_keys, container)
+        # Get pod metadata from container or resource
+        pod_metadata = inputs.pop('metadata', {})        
+        pod_metadata.setdefault('labels', resource_labels)
+        pod_labels = pod_metadata.get('labels')
+        pod_metadata.setdefault('namespace', resource_namespace)
 
-        update_keys = ['updateStrategy']
-        update_data = _separate_data(update_keys, container)
+        # Separate data for pod/job/deloyment/daemonset&statefulset
+        pod_data = _separate_data(POD_SPEC_FIELDS, inputs)
 
-        # Set pod metadata, namespace and spec
-        pod_metadata = pod_data.pop('metadata', metadata)
-        pod_metadata.setdefault('labels', {}).setdefault('app', self.short_id)
-        namespace = pod_metadata.get('namespace')
-        if namespace:
-            metadata['namespace'] = namespace
+        # Cleanup metadata and inputs
+        pod_metadata = {key:val for key, val in pod_metadata.items() if val}
+        inputs = {key:val for key, val in inputs.items() if val}
+
+        # Set pod spec and selector
         pod_spec = {'containers': [container], **pod_data}
-
-        # Set pod labels and selector
-        pod_labels = pod_metadata.get('labels', {'app': self.short_id})
-        selector = {'matchLabels': pod_labels}
-
-        
+        selector = {'matchLabels': pod_labels}  
 
         # Set template & pod spec
         if kind == 'Pod':
-            metadata = pod_metadata
             spec = pod_spec
         elif kind == 'Job':
             template = {'spec': pod_spec}
-            spec = {'template': template, **job_data}
+            spec = {'template': template, **inputs}
         else:
             template = {'metadata': pod_metadata, 'spec': pod_spec}
-            spec = {'selector': selector, 'template': template}
-
-        # Set specific spec info for Deployments, StatefulSets and DaemonSets
-        if kind == 'Deployment' and deploy_data:
-            spec.update(deploy_data)
-        elif (kind == 'StatefulSet' or kind == 'DaemonSet') and update_data:
-            spec.update(update_data)
-
-        # Set volume mounted flag
-        #if volume_mounts:
-        #    metadata.setdefault('labels', {}).setdefault('volmount', 'flag')
+            spec = {'selector': selector, 'template': template, **inputs}
 
         # Build manifests
-        manifest = {'apiVersion': api_version, 'kind': kind, 
-                    'metadata': metadata, 'spec': spec}
-        self.manifests.append(manifest)
+        resource.setdefault('spec', spec)
+        self.manifests.append(resource)
 
         return
 
-    def _build_service(self, ports, port_type, selector, service_name, cluster_ip, namespace, node_name):
+    def _get_service_manifests(self, node, properties, resource, inputs):
         """ Build a service based on the provided port spec and template """
+        # Find ports/clusterIP for service creation
+        ports = _get_service_info(properties, node.name)
+        services_to_build = {}
+        service_types = ['clusterip', 'nodeport', 'LoadBalancer', 'ExternalIP']
         
-        # Set metadata and type
-        labels = {'app': self.short_id}
-        metadata = {'name': service_name, 'labels': labels}      
-        if namespace:
-            metadata['namespace'] = namespace
-        else:
-            namespace = 'default'
-        
-        # Set service info for outputs
-        service_info = {'node': node_name, 'name': service_name, 'namespace': namespace}
-        self.services.append(service_info)
-        
-        # Set ports
-        spec_ports = []
+
         for port in ports:
-            port.pop('type', None)
-            spec_ports.append(port)
+            metadata = port.pop("metadata", {})
+            service_name = metadata.get("name")
+            port_type = port.pop("type", None)
+            cluster_ip = port.pop("clusterIP", None)
+            if not service_name:
+                service_name = '{}-{}'.format(node.name, port_type.lower())
+            service_entry = services_to_build.setdefault(service_name, {})
 
-        # Set spec
-        spec = {'ports': spec_ports, 'selector': selector}
-        if port_type != 'ClusterIP':
-            spec.setdefault('type', port_type)
-        if cluster_ip:
-            spec.setdefault('clusterIP', cluster_ip)
+            service_entry.setdefault('type', port_type)
+            service_entry.setdefault('metadata', metadata)
+            service_entry.setdefault('clusterIP', cluster_ip)
+            service_entry.setdefault('ports', []).append(port)
+        
+        if node.name not in services_to_build.keys():
+            for s_type in service_types:
+                entry = services_to_build.pop('{}-{}'.format(node.name, s_type), None)
+                if entry:
+                    services_to_build.setdefault(node.name, entry)
+                    break
 
-        manifest = {'apiVersion': 'v1', 'kind': 'Service',
-                    'metadata': metadata, 'spec': spec}
-        self.manifests.append(manifest)
-
-        return
+        for name, service in services_to_build.items():
+            manifest, service_info = \
+                _build_service(name, service, resource, node.name, inputs)
+            if not manifest:
+                continue
+            self.manifests.append(manifest)
+            self.services.append(service_info)    
 
 def _get_api(kind):
     """ Return the apiVersion according to kind """
@@ -360,8 +355,8 @@ def _get_api(kind):
     logger.warning("Unknown kind: {}. Not supported...".format(kind))
     return 'unknown'
 
-def _get_metadata(nodes, inputs, implementation):
-    """ Build and return the metadata for the workload """
+def _get_resource(node, inputs, implementation, short_id):
+    """ Build and return the basic data for the workload """
     # kind
     if isinstance(implementation, str):
         kind = implementation
@@ -375,48 +370,94 @@ def _get_metadata(nodes, inputs, implementation):
     # labels and metadata
     labels = implementation.get('labels', {})
     metadata = implementation.get('metadata', {'name': name, 'labels': labels})
-    metadata.setdefault('labels', {}).setdefault('app', self.short_id)
+    metadata.setdefault('labels', {}).setdefault('app', short_id)
+    
+    resource = {'apiVersion': api_version, 'kind': kind, 'metadata': metadata}
 
-    return metadata
+    return resource
 
-def _get_container(node, repositories):
-    """ Return container spec """
-    properties = {key:val.value for key, val in node.get_properties().items()}        
+def _build_service(service_name, service, resource, node_name, inputs):
+    """ Build service and return a manifest """
+    # Check for ports
+    ports = service.get('ports')
+    if not ports:
+        logger.warning('No ports in service {}. Will not be created'.format(service_name))
+        return None, None
 
-    # Get name and image
-    name = properties.get('name', properties.get('container_name', node.name))
+    # Get resource metadata
+    metadata = resource.get('metadata', {})
+    resource_namespace = metadata.get('namespace')
+    resource_labels = metadata.get('labels')
+
+    # Get container metadata
+    metadata = inputs.get('metadata', {})
+    pod_labels = metadata.get('labels', resource_labels)
+
+    # Set service metadata
+    metadata = service.get('metadata', {})
+    metadata.setdefault('name', service_name)
+    metadata.setdefault('namespace', resource_namespace)
+    metadata.setdefault('labels', pod_labels)
+    
+    # Set service info for outputs
+    namespace = metadata.get('namespace', 'default')
+    service_info = {'node': node_name, 'name': service_name, 'namespace': namespace}
+
+    # Cleanup metadata
+    metadata =  {key:val for key, val in metadata.items() if val}
+
+    # Set type, clusterIP, ports
+    port_type = service.get('type')
+    cluster_ip = service.get('clusterIP')
+    spec_ports = []
+    for port in ports:
+        spec_ports.append(port)
+
+    # Set spec
+    spec = {'ports': spec_ports, 'selector': pod_labels}
+    if port_type != 'ClusterIP':
+        spec.setdefault('type', port_type)
+    if cluster_ip:
+        spec.setdefault('clusterIP', cluster_ip)
+
+    manifest = {'apiVersion': 'v1', 'kind': 'Service',
+                'metadata': metadata, 'spec': spec}
+
+    return manifest, service_info
+
+def _get_container(node, properties, repositories, inputs):
+    """ Return container spec """        
+
+    # Get image
     image = _get_image(node.entity_tpl, repositories)
     if not image:
         raise AdaptorCritical("No image specified for {}!".format(node.name))
+    properties.setdefault('image', image)
 
-    # Find top level ports/clusterIP for service creation
-    ports = _get_ports(properties, node.name)
-    if ports:
-        idx = 0
-        cluster_ip = [x for x in ports if x.get('clusterIP')]
-        if cluster_ip:
-            cluster_ip = cluster_ip[0].get('clusterIP')
+    # Remove any known swarm-only keys
+    for key in SWARM_PROPERTIES:
+        if properties.pop(key, None):
+            logger.warning('Removed Swarm-option {}'.format(key))
 
-        # Create a different service for each type
-        for port_type in ['ClusterIP', 'NodePort', 'LoadBalancer', 'ExternalName']:
-            same_ports = [x for x in ports if x.get('type') == port_type]
-            service_name = node.name
-            if idx:
-                service_name += "-{}".format(port_type.lower())
-            if same_ports:
-                self._build_service(same_ports, port_type, pod_labels, service_name, 
-                                    cluster_ip, namespace, node.name)
-                idx += 1
-
+    # Translate common properties
+    properties.setdefault('name', properties.pop('container_name', node.name))
+    properties.setdefault('command', properties.pop('entrypoint', '').split())
+    properties.setdefault('args', properties.pop('cmd', '').split())
+    docker_env = properties.pop('environment', {})
+    env = []
+    for key, value in docker_env:
+        env.append({'name': key, 'value': value})
+    properties.setdefault('env', env)
     
+    # Translate other properties
+    inputs.setdefault('terminationGracePeriodSeconds', properties.pop('stop_grace_period', None))
+    docker_priv = properties.pop('privileged', None)
+    if docker_priv:
+        properties.setdefault('securityContext', {}).setdefault('privileged')
+    properties.setdefault('stdin', properties.pop('stdin_open', None))
+    properties.setdefault('livenessProbe', properties.pop('healthcheck', None))
 
-
-
-
-
-    container = {'name': name, 'image': image, **inputs}
-
-    return container
+    return {key:val for key, val in properties.items() if val}
 
 def _separate_data(key_names, container):
     """ Separate workload specific data from the container spec """
@@ -478,56 +519,75 @@ def _get_volumes(node):
 
     return volumes, volume_mounts
     
-def _get_ports(properties, node_name):
-    """ Return the port spec for the container """
+def _get_service_info(properties, node_name):
+    """ Return the info for creating a service """
     port_list = []
-    cluster_ip = properties.pop('clusterIP', properties.pop('ip', None))
+    # Get ports info
+    ports = properties.pop('ports', None)
+    if ports:
+        for port in ports:
+            container_port = port.get("containerPort")
+            if container_port:
+                properties.setdefault('ports', []).append(port)
+                continue
+            
+            port_spec = _build_port_spec(port, node_name)
+            if port_spec:
+                port_list.append(port_spec)
+    return port_list
+
+def _build_port_spec(port, node_name):
+    """ Return port spec """
+    # Check if we have a port    
+    target = port.get("targetPort", port.get("target"))
+    publish = int(port.get("port", port.get("published", target)))
+    if not publish and not target:
+        logger.warning("No port in ports of {}".format(node_name))
+        return
+    if isinstance(target, str) and target.isdigit():
+        target = int(target)
+
+    # Check for a clusterIP
+    cluster_ip = port.get('clusterIP')
     if cluster_ip:
         ip_split = cluster_ip.split('.')
         # Check if the ip is within range (kind of)
         if ip_split[0] == '10' and 96 <= int(ip_split[1]) <= 111:
-            port_list.append({'clusterIP': cluster_ip})
-        elif ip_split[0] == 'None':                
-            port_list.append({'clusterIP': 'None'})                
+            cluster_ip = cluster_ip
+        elif ip_split[0] == 'None':     
+            cluster_ip = 'None'           
         else:
             logger.warning("ClusterIP out of range 10.96.x.x - 10.111.x.x Kubernetes will assign one")
-    
-    ports = properties.pop('ports', None)
-    if ports:
-        for port in ports:
-            # Check if we have a valid target port
-            target = port.get("target", port.get("targetPort"))
-            if not target:
-                logger.warning("No target port in ports of {}".format(node_name))
-                break
-            if isinstance(target, str) and target.isdigit():
-                target = int(target)
 
-            # Build a port spec
-            port_spec = {"targetPort": target,                                
-                         "port": int(port.get("port", port.get("published", target))),
-                         "protocol": port.get("protocol", "TCP").upper()}
-            
-            # Assign node port if valid
-            node_port = port.get('nodePort')
-            if node_port:
-                node_port = int(node_port)
-                port_spec.setdefault('type', 'NodePort')
-                if 30000 <= node_port <= 32767:
-                    port_spec.setdefault('nodePort', node_port)
-                else:
-                    logger.warning("nodePort out of range 30000-32767... Kubernetes will assign one")                            
+    # Assign protocol, name, type, metadata
+    protocol = port.get("protocol", "TCP").upper()
+    name = port.get('name', '{}-{}'.format(target, protocol.lower()))
+    port_type = port.get('type', port.get('mode'))    
+    metadata = port.get("metadata")
 
-            # Assign name
-            name = port.get('name', '{}-{}'.format(target, port_spec['protocol'].lower()))
-            port_spec.setdefault('name', name)
+    # Assign node port if valid
+    node_port = port.get('nodePort')
+    if node_port:
+        port_type = port_type or 'NodePort'
+        if 30000 > int(node_port) > 32767:
+            node_port = None
+            logger.warning("nodePort out of range 30000-32767... Kubernetes will assign one")
 
-            # Assign type
-            port_type = port.get('type', port.get('mode'))
-            if port_type:
-                port_spec.update({'type': port_type})
-            else:
-                port_spec.setdefault('type', 'ClusterIP')               
+    # Determine type if Swarm-style or empty
+    if port_type == 'host':
+        port_type = 'NodePort'
+    elif port_type == 'ingress' or not port_type:
+        port_type = 'ClusterIP'
 
-            port_list.append(port_spec)
-    return port_list
+    # Build a port spec
+    port_spec = {"name": name,
+                 "targetPort": target,
+                 "port": publish,
+                 "protocol": protocol,
+                 "type": port_type,
+                 "nodePort": node_port,
+                 "metadata": metadata,
+                 "clusterIP": cluster_ip}
+    port_spec = {key:val for key, val in port_spec.items() if val}
+
+    return port_spec
