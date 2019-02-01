@@ -5,9 +5,9 @@ import shutil
 import filecmp
 import time
 
-#import kubernetes.client
-#import kubernetes.config
-#from toscaparser.tosca_template import ToscaTemplate
+import kubernetes.client
+import kubernetes.config
+from toscaparser.tosca_template import ToscaTemplate
 
 import utils
 from abstracts import base_adaptor
@@ -37,22 +37,22 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     
     """
     
-    def __init__(self, template):#adaptor_id, config, template=None):
+    def __init__(self, adaptor_id, config, template=None):
         """ init method of the Adaptor """ 
         super().__init__()
 
         logger.debug("Initialising Kubernetes Adaptor class...")
         self.status = "Initialising..."
 
-        #if template and not isinstance(template, ToscaTemplate):
-        #    raise AdaptorCritical("Template is not a valid TOSCAParser object")        
+        if template and not isinstance(template, ToscaTemplate):
+            raise AdaptorCritical("Template is not a valid TOSCAParser object")        
 
-        #self.ID = adaptor_id
-        self.short_id = 'wp' #'_'.join(adaptor_id.split('_')[:-1])
-        #self.config = config
+        self.ID = adaptor_id
+        self.short_id = '_'.join(adaptor_id.split('_')[:-1])
+        self.config = config
         self.tpl = template
-        self.manifest_path = "out.yaml"#"{}{}.yaml".format(self.config['volume'], self.ID)
-        self.manifest_tmp_path = "out.tmp.yaml"#"{}tmp_{}.yaml".format(self.config['volume'], self.ID)
+        self.manifest_path = "{}{}.yaml".format(self.config['volume'], self.ID)
+        self.manifest_tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
 
         self.manifests = []
         self.services = []
