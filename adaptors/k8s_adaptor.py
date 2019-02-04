@@ -270,12 +270,12 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         container = _get_container(node, properties, repositories, inputs)
 
         # Get pod metadata from container or resource
-        pod_metadata = inputs.pop('metadata', {})        
-        pod_metadata.setdefault('labels', resource_labels)
+        pod_metadata = inputs.pop('metadata', {})
+        pod_metadata.setdefault('labels', {'run': node.name})
         pod_labels = pod_metadata.get('labels')
         pod_metadata.setdefault('namespace', resource_namespace)
 
-        # Separate data for pod/job/deloyment/daemonset&statefulset
+        # Separate data for pod.spec
         pod_data = _separate_data(POD_SPEC_FIELDS, inputs)
 
         # Cleanup metadata and inputs
@@ -391,13 +391,13 @@ def _build_service(service_name, service, resource, node_name, inputs):
 
     # Get container metadata
     metadata = inputs.get('metadata', {})
-    pod_labels = metadata.get('labels', resource_labels)
+    pod_labels = metadata.get('labels', {'run': node.name})
 
     # Set service metadata
     metadata = service.get('metadata', {})
     metadata.setdefault('name', service_name)
     metadata.setdefault('namespace', resource_namespace)
-    metadata.setdefault('labels', pod_labels)
+    metadata.setdefault('labels', resource_labels)
     
     # Set service info for outputs
     namespace = metadata.get('namespace', 'default')
