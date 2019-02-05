@@ -453,7 +453,7 @@ def _get_container(node, properties, repositories, inputs):
     inputs.setdefault('terminationGracePeriodSeconds', properties.pop('stop_grace_period', None))
     docker_priv = properties.pop('privileged', None)
     if docker_priv:
-        properties.setdefault('securityContext', {}).setdefault('privileged')
+        properties.setdefault('securityContext', {}).setdefault('privileged', docker_priv)
     properties.setdefault('stdin', properties.pop('stdin_open', None))
     properties.setdefault('livenessProbe', properties.pop('healthcheck', None))
 
