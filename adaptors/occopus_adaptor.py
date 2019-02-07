@@ -270,7 +270,7 @@ class OccopusAdaptor(abco.Adaptor):
                     .setdefault("context_template", self._get_cloud_init(context["cloud_config"],False,True))
         else:
             self.node_data.setdefault("contextualisation", {}) \
-                    .setdefault("context_template", self._get_cloud_init(None,False))
+                    .setdefault("context_template", self._get_cloud_init(None,False,False))
 
     def _node_data_get_cloudsigma_host_properties(self, node, key):
         """
