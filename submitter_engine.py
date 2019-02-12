@@ -236,7 +236,7 @@ class SubmitterEngine(object):
         """ method called by the engine to launch the adaptors execute methods """
         logger.info("launch of the execute methods in each adaptors in a serial way")
         executed_adaptors = []
-        self.app_list[app_id]["output"] = {}
+        self.app_list.setdefault(app_id, {}).setdefault("output", {})
         for step in self.object_config.step_config['execute']:
             adaptors[step].execute()
             executed_adaptors.append(adaptors[step])
@@ -257,6 +257,7 @@ class SubmitterEngine(object):
     def _update(self, adaptors, app_id):
         """ method that will translate first the new component and then see if there's a difference, and then execute"""
         logger.info("update of each components related to the application wanted")
+        self.app_list.setdefault(app_id, {}).setdefault("output", {})
         for step in self.object_config.step_config['update']:
             adaptors[step].update()
             output = getattr(adaptors[step], "output", None)
