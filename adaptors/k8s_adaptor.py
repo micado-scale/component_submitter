@@ -400,7 +400,7 @@ def _build_service(service_name, service, resource, node_name, inputs):
     metadata.setdefault('labels', resource_labels)
     
     # Set service info for outputs
-    namespace = metadata.get('namespace', 'default')
+    namespace = metadata.get('namespace') or 'default'
     service_info = {'node': node_name, 'name': service_name, 'namespace': namespace}
 
     # Cleanup metadata
