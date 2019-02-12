@@ -246,7 +246,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     def _create_manifests(self, node, interface, repositories):
         """ Create the manifest from the given node """
         implementation = interface.implementation
-        inputs = interface.inputs
+        inputs = interface.inputs or {}
         properties = {key:val.value for key, val in node.get_properties().items()}
 
         resource = _get_resource(node, inputs, implementation, self.short_id)
@@ -391,7 +391,7 @@ def _build_service(service_name, service, resource, node_name, inputs):
 
     # Get container metadata
     metadata = inputs.get('metadata', {})
-    pod_labels = metadata.get('labels', {'run': node.name})
+    pod_labels = metadata.get('labels', {'run': node_name})
 
     # Set service metadata
     metadata = service.get('metadata', {})
@@ -450,7 +450,9 @@ def _get_container(node, properties, repositories, inputs):
     properties.setdefault('env', env)
     
     # Translate other properties
-    inputs.setdefault('terminationGracePeriodSeconds', properties.pop('stop_grace_period', None))
+    docker_grace = properties.pop('stop_grace_period', None)
+    if docker_grace:
+        inputs.setdefault('terminationGracePeriodSeconds', docker_grace)
     docker_priv = properties.pop('privileged', None)
     if docker_priv:
         properties.setdefault('securityContext', {}).setdefault('privileged', docker_priv)
@@ -498,7 +500,7 @@ def _get_volumes(node):
         kube_interface = \
             [x for x in node.interfaces if KUBERNETES_INTERFACE in x.type]
         if node.type == CONTAINER_VOLUME and kube_interface:
-            inputs = kube_interface[0].inputs
+            inputs = kube_interface[0].inputs or {}
             name = inputs.pop('name', node.name)
             volume_spec = {'name': name, **inputs}
         else:
