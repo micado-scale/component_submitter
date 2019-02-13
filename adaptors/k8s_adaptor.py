@@ -56,6 +56,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         self.manifests = []
         self.services = []
+        self.volumes = {}
         self.output = {}
 
         logger.info("Kubernetes Adaptor is ready.")
@@ -69,15 +70,33 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         nodes = self.tpl.nodetemplates
         repositories = self.tpl.repositories
         
-        for node in nodes:
+        for node in sorted(nodes, key=lambda x: x.type, reverse=True):
+            interface = {}
+
             kube_interface = \
                 [x for x in node.interfaces if KUBERNETES_INTERFACE in x.type]
-            if DOCKER_CONTAINER in node.type and kube_interface:
+            for operation in kube_interface:
+                interface[operation.name] = operation.inputs or {}
+
+            if DOCKER_CONTAINER in node.type and interface:                
                 if '_' in node.name:
                     logger.error("ERROR: Use of underscores in {} workload name prohibited".format(node.name))
-                    raise AdaptorCritical("ERROR: Use of underscores in {} workload name prohibited".format(node.name))
-                interface = kube_interface[0]
+                    raise AdaptorCritical("ERROR: Use of underscores in {} workload name prohibited".format(node.name))                      
                 self._create_manifests(node, interface, repositories)
+
+            elif CONTAINER_VOLUME in node.type and interface:
+                name = node.get_property_value('name') or node.name
+                if '_' in name:
+                    logger.error("ERROR: Use of underscores in {} volume name prohibited".format(name))
+                    raise AdaptorCritical("ERROR: Use of underscores in {} volume name prohibited".format(name))
+                size = node.get_property_value('size') or '1Gi'
+
+                pv_inputs = interface.get('create', {})
+                labels = self._create_persistent_volume(name, pv_inputs, size)
+                pvc_inputs = interface.get('configure', {})
+                pvc_name = self._create_persistent_volume_claim(name, pvc_inputs, labels, size)
+
+                self.volumes.setdefault(node.name, pvc_name)
 
         if not self.manifests:
             logger.info("No nodes to orchestrate with Kubernetes. Do you need this adaptor?")
@@ -156,7 +175,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         error = False
         
         # Try to delete workloads relying on hosted mounts first (WORKAROUND)
-        operation = ["kubectl", "delete", "-f", self.manifest_path, "-l", "!hostedVol"]
+        operation = ["kubectl", "delete", "-f", self.manifest_path, "-l", "!volume"]
         try:
             if self.config['dry_run']:
                 logger.info("DRY-RUN: kubectl removes all workloads but hosted volumes...")
@@ -169,7 +188,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         time.sleep(15)
 
         # Delete workloads hosting volumes
-        operation = ["kubectl", "delete", "-f", self.manifest_path, "-l", "hostedVol"]
+        operation = ["kubectl", "delete", "-f", self.manifest_path, "-l", "volume"]
         try:
             if self.config['dry_run']:
                 logger.info("DRY-RUN: kubectl removes remaining workloads...")
@@ -245,42 +264,41 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         
     def _create_manifests(self, node, interface, repositories):
         """ Create the manifest from the given node """
-        implementation = interface.implementation
-        inputs = interface.inputs or {}
+        workload_inputs = interface.get('create', {})
+        spec_inputs = interface.get('configure', {})
         properties = {key:val.value for key, val in node.get_properties().items()}
 
-        resource = _get_resource(node, inputs, implementation, self.short_id)
+        resource = self._get_resource(node.name, workload_inputs)
         kind = resource.get('kind')
         resource_metadata = resource.get('metadata', {})
         resource_namespace = resource_metadata.get('namespace')
-        resource_labels = resource_metadata.get('labels')
 
-        self._get_service_manifests(node, properties, resource, inputs)
+        self._get_service_manifests(node, properties, resource, spec_inputs)
 
         # Get and set volume info
-        volumes, volume_mounts = _get_volumes(node)
+        volumes, volume_mounts = self._get_volumes(node)
         if volumes:
-            vol_list = inputs.setdefault('volumes', [])
+            vol_list = spec_inputs.setdefault('volumes', [])
             vol_list += volumes
         if volume_mounts:
             vol_list = properties.setdefault('volumeMounts', []) 
             vol_list += volume_mounts
 
         # Get container spec
-        container = _get_container(node, properties, repositories, inputs)
+        container = _get_container(node, properties, repositories, spec_inputs)
 
         # Get pod metadata from container or resource
-        pod_metadata = inputs.pop('metadata', {})
+        pod_metadata = spec_inputs.pop('metadata', {})
         pod_metadata.setdefault('labels', {'run': node.name})
         pod_labels = pod_metadata.get('labels')
         pod_metadata.setdefault('namespace', resource_namespace)
 
         # Separate data for pod.spec
-        pod_data = _separate_data(POD_SPEC_FIELDS, inputs)
+        pod_data = _separate_data(POD_SPEC_FIELDS, spec_inputs)
 
-        # Cleanup metadata and inputs
+        # Cleanup metadata and spec inputs
         pod_metadata = {key:val for key, val in pod_metadata.items() if val}
-        inputs = {key:val for key, val in inputs.items() if val}
+        spec_inputs = {key:val for key, val in spec_inputs.items() if val}
 
         # Set pod spec and selector
         pod_spec = {'containers': [container], **pod_data}
@@ -291,10 +309,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             spec = pod_spec
         elif kind == 'Job':
             template = {'spec': pod_spec}
-            spec = {'template': template, **inputs}
+            spec = {'template': template, **spec_inputs}
         else:
             template = {'metadata': pod_metadata, 'spec': pod_spec}
-            spec = {'selector': selector, 'template': template, **inputs}
+            spec = {'selector': selector, 'template': template, **spec_inputs}
 
         # Build manifests
         resource.setdefault('spec', spec)
@@ -308,7 +326,6 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         ports = _get_service_info(properties, node.name)
         services_to_build = {}
         service_types = ['clusterip', 'nodeport', 'LoadBalancer', 'ExternalIP']
-        
 
         for port in ports:
             metadata = port.pop("metadata", {})
@@ -339,14 +356,92 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             self.manifests.append(manifest)
             self.services.append(service_info)    
 
+    def _get_volumes(self, container_node):
+        """ Return the volume spec for the workload """
+        related = container_node.related_nodes
+        requirements = container_node.requirements
+        volumes = []
+        volume_mounts = []
+
+        for node in related:            
+            volume_mount_list = []
+            pvc_name = self.volumes.get(node.name)
+            if pvc_name:
+                pvc = {'claimName': pvc_name}
+                volume_spec = {'name': node.name, 'persistentVolumeClaim': pvc}
+            else:
+                continue
+
+            for requirement in requirements:
+                volume = requirement.get('volume', {})
+                relationship = volume.get('relationship', {}).get('type')
+                path = volume.get('relationship', {}).get('properties', {}).get('location')
+                if path and relationship == VOLUME_ATTACHMENT:
+                    if volume.get('node') == node.name:
+                        volume_mount_spec = {'name': node.name, 'mountPath': path}
+                        volume_mount_list.append(volume_mount_spec)
+            
+            if volume_mount_list:         
+                volumes.append(volume_spec)
+                volume_mounts += volume_mount_list
+
+        return volumes, volume_mounts
+
+    def _create_persistent_volume(self, name, inputs, size):
+        """ Create a PV """
+        name = inputs.get('metadata', {}).get('name', inputs.get('name')) or '{}-pv'.format(name)
+        inputs.setdefault('metadata', {}).setdefault('labels', {}).setdefault('volume', name)
+        manifest = self._get_resource(name, inputs, 'PersistentVolume')        
+        manifest.setdefault('spec', inputs)
+        labels = manifest.get('metadata', {}).get('labels', {})
+
+        spec = manifest.get('spec')
+        spec.setdefault('capacity', {}).setdefault('storage', size)
+        spec.setdefault('accessModes', []).append('ReadWriteMany')
+        spec.setdefault('persistentVolumeReclaimPolicy', 'Retain')        
+
+        self.manifests.append(manifest)
+        return labels
+    
+    def _create_persistent_volume_claim(self, name, inputs, labels, size):
+        """ Create a PVC """
+        name = inputs.get('metadata', {}).get('name', inputs.get('name')) or '{}-pvc'.format(name)
+        inputs.setdefault('metadata', {}).setdefault('labels', {}).setdefault('volume', name)
+
+        manifest = self._get_resource(name, inputs, 'PersistentVolumeClaim')
+        manifest.setdefault('spec', inputs)
+
+        spec = manifest.get('spec')
+        spec.setdefault('resources', {}).setdefault('requests', {}).setdefault('storage', size)
+        spec.setdefault('accessModes', []).append('ReadWriteMany')
+        spec.setdefault('selector', {}).setdefault('matchLabels', labels)
+
+        self.manifests.append(manifest)
+        return name
+
+    def _get_resource(self, name, inputs, kind='Deployment'):
+        """ Build and return the basic data for the workload """
+        # kind and apiVersion
+        kind = inputs.pop('kind', kind)
+        api_version = inputs.pop('apiVersion', _get_api(kind))
+
+        # metadata 
+        metadata = inputs.pop('metadata', {})
+        metadata.setdefault('name', inputs.pop('name', name))
+        metadata.setdefault('labels', inputs.pop('labels', {}))
+        metadata.setdefault('labels', {}).setdefault('app', self.short_id)
+        
+        resource = {'apiVersion': api_version, 'kind': kind, 'metadata': metadata}
+
+        return resource
+
 def _get_api(kind):
     """ Return the apiVersion according to kind """
     # supported workloads & their api versions
     api_versions = {'DaemonSet': 'apps/v1', 'Deployment': 'apps/v1', 'Job': 'batch/v1', 
                     'Pod': 'v1', 'ReplicaSet': 'apps/v1', 'StatefulSet':'apps/v1',
-                    'Ingress': 'extensions/v1beta1', 'Service': 'v1',
-                    'PersistentVolumeClaim': 'v1', 'Volume': 'v1',
-                    'Namespace': 'v1'}
+                    'Ingress': 'extensions/v1beta1', 'Service': 'v1', 'PersistentVolume': 'v1',
+                    'PersistentVolumeClaim': 'v1', 'Volume': 'v1', 'Namespace': 'v1'}
 
     for resource, api in api_versions.items():
         if kind.lower() == resource.lower():
@@ -354,27 +449,7 @@ def _get_api(kind):
     
     logger.warning("Unknown kind: {}. Not supported...".format(kind))
     return 'unknown'
-
-def _get_resource(node, inputs, implementation, short_id):
-    """ Build and return the basic data for the workload """
-    # kind
-    if isinstance(implementation, str):
-        kind = implementation
-        implementation = {}
-    kind = implementation.get('kind', 'Deployment')
-
-    # apiVersion and name
-    api_version = implementation.get('apiVersion', inputs.get('apiVersion', _get_api(kind)))
-    name = implementation.get('name', node.name)
-
-    # labels and metadata
-    labels = implementation.get('labels', {})
-    metadata = implementation.get('metadata', {'name': name, 'labels': labels})
-    metadata.setdefault('labels', {}).setdefault('app', short_id)
     
-    resource = {'apiVersion': api_version, 'kind': kind, 'metadata': metadata}
-
-    return resource
 
 def _build_service(service_name, service, resource, node_name, inputs):
     """ Build service and return a manifest """
@@ -487,40 +562,6 @@ def _get_image(node, repositories):
     
     return image
 
-def _get_volumes(node):
-    """ Return the volume spec for the workload """
-    related = node.related_nodes
-    requirements = node.requirements
-    volumes = []
-    volume_mounts = []
-
-    for node in related:
-        volume_mount_list = []
-
-        kube_interface = \
-            [x for x in node.interfaces if KUBERNETES_INTERFACE in x.type]
-        if node.type == CONTAINER_VOLUME and kube_interface:
-            inputs = kube_interface[0].inputs or {}
-            name = inputs.pop('name', node.name)
-            volume_spec = {'name': name, **inputs}
-        else:
-            continue
-
-        for requirement in requirements:
-            volume = requirement.get('volume',{})
-            relationship = volume.get('relationship', {}).get('type')
-            path = volume.get('relationship', {}).get('properties', {}).get('location')
-            if path and relationship == VOLUME_ATTACHMENT:
-                if volume.get('node') == node.name:
-                    volume_mount_spec = {'name': name, 'mountPath': path}
-                    volume_mount_list.append(volume_mount_spec)
-        
-        if volume_mount_list:         
-            volumes.append(volume_spec)
-            volume_mounts += volume_mount_list
-
-    return volumes, volume_mounts
-    
 def _get_service_info(properties, node_name):
     """ Return the info for creating a service """
     port_list = []
