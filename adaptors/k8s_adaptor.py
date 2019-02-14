@@ -20,6 +20,8 @@ TOSCA_TYPES = (DOCKER_CONTAINER, CONTAINER_VOLUME,
               ("tosca.nodes.MiCADO.Container.Application.Docker", "tosca.nodes.MiCADO.Container.Volume", 
                "tosca.relationships.AttachesTo", "Kubernetes")
 
+SUPPORTED_WORKLOADS = ('Pod', 'Job', 'Deployment', 'StatefulSet', 'DaemonSet')
+
 SWARM_PROPERTIES = ['expose']
 POD_SPEC_FIELDS = ('activeDeadlineSeconds', 'affinity', 'automountServiceAccountToken', 'dnsConfig', 
                    'dnsPolicy', 'enableServiceLinks', 'hostAliases', 'hostIPC', 'hostNetwork', 'hostPID', 
@@ -265,59 +267,62 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     def _create_manifests(self, node, interface, repositories):
         """ Create the manifest from the given node """
         workload_inputs = interface.get('create', {})
-        spec_inputs = interface.get('configure', {})
+        pod_inputs = interface.get('configure', {})
         properties = {key:val.value for key, val in node.get_properties().items()}
 
         resource = self._get_resource(node.name, workload_inputs)
         kind = resource.get('kind')
+        if kind not in SUPPORTED_WORKLOADS:
+            logger.warning('Kubernetes *kind: {}* is unsupported - no manifest created'.format(kind))
+            return
         resource_metadata = resource.get('metadata', {})
         resource_namespace = resource_metadata.get('namespace')
 
-        self._get_service_manifests(node, properties, resource, spec_inputs)
+        self._get_service_manifests(node, properties, resource, pod_inputs)
 
         # Get and set volume info
         volumes, volume_mounts = self._get_volumes(node)
         if volumes:
-            vol_list = spec_inputs.setdefault('volumes', [])
+            vol_list = pod_inputs.setdefault('volumes', [])
             vol_list += volumes
         if volume_mounts:
             vol_list = properties.setdefault('volumeMounts', []) 
             vol_list += volume_mounts
 
         # Get container spec
-        container = _get_container(node, properties, repositories, spec_inputs)
+        container = _get_container(node, properties, repositories, pod_inputs)
 
         # Get pod metadata from container or resource
-        pod_metadata = spec_inputs.pop('metadata', {})
+        pod_metadata = pod_inputs.pop('metadata', {})
         pod_metadata.setdefault('labels', {'run': node.name})
         pod_labels = pod_metadata.get('labels')
         pod_metadata.setdefault('namespace', resource_namespace)
 
         # Separate data for pod.spec
-        pod_data = _separate_data(POD_SPEC_FIELDS, spec_inputs)
+        pod_data = _separate_data(POD_SPEC_FIELDS, workload_inputs)
+        pod_inputs.update(pod_data)
 
         # Cleanup metadata and spec inputs
         pod_metadata = {key:val for key, val in pod_metadata.items() if val}
-        spec_inputs = {key:val for key, val in spec_inputs.items() if val}
+        pod_inputs = {key:val for key, val in pod_inputs.items() if val}
 
         # Set pod spec and selector
-        pod_spec = {'containers': [container], **pod_data}
+        pod_spec = {'containers': [container], **pod_inputs}
         selector = {'matchLabels': pod_labels}  
 
         # Set template & pod spec
         if kind == 'Pod':
-            spec = pod_spec
+            spec = {'containers': [container], **workload_inputs}
         elif kind == 'Job':
             template = {'spec': pod_spec}
-            spec = {'template': template, **spec_inputs}
+            spec = {'template': template, **workload_inputs}
         else:
             template = {'metadata': pod_metadata, 'spec': pod_spec}
-            spec = {'selector': selector, 'template': template, **spec_inputs}
+            spec = {'selector': selector, 'template': template, **workload_inputs}
 
         # Build manifests
         resource.setdefault('spec', spec)
         self.manifests.append(resource)
-
         return
 
     def _get_service_manifests(self, node, properties, resource, inputs):
