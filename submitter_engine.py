@@ -54,8 +54,8 @@ class SubmitterEngine(object):
         self.adaptors_class_name = []
         self._get_adaptors_class()
 
-        self.translated_adaptors = []
-        self.executed_adaptors = []
+        self.translated_adaptors = {}
+        self.executed_adaptors = {}
 
     def launch(self, path_to_file, id_app, parsed_params=None):
         """
@@ -161,9 +161,9 @@ class SubmitterEngine(object):
             raise
         except AdaptorCritical:
             if self.translated_adaptors:
-                self._cleanup(app_id, reversed(self.translated_adaptors))
+                self._cleanup(app_id, self.translated_adaptors)
             if self.executed_adaptors:
-                self._undeploy(reversed(self.executed_adaptors))
+                self._undeploy(self.executed_adaptors)
             if self.app_list:
                 self.app_list.pop(app_id)
                 self._update_json()
@@ -232,14 +232,14 @@ class SubmitterEngine(object):
         """ Launch the translate engine """
         logger.debug("launch of translate method")
         logger.info("translate method called in all the adaptors")
-        self.translated_adaptors = []
+        self.translated_adaptors = {}
 
         for step in self.object_config.step_config['translate']:
             logger.info("translating method call from {}".format(step))
             while True:
                 try:
                     adaptors[step].translate()
-                    self.translated_adaptors.append(adaptors[step])
+                    self.translated_adaptors[step] = adaptors[step]
                 except AdaptorError:
                     continue
                 break
@@ -247,11 +247,11 @@ class SubmitterEngine(object):
     def _execute(self, app_id, adaptors):
         """ method called by the engine to launch the adaptors execute methods """
         logger.info("launch of the execute methods in each adaptors in a serial way")
-        self.executed_adaptors = []
+        self.executed_adaptors = {}
         self.app_list.setdefault(app_id, {}).setdefault("output", {})
         for step in self.object_config.step_config['execute']:
             adaptors[step].execute()
-            self.executed_adaptors.append(adaptors[step])
+            self.executed_adaptors[step] = adaptors[step]
             output = getattr(adaptors[step], "output", None)
             if output:
                 self.app_list[app_id]["output"].update({step:output})
