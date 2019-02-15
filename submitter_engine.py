@@ -54,6 +54,9 @@ class SubmitterEngine(object):
         self.adaptors_class_name = []
         self._get_adaptors_class()
 
+        self.translated_adaptors = []
+        self.executed_adaptors = []
+
     def launch(self, path_to_file, id_app, parsed_params=None):
         """
         Launch method, that will call the in-method egine to execute the application
@@ -69,7 +72,7 @@ class SubmitterEngine(object):
         logger.info("******  Launching the application ****** \n****** located there {} and with params {}******".format(path_to_file, parsed_params))
         if self.app_list and not self.object_config.main_config['dry_run']:
             raise Exception("An application is already running, MiCADO doesn't currently support multi applications")
-            return
+            
         template = self._micado_parser_upload(path_to_file, parsed_params)
         self.object_config.mapping(template)
 
@@ -149,17 +152,22 @@ class SubmitterEngine(object):
         """ Engine itself. Creates first a id, then parse the input file. Retreive the list of id created by the translate methods of the adaptors.
         Excute those id in their respective adaptor. Update the app_list and the json file.
         """
-        executed_adaptors=""
         try:
             self._translate(adaptors)
-            executed_adaptors = self._execute(app_id, adaptors)
-            logger.debug(executed_adaptors)
+            self._execute(app_id, adaptors)
+            logger.debug(self.executed_adaptors)
 
-        except MultiError as e:
+        except MultiError:
             raise
-        except AdaptorCritical as e:
-            if executed_adaptors:
-                self._undeploy(reversed(executed_adaptors))
+        except AdaptorCritical:
+            if self.translated_adaptors:
+                self._cleanup(app_id, reversed(self.translated_adaptors))
+            if self.executed_adaptors:
+                self._undeploy(reversed(self.executed_adaptors))
+            if self.app_list:
+                self.app_list.pop(app_id)
+                self._update_json()
+
             logger.info("The deployment wasn't successful...")
             logger.info("*******************")
             raise
@@ -224,31 +232,31 @@ class SubmitterEngine(object):
         """ Launch the translate engine """
         logger.debug("launch of translate method")
         logger.info("translate method called in all the adaptors")
+        self.translated_adaptors = []
 
         for step in self.object_config.step_config['translate']:
             logger.info("translating method call from {}".format(step))
             while True:
                 try:
                     adaptors[step].translate()
-                except AdaptorError as e:
+                    self.translated_adaptors.append(adaptors[step])
+                except AdaptorError:
                     continue
                 break
 
     def _execute(self, app_id, adaptors):
         """ method called by the engine to launch the adaptors execute methods """
         logger.info("launch of the execute methods in each adaptors in a serial way")
-        executed_adaptors = []
+        self.executed_adaptors = []
         self.app_list.setdefault(app_id, {}).setdefault("output", {})
         for step in self.object_config.step_config['execute']:
             adaptors[step].execute()
-            executed_adaptors.append(adaptors[step])
+            self.executed_adaptors.append(adaptors[step])
             output = getattr(adaptors[step], "output", None)
             if output:
                 self.app_list[app_id]["output"].update({step:output})
 
         self._update_json()
-
-        return executed_adaptors
 
     def _undeploy(self, adaptors):
         """ method called by the engine to launch the adaptor undeploy method of a specific component identified by its ID"""
