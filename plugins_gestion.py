@@ -2,7 +2,8 @@ import os
 import imp, inspect, sys
 from abstracts import *
 from os import path
-PATH="{}/adaptors/".format(path.dirname(__file__))
+PATH_DEFAULT_ADAPTORS = "{}/adaptors/".format(path.dirname(__file__))
+PATH_CUSTOM_ADAPTORS = "{}/system/adaptors/".format(path.dirname(__file__))
 import logging
 logger=logging.getLogger("submitter."+__name__)
 
@@ -14,35 +15,36 @@ class PluginsGestion(object):
     def _load_plugins(self):
         """search through the plugin folder and import all valid plugin"""
         logger.debug("loading the adaptors")
-        plugins_folder = PATH
+        plugins_folders = [ PATH_DEFAULT_ADAPTORS, PATH_CUSTOM_ADAPTORS ]
         plugins = []
         module_hdl =""
         logger.debug("check if plugin folder is in the sys path")
-        if not plugins_folder in sys.path:
-            sys.path.append(plugins_folder)
-        for root, dirs, files in os.walk(plugins_folder):
-            logger.debug("for loop through the plugins files import them")
-            for module_file in files:
-                module_name, module_extension = os.path.splitext(module_file)
-                if module_extension == os.extsep + "py":
-                    try:
-                        module_hdl, path_name, description = imp.find_module(module_name)
-                        logger.debug("trying to import the module {}".format(module_name))
-                        plugin_module = imp.load_module(module_name, module_hdl, path_name,
-                                                    description)
-                        logger.debug("inspect the plugin class {}".format(plugin_module))
-                        plugin_classes = inspect.getmembers(plugin_module, inspect.isclass)
-                        for plugin_class in plugin_classes:
-                            logger.debug("check if {} is subclass of Abstract Adaptor".format(plugin_class))
-                            if issubclass(plugin_class[1], Adaptor):
-                                # Load only those plugins defined in the current module
-                                # (i.e. don't instantiate any parent plugins)
-                                if plugin_class[1].__module__ == module_name:
-                                    #plugin = plugin_class[1]()
-                                    plugins.append(plugin_class)
-                    finally:
-                        if module_hdl:
-                            module_hdl.close()
+        for plugins_folder in plugins_folders:
+            if not plugins_folder in sys.path:
+                sys.path.append(plugins_folder)
+            for root, dirs, files in os.walk(plugins_folder):
+                logger.debug("for loop through the plugins files import them")
+                for module_file in files:
+                    module_name, module_extension = os.path.splitext(module_file)
+                    if module_extension == os.extsep + "py":
+                        try:
+                            module_hdl, path_name, description = imp.find_module(module_name)
+                            logger.debug("trying to import the module {}".format(module_name))
+                            plugin_module = imp.load_module(module_name, module_hdl, path_name,
+                                                        description)
+                            logger.debug("inspect the plugin class {}".format(plugin_module))
+                            plugin_classes = inspect.getmembers(plugin_module, inspect.isclass)
+                            for plugin_class in plugin_classes:
+                                logger.debug("check if {} is subclass of Abstract Adaptor".format(plugin_class))
+                                if issubclass(plugin_class[1], Adaptor):
+                                    # Load only those plugins defined in the current module
+                                    # (i.e. don't instantiate any parent plugins)
+                                    if plugin_class[1].__module__ == module_name:
+                                        #plugin = plugin_class[1]()
+                                        plugins.append(plugin_class)
+                        finally:
+                            if module_hdl:
+                                module_hdl.close()
         return plugins
 
     def get_plugin(self, plugin_name):

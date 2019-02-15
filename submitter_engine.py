@@ -149,7 +149,7 @@ class SubmitterEngine(object):
         """ Engine itself. Creates first a id, then parse the input file. Retreive the list of id created by the translate methods of the adaptors.
         Excute those id in their respective adaptor. Update the app_list and the json file.
         """
-
+        executed_adaptors=""
         try:
             self._translate(adaptors)
             executed_adaptors = self._execute(app_id, adaptors)
@@ -158,8 +158,10 @@ class SubmitterEngine(object):
         except MultiError as e:
             raise
         except AdaptorCritical as e:
-            for adaptor in reversed(executed_adaptors):
-                self._undeploy(adaptor, id_app)
+            if executed_adaptors:
+                self._undeploy(reversed(executed_adaptors))
+            logger.info("The deployment wasn't successful...")
+            logger.info("*******************")
             raise
 
     def _micado_parser_upload(self, path, parsed_params):
@@ -243,7 +245,7 @@ class SubmitterEngine(object):
             output = getattr(adaptors[step], "output", None)
             if output:
                 self.app_list[app_id]["output"].update({step:output})
-                
+
         self._update_json()
 
         return executed_adaptors
