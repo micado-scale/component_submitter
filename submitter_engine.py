@@ -159,12 +159,16 @@ class SubmitterEngine(object):
 
         except MultiError:
             raise
-        except AdaptorCritical:
-            if self.translated_adaptors:
-                self._cleanup(app_id, self.translated_adaptors)
+        except AdaptorCritical as e:
+            logger.info("******* Critical error during deployment, starting to roll back *********")
             if self.executed_adaptors:
+                logger.info("Starting undeploy on executed components")
                 self._undeploy(self.executed_adaptors)
+            if self.translated_adaptors:
+                logger.info("Starting clean-up on translated files")
+                self._cleanup(app_id, self.translated_adaptors)
             if self.app_list:
+                logger.info("Removing application ID from deployment")
                 self.app_list.pop(app_id)
                 self._update_json()
 
@@ -264,6 +268,8 @@ class SubmitterEngine(object):
         for step in self.object_config.step_config['undeploy']:
             try:
                 adaptors[step].undeploy()
+            except KeyError as e:
+                logger.debug("{} not in initialised/executed adaptors, skipping...".format(e))
             except Exception as e:
                 logger.error("error: {}; proceeding to undepployment of the other adaptors".format(e))
 
@@ -309,6 +315,8 @@ class SubmitterEngine(object):
         for step in self.object_config.step_config['cleanup']:
             try:
                 adaptors[step].cleanup()
+            except KeyError as e:
+                logger.debug("{} not in initialised/translated adaptors, skipping...".format(e))
             except Exception as e:
                 logger.error("error: {}; proceeding to cleanup of the other adaptors".format(e))
 
