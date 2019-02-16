@@ -41,7 +41,8 @@ class ExecSubmitterThread(threading.Thread):
 
 
 def threads_management():
-    global current_thread
+    global current_thread, last_error
+    last_error = ''
     while True:
         time.sleep(3)
         if not queue_threading.empty():
@@ -63,7 +64,8 @@ def threads_management():
                raise exception["exception"]
 
         except Exception as e:
-           logger.info("{}".format(e))
+            last_error = e
+            logger.info("{}".format(e))
 
 
 __init__()
@@ -153,6 +155,8 @@ def launch():
 
     response["message"] = "Thread to deploy application launched. To check process curl http://YOUR_HOST/v1.0/app/{}/status".format(id_app)
     response["status_code"]= 200
+    global last_error
+    last_error = ''
     return jsonify(response)
 
 
@@ -184,6 +188,8 @@ def undeploy(id_app):
 
     response["message"] = "successfully send undeployed for {} to MiCADO master".format(id_app)
     response["status_code"] = 200
+    global last_error
+    last_error = ''
     return jsonify(response)
 
 
@@ -224,6 +230,8 @@ def update(id_app):
         queue_threading.put(thread)
         response["message"] = "Thread to update the application is launch. To check process curl http://YOUR_HOST/v1.0/app/{}/status ".format(id_app)
         response["status_code"]= 200
+        global last_error
+        last_error = ''
         return jsonify(response)
     except Exception:
         response["message"] = "{} update failed".format(id_app)
@@ -250,6 +258,8 @@ def info_app(id_app):
     except KeyError:
         response["status_code"]=404
         response["message"]="App with ID {} does not exist".format(id_app)
+        if last_error:
+            response["data"].append('Error on last action: {}'.format(last_error))
 
         return jsonify(response)
     else:
@@ -268,8 +278,8 @@ def info_app(id_app):
 @app.route('/v1.0/app/query/<id_app>', methods=['GET'])
 def query(id_app):
     """ API call to query running services """
-    response = dict(status_code=200, message="List running nodes", data=[])
     query = request.form['query']
+    response = dict(status_code=200, message="Query: {}".format(query), data=[])
     for result in submitter.query(query, id_app):
         response['data'].append(result)
     return jsonify(response)
