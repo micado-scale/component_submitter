@@ -242,8 +242,8 @@ class SubmitterEngine(object):
             logger.info("translating method call from {}".format(step))
             while True:
                 try:
-                    adaptors[step].translate()
                     self.translated_adaptors[step] = adaptors[step]
+                    adaptors[step].translate()
                 except AdaptorError:
                     continue
                 break
@@ -254,8 +254,8 @@ class SubmitterEngine(object):
         self.executed_adaptors = {}
         self.app_list.setdefault(app_id, {}).setdefault("output", {})
         for step in self.object_config.step_config['execute']:
-            adaptors[step].execute()
             self.executed_adaptors[step] = adaptors[step]
+            adaptors[step].execute()
             output = getattr(adaptors[step], "output", None)
             if output:
                 self.app_list[app_id]["output"].update({step:output})
