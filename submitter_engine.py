@@ -81,7 +81,7 @@ class SubmitterEngine(object):
         #self._save_file(id_app, path_to_file)
         self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys()), "adaptors_object": dict_object_adaptors}})
         self._update_json()
-        logger.info("dictionnaty of id is: {}".format(self.app_list))
+        logger.debug("dictionnaty of id is: {}".format(self.app_list))
 
         self._engine(dict_object_adaptors, template, id_app)
 
@@ -331,7 +331,7 @@ class SubmitterEngine(object):
         for key, value in self.app_list.items():
             data_to_save = {key: None}
             for k, v in self.app_list[key].items():
-                logger.info("key is: {} k is {} v is {}".format(key, k,v))
+                logger.debug("key is: {} k is {} v is {}".format(key, k,v))
                 if "components" in k or "outputs" in k:
                     data_to_save[key]={ k: v}
         if not data_to_save:
