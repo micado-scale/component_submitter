@@ -136,8 +136,8 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 subprocess.run(operation, stderr=subprocess.PIPE, check=True)
 
         except subprocess.CalledProcessError as e:            
-            logger.error("kubectl error: {}".format(e))
-            raise AdaptorCritical("kubectl error: {}".format(e))
+            logger.error("kubectl: {}".format(e.stderr))
+            raise AdaptorCritical("kubectl: {}".format(e.stderr))
 
         logger.info("Kube objects deployed, trying to get outputs...")
         self._get_outputs()
