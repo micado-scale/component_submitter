@@ -108,12 +108,15 @@ class PkAdaptor(abco.Adaptor):
             os.rename(self.tmp_path, self.path)
             self.undeploy()
             self.execute()
+            self.status = 'updated'
         else:
+            self.status = 'updated (nothing to update)'
             try:
                 logger.debug("tmp file is the same, removing the tmp file")
                 os.remove(self.tmp_path)
             except OSError as e:
                 logger.warning(e)
+        
 
     def _pk_scaling_properties(self, policy):
         policy_prop = {}

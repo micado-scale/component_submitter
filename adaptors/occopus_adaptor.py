@@ -34,7 +34,7 @@ class OccopusAdaptor(abco.Adaptor):
         self.node_path = "{}{}.yaml".format(self.config['volume'], self.ID)
         self.node_path_tmp = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
         self.infra_def_path_output = "{}{}-infra.yaml".format(self.config['volume'], self.ID)
-        self.infra_def_path_output_tmp = "{}-infra.tmp.yaml".format(self.config['volume'], self.ID)
+        self.infra_def_path_output_tmp = "{}{}-infra.tmp.yaml".format(self.config['volume'], self.ID)
         self.infra_def_path_input = "/var/lib/submitter/system/infrastructure_descriptor.yaml"
         self.cloudinit_path = "/var/lib/submitter/system/cloud_init_worker.yaml"
 
@@ -205,13 +205,16 @@ class OccopusAdaptor(abco.Adaptor):
             # Undeploy the infra and rebuild
             self.undeploy()
             self.execute()
+            self.status = "updated"
             logger.debug("Node definition changed")
         elif not self._differentiate(self.infra_def_path_output, self.infra_def_path_output_tmp):
             logger.debug("Infra tmp file different, replacing old config and executing")
             os.rename(self.infra_def_path_output_tmp, self.infra_def_path_output)
             # Rerun Occopus build to refresh infra definition
             self.execute()
+            self.status = "updated"
         else:
+            self.status = 'updated (nothing to update)'
             logger.info("there are no changes in the Occopus files")
             try:
                 logger.debug("Tmp file is the same, removing the tmp files")
@@ -219,7 +222,6 @@ class OccopusAdaptor(abco.Adaptor):
                 os.remove(self.infra_def_path_output_tmp)
             except OSError as e:
                 logger.warning(e)
-        self.status = "updated"
 
     def _node_data_get_interface(self, node, key):
         """
