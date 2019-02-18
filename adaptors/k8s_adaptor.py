@@ -147,7 +147,6 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     def update(self):
         """ Update """
         logger.info("Updating Kubernetes Manifests")
-        last_status = self.status
         self.status = "Updating..."
 
         logger.debug("Creating tmp translation...")
@@ -162,7 +161,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             logger.debug("No update - removing {}".format(self.manifest_tmp_path))
             os.remove(self.manifest_tmp_path)
             logger.info("Nothing to update")
-            self.status = last_status
+            self.status = "Updated (nothing to update)"
         else:
             logger.debug("Updating - removing {}".format(self.manifest_path))
             os.rename(self.manifest_tmp_path, self.manifest_path)

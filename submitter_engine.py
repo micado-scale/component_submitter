@@ -143,6 +143,8 @@ class SubmitterEngine(object):
         self.object_config.mapping(template)
         dict_object_adaptors = self._instantiate_adaptors(id_app, template)
         logger.debug("list of adaptor created: {}".format(dict_object_adaptors))
+        self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys()), "adaptors_object": dict_object_adaptors}})
+        self._update_json()
         self._update(dict_object_adaptors, id_app)
         logger.info("update process done")
         logger.info("*******************")
@@ -299,7 +301,7 @@ class SubmitterEngine(object):
         """ method to retrieve the status of the differents adaptor"""
         try:
             result = dict()
-            for key, value in self.app_list[app_id]["adaptors_object"].items():
+            for key, value in self.app_list[app_id].get("adaptors_object", {}).items():
                 result[key] = value.status
 
         except KeyError:
