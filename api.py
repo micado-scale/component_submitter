@@ -43,6 +43,7 @@ class ExecSubmitterThread(threading.Thread):
 def threads_management():
     global current_thread, last_error
     last_error = ''
+    current_thread = ''
     while True:
         time.sleep(3)
         if not queue_threading.empty():
@@ -245,7 +246,7 @@ def info_app(id_app):
     response = dict(status_code="", message="", data=[])
     try:
         this_app = submitter.app_list[id_app]
-        this_app_status = submitter.get_status(id_app)
+        this_app_status = submitter.get_status(id_app) or 'Could not get status'
         q_t = queue_threading.queue
 
         if not "launch_{}".format(id_app) in current_thread:
@@ -268,8 +269,8 @@ def info_app(id_app):
         response["message"]="Detail application {}".format(id_app)
         response["data"] = dict(type="application",
                                 id=id_app,
-                                outputs=this_app["output"],
-                                components=this_app["components"],
+                                outputs=this_app.get("output"),
+                                components=this_app.get("components"),
                                 status=this_app_status)
 
         return jsonify(response)
@@ -307,8 +308,8 @@ def list_app():
     for key, value in submitter.app_list.items():
         response["data"].append(dict(type="application",
                                      id=key,
-                                     outputs=value["output"],
-                                     components=value["components"]))
+                                     outputs=value.get("output"),
+                                     components=value.get("components")))
     return jsonify(response)
 
 if __name__ == "__main__":
