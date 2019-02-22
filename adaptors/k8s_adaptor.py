@@ -277,7 +277,11 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         resource_metadata = resource.get('metadata', {})
         resource_namespace = resource_metadata.get('namespace')
 
-        self._get_service_manifests(node, properties, resource, pod_inputs)
+        # Get container spec
+        container = _get_container(node, properties, repositories, pod_inputs)
+        
+        # Create services
+        self._get_service_manifests(node, container, resource, pod_inputs)
 
         # Get and set volume info
         volumes, volume_mounts = self._get_volumes(node)
@@ -287,9 +291,6 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         if volume_mounts:
             vol_list = properties.setdefault('volumeMounts', []) 
             vol_list += volume_mounts
-
-        # Get container spec
-        container = _get_container(node, properties, repositories, pod_inputs)
 
         # Get pod metadata from container or resource
         pod_metadata = pod_inputs.pop('metadata', {})
@@ -324,10 +325,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.manifests.append(resource)
         return
 
-    def _get_service_manifests(self, node, properties, resource, inputs):
+    def _get_service_manifests(self, node, container, resource, inputs):
         """ Build a service based on the provided port spec and template """
         # Find ports/clusterIP for service creation
-        ports = _get_service_info(properties, node.name)
+        ports = _get_service_info(container, node.name)
         services_to_build = {}
         service_types = ['clusterip', 'nodeport', 'LoadBalancer', 'ExternalIP']
 
@@ -575,16 +576,16 @@ def _get_image(node, repositories):
     
     return image
 
-def _get_service_info(properties, node_name):
+def _get_service_info(container, node_name):
     """ Return the info for creating a service """
     port_list = []
     # Get ports info
-    ports = properties.pop('ports', None)
+    ports = container.pop('ports', None)
     if ports:
         for port in ports:
             container_port = port.get("containerPort")
             if container_port:
-                properties.setdefault('ports', []).append(port)
+                container.setdefault('ports', []).append(port)
                 continue
             
             port_spec = _build_port_spec(port, node_name)
