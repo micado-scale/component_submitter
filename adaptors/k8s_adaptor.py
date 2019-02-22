@@ -529,12 +529,21 @@ def _get_container(node, properties, repositories, inputs):
     properties.setdefault('env', env)
     
     # Translate other properties
+    docker_labels = properties.pop('labels', None)
+    if docker_labels:
+        inputs.setdefault('metadata', {}).setdefault('labels', {}).update(docker_labels)
     docker_grace = properties.pop('stop_grace_period', None)
     if docker_grace:
         inputs.setdefault('terminationGracePeriodSeconds', docker_grace)
     docker_priv = properties.pop('privileged', None)
     if docker_priv:
         properties.setdefault('securityContext', {}).setdefault('privileged', docker_priv)
+    docker_pid = properties.pop('pid', None)
+    if docker_pid == 'host':
+        inputs.setdefault('hostPID', True)
+    docker_netmode = properties.pop('network_mode', None)
+    if docker_netmode == 'host':
+        inputs.setdefault('hostNetwork', True)
     properties.setdefault('stdin', properties.pop('stdin_open', None))
     properties.setdefault('livenessProbe', properties.pop('healthcheck', None))
 
