@@ -16,7 +16,6 @@ pyparsing==2.2.0
 pyperclip==1.6.0
 python-dateutil==2.7.2
 pytz==2018.4
-PyYAML==3.12
 requests==2.20.1
 ruamel.yaml==0.15.37
 six==1.11.0

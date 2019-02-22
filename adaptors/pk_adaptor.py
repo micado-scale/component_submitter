@@ -25,6 +25,7 @@ class PkAdaptor(abco.Adaptor):
         self.config = config
         self.pk_data = {}
         self.ID = adaptor_id
+        self.status = "init"
         try:
             self.path = "{}{}.yaml".format(self.config['volume'], self.ID)
             self.tmp_path = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
@@ -34,31 +35,23 @@ class PkAdaptor(abco.Adaptor):
         logger.info("Pk adaptor initialised")
 
     def translate(self, tmp=False):
-
+        self.status = "translating"
         logger.info("Starting PK translation")
         # Hard-coded file structure
         self.pk_data = {STACK: self.ID.split("_")[0],
                         SCALING: {}}
 
-        i = 0
-        node_name = None
-        while i < len(self.tpl.nodetemplates) \
-                and "tosca.nodes.MiCADO.Occopus" not in self.tpl.nodetemplates[i].type:
-            i += 1
-        if i < len(self.tpl.nodetemplates):
-            node_name = self.tpl.nodetemplates[i].name
-
         for policy in self.tpl.policies:
-            for target in policy.targets:
-                if target == node_name:
+            for target in policy.targets_list:
+                if "Compute" in target.type:
                     self.pk_data[SCALING][NODES] = self._pk_scaling_properties(policy)
                 else:
                     if self.pk_data[SCALING].get(SERVICES) is None:
                         self.pk_data[SCALING][SERVICES] = []
-                    service = {"name": target}
+                    service = {"name": target.name}
                     service.update(self._pk_scaling_properties(policy))
                     self.pk_data[SCALING][SERVICES].append(service)
-            logger.info("Policy of {0} is translated".format(target))
+            logger.info("Policy of {0} is translated".format(target.name))
 
         if tmp is False:
             self._yaml_write(self.path)
@@ -66,8 +59,10 @@ class PkAdaptor(abco.Adaptor):
         else:
             self._yaml_write(self.tmp_path)
             logger.info("Updated PK file created")
+        self.status = "translated"
 
     def execute(self):
+        self.status = "executing"
         logger.info("Starting Pk execution")
         headers = {'Content-Type': 'application/x-yaml'}
         try:
@@ -79,15 +74,18 @@ class PkAdaptor(abco.Adaptor):
                 logger.info("Policy with {0} id is sent.".format(self.ID))
         except Exception as e:
             logger.error(e)
+        self.status = "executed"
 
 
     def undeploy(self):
+        self.status = "undeploying"
         logger.info("Removing the policy in Pk service with id {0}".format(self.ID))
         try:
             requests.post("http://{0}/policy/stop".format(self.config['endpoint']))
         except Exception as e:
             logger.error(e)
         logger.info("Policy {0} removed.".format(self.ID))
+        self.status = "undeployed"
 
 
     def cleanup(self):
@@ -110,12 +108,15 @@ class PkAdaptor(abco.Adaptor):
             os.rename(self.tmp_path, self.path)
             self.undeploy()
             self.execute()
+            self.status = 'updated'
         else:
+            self.status = 'updated (nothing to update)'
             try:
                 logger.debug("tmp file is the same, removing the tmp file")
                 os.remove(self.tmp_path)
             except OSError as e:
                 logger.warning(e)
+        
 
     def _pk_scaling_properties(self, policy):
         policy_prop = {}

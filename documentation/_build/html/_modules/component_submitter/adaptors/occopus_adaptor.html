@@ -15,7 +15,7 @@
     <script type="text/javascript" src="../../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
@@ -27,15 +27,15 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li> 
       </ul>
-    </div>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body" role="main">
-
+            
   <h1>Source code for component_submitter.adaptors.occopus_adaptor</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">filecmp</span>
 <span class="kn">import</span> <span class="nn">os</span>
@@ -62,6 +62,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">template</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">template</span><span class="p">,</span> <span class="n">ToscaTemplate</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;Template is not a valid TOSCAParser object&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;init&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">node_name</span> <span class="o">=</span> <span class="s2">&quot;node_def:worker&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">worker_infra_name</span> <span class="o">=</span> <span class="s2">&quot;micado_worker_infra&quot;</span>
@@ -107,31 +108,32 @@
         <span class="n">nova</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">cloudbroker</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">cloudsigma</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;translating&quot;</span>
 
         <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">nodetemplates</span><span class="p">:</span>
             <span class="k">if</span> <span class="s2">&quot;tosca.nodes.MiCADO.Occopus.CloudSigma.Compute&quot;</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;CloudSigma resource deteckted&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;CloudSigma resource detected&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_interface</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_cloudsigma_host_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_get_policies</span><span class="p">()</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_get_infra_def</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
                 <span class="n">cloudsigma</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">if</span> <span class="s2">&quot;tosca.nodes.MiCADO.Occopus.EC2.Compute&quot;</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;EC2 resource deteckted&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;EC2 resource detected&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_interface</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_ec2_host_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_get_policies</span><span class="p">()</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_get_infra_def</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
                 <span class="n">ec2</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">if</span> <span class="s2">&quot;tosca.nodes.MiCADO.Occopus.CloudBroker.Compute&quot;</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;CloudBroker resource deteckted&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;CloudBroker resource detected&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_interface</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_cloudbroker_host_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_get_policies</span><span class="p">()</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_get_infra_def</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
                 <span class="n">cloudbroker</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="k">if</span> <span class="s2">&quot;tosca.nodes.MiCADO.Occopus.Nova.Compute&quot;</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Nova resource deteckted&quot;</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Nova resource detected&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_interface</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_nova_host_properties</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="s2">&quot;resource&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_get_policies</span><span class="p">()</span>
@@ -165,7 +167,8 @@
             <span class="k">if</span> <span class="n">tmp</span><span class="p">:</span>
                 <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cloudsigma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_path_tmp</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nova</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span></div>
+                <span class="n">utils</span><span class="o">.</span><span class="n">dump_order_yaml</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nova</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;translated&quot;</span></div>
 
 <div class="viewcode-block" id="OccopusAdaptor.execute"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.occopus_adaptor.OccopusAdaptor.execute">[docs]</a>    <span class="k">def</span> <span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -174,6 +177,7 @@
 <span class="sd">        contener and then the build process could go on REST API</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Starting Occopus execution </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;executing&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">created</span><span class="p">:</span>
             <span class="n">run</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
@@ -195,7 +199,7 @@
                     <span class="c1">#with open(self.infra_def_path_output, &#39;rb&#39;) as data:</span>
                     <span class="c1">#    requests.post(&quot;http://{0}/infrastructures/&quot;</span>
                     <span class="c1"># .format(self.occopus_address), data=data, headers=headers)</span>
-                    <span class="n">buildinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">occopus</span><span class="o">.</span><span class="n">exec_run</span><span class="p">(</span><span class="s2">&quot;occopus-build </span><span class="si">{}</span><span class="s2"> -i </span><span class="si">{}</span><span class="s2"> --auth_data_path </span><span class="si">{}</span><span class="s2">&quot;</span>
+                    <span class="n">buildinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">occopus</span><span class="o">.</span><span class="n">exec_run</span><span class="p">(</span><span class="s2">&quot;occopus-build </span><span class="si">{}</span><span class="s2"> -i </span><span class="si">{}</span><span class="s2"> --auth_data_path </span><span class="si">{}</span><span class="s2"> --parallelize&quot;</span>
                                                       <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">occo_infra_path</span><span class="p">,</span>
                                                               <span class="bp">self</span><span class="o">.</span><span class="n">worker_infra_name</span><span class="p">,</span>
                                                               <span class="bp">self</span><span class="o">.</span><span class="n">auth_data_file</span><span class="p">))</span>
@@ -207,16 +211,18 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Occopus import was unsuccessful!&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Occopus is not created!&quot;</span><span class="p">)</span></div>
-
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Occopus is not created!&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;executed&quot;</span></div>
 <div class="viewcode-block" id="OccopusAdaptor.undeploy"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.occopus_adaptor.OccopusAdaptor.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Undeploy Occopus infrastructure through Occopus rest API</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;undeploying&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Undeploy </span><span class="si">{}</span><span class="s2"> infrastructure&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
-        <span class="n">requests</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">&quot;http://</span><span class="si">{0}</span><span class="s2">/infrastructures/</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">occopus_address</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">worker_infra_name</span><span class="p">))</span></div>
+        <span class="n">requests</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">&quot;http://</span><span class="si">{0}</span><span class="s2">/infrastructures/</span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">occopus_address</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">worker_infra_name</span><span class="p">))</span>
         <span class="c1"># self.occopus.exec_run(&quot;occopus-destroy --auth_data_path {0} -i {1}&quot;</span>
         <span class="c1"># .format(self.auth_data_file, self.worker_infra_name))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;undeployed&quot;</span></div>
 
 <div class="viewcode-block" id="OccopusAdaptor.cleanup"><a class="viewcode-back" href="../../../source/component_submitter.adaptors.html#component_submitter.adaptors.occopus_adaptor.OccopusAdaptor.cleanup">[docs]</a>    <span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -235,6 +241,7 @@
 <span class="sd">        If the node definition changed then rerun the build process. If the node definition</span>
 <span class="sd">        changed first undeploy the infrastructure and rebuild it with the modified parameter.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;updating&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">min_instances</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_instances</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Updating the component config </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">))</span>
@@ -260,7 +267,8 @@
                 <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_path_tmp</span><span class="p">)</span>
                 <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infra_def_path_output_tmp</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;updated&quot;</span></div>
 
     <span class="k">def</span> <span class="nf">_node_data_get_interface</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -336,10 +344,10 @@
         <span class="k">if</span> <span class="n">capabilites</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;subnet_id&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">{})</span> \
               <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;subnet_id&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;subnet_id&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">capabilites</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;security_groups_ids&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">capabilites</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;security_group_ids&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">security_groups</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
-            <span class="n">security_groups</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;security_groups_ids&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s2">&quot;security_groups_ids&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">security_groups</span>
+            <span class="n">security_groups</span> <span class="o">=</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;security_group_ids&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="s2">&quot;security_group_ids&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">security_groups</span>
 
     <span class="k">def</span> <span class="nf">_node_data_get_cloudbroker_host_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -361,6 +369,8 @@
               <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="p">{})</span> \
               <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;opened_port&quot;</span><span class="p">,</span> <span class="n">capabilites</span><span class="p">[</span><span class="s2">&quot;opened_port&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_node_data_get_context_section</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">node_data</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;health_check&quot;</span><span class="p">,</span> <span class="p">{})</span> \
+            <span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;ping&quot;</span><span class="p">,</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_node_data_get_nova_host_properties</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -498,7 +508,7 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

@@ -15,7 +15,7 @@
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="related navigation">
       <h3>Navigation</h3>
@@ -27,15 +27,15 @@
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
       </ul>
-    </div>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
           <div class="body" role="main">
-
+            
   <h1>Source code for component_submitter.submitter_engine</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">micado_parser</span> <span class="k">import</span> <span class="n">MiCADOParser</span>
 <span class="kn">from</span> <span class="nn">plugins_gestion</span> <span class="k">import</span> <span class="n">PluginsGestion</span>
@@ -49,12 +49,12 @@
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">from</span> <span class="nn">random</span> <span class="k">import</span> <span class="n">randint</span>
 <span class="kn">from</span> <span class="nn">submitter_config</span> <span class="k">import</span> <span class="n">SubmitterConfig</span>
-
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="sd">&quot;&quot;&quot; set up of Logging &quot;&quot;&quot;</span>
-<span class="n">LEVEL</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span>
-
-<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">SubmitterConfig</span><span class="p">()</span><span class="o">.</span><span class="n">main_config</span><span class="p">[</span><span class="s1">&#39;path_log&#39;</span><span class="p">],</span> <span class="n">level</span><span class="o">=</span><span class="n">LEVEL</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> - </span><span class="si">%(name)s</span><span class="s2"> - </span><span class="si">%(levelname)s</span><span class="s2"> - </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">SubmitterConfig</span><span class="p">()</span>
+<span class="n">LEVEL</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">main_config</span><span class="p">[</span><span class="s1">&#39;log_level&#39;</span><span class="p">]</span>
+<span class="n">FILENAME</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">main_config</span><span class="p">[</span><span class="s1">&#39;path_log&#39;</span><span class="p">]</span>
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">FILENAME</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">LEVEL</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> - </span><span class="si">%(lineno)d</span><span class="s2"> - </span><span class="si">%(name)s</span><span class="s2"> - </span><span class="si">%(levelname)s</span><span class="s2"> - </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">)</span>
 <span class="n">logger</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">&quot;submitter.&quot;</span><span class="o">+</span><span class="vm">__name__</span><span class="p">)</span>
 
 <span class="sd">&quot;&quot;&quot;define the Handler which write message to sys.stderr&quot;&quot;&quot;</span>
@@ -93,47 +93,57 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">adaptors_class_name</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_get_adaptors_class</span><span class="p">()</span>
 
-
-
-
-<div class="viewcode-block" id="SubmitterEngine.launch"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.launch">[docs]</a>    <span class="k">def</span> <span class="nf">launch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">id_app</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="SubmitterEngine.launch"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.launch">[docs]</a>    <span class="k">def</span> <span class="nf">launch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">id_app</span><span class="p">,</span> <span class="n">parsed_params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Launch method, that will call the in-method egine to execute the application</span>
 <span class="sd">        Creating empty list for the whole class adaptor and executed adaptor</span>
 <span class="sd">        :params: path_to_file, parsed_params</span>
 <span class="sd">        :types: string, dictionary</span>
-
 <span class="sd">        .. note::</span>
 <span class="sd">            For the time being we only have one &quot;workflow engine&quot; but we could extend this</span>
 <span class="sd">            launch method to accept another parameter to be able to choose which engine to</span>
 <span class="sd">            launch</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Launching the application located there </span><span class="si">{}</span><span class="s2"> and with params </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">))</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;******  Launching the application ****** </span><span class="se">\n</span><span class="s2">****** located there </span><span class="si">{}</span><span class="s2"> and with params </span><span class="si">{}</span><span class="s2">******&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">))</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">object_config</span><span class="o">.</span><span class="n">main_config</span><span class="p">[</span><span class="s1">&#39;dry_run&#39;</span><span class="p">]:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;An application is already running, MiCADO doesn&#39;t currently support multi applications&quot;</span><span class="p">)</span>
             <span class="k">return</span>
         <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_micado_parser_upload</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">object_config</span><span class="o">.</span><span class="n">mapping</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">id_app</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">id_app</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">id_generator</span><span class="p">()</span>
         <span class="n">dict_object_adaptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_adaptors</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">template</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;list of objects adaptor: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dict_object_adaptors</span><span class="p">))</span>
         <span class="c1">#self._save_file(id_app, path_to_file)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">id_app</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">id_app</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;components&quot;</span><span class="p">:</span><span class="nb">list</span><span class="p">(</span><span class="n">dict_object_adaptors</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="s2">&quot;adaptors_object&quot;</span><span class="p">:</span> <span class="n">dict_object_adaptors</span><span class="p">}})</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_update_json</span><span class="p">()</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;dictionnaty of id is: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_engine</span><span class="p">(</span><span class="n">dict_object_adaptors</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">id_app</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;launched process done&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;*********************&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">id_app</span></div>
 
-<div class="viewcode-block" id="SubmitterEngine.undeploy"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_app</span><span class="p">):</span>
+<div class="viewcode-block" id="SubmitterEngine.undeploy"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.undeploy">[docs]</a>    <span class="k">def</span> <span class="nf">undeploy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_app</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Undeploy method will remove the application from the infrastructure.</span>
 <span class="sd">        :params: id</span>
 <span class="sd">        :type: string</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;proceding to the undeployment of the application&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;****** proceding to the undeployment of the application *****&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">id_app</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;application doesn&#39;t exist&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;no application has been detected on the infrastructure trying to see if force flag present&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;no application detected&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;force flag detected, preceeding to undeploy&quot;</span><span class="p">)</span>
+
+
         <span class="n">dict_object_adaptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_adaptors</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dict_object_adaptors</span><span class="p">))</span>
 
@@ -141,8 +151,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_undeploy</span><span class="p">(</span><span class="n">dict_object_adaptors</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_cleanup</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">dict_object_adaptors</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_update_json</span><span class="p">()</span></div>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">id_app</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_json</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;undeploy process done&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;*********************&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="SubmitterEngine.update"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_app</span><span class="p">,</span> <span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
@@ -160,17 +173,22 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;proceding to the update of the application </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;****** proceding to the update of the application </span><span class="si">{}</span><span class="s2">******&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">id_app</span><span class="p">))</span>
+
         <span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_micado_parser_upload</span><span class="p">(</span><span class="n">path_to_file</span><span class="p">,</span> <span class="n">parsed_params</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">object_config</span><span class="o">.</span><span class="n">mapping</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
         <span class="n">dict_object_adaptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_adaptors</span><span class="p">(</span><span class="n">id_app</span><span class="p">,</span> <span class="n">template</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;list of adaptor created: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dict_object_adaptors</span><span class="p">))</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_update</span><span class="p">(</span><span class="n">dict_object_adaptors</span><span class="p">,</span> <span class="n">id_app</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_update</span><span class="p">(</span><span class="n">dict_object_adaptors</span><span class="p">,</span> <span class="n">id_app</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;update process done&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;*******************&quot;</span><span class="p">)</span></div>
+
 
     <span class="k">def</span> <span class="nf">_engine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">adaptors</span><span class="p">,</span> <span class="n">template</span><span class="p">,</span> <span class="n">app_id</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Engine itself. Creates first a id, then parse the input file. Retreive the list of id created by the translate methods of the adaptors.</span>
 <span class="sd">        Excute those id in their respective adaptor. Update the app_list and the json file.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="k">try</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_translate</span><span class="p">(</span><span class="n">adaptors</span><span class="p">)</span>
             <span class="n">executed_adaptors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_execute</span><span class="p">(</span><span class="n">app_id</span><span class="p">,</span> <span class="n">adaptors</span><span class="p">)</span>
@@ -205,6 +223,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">adaptors_class_name</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">adaptor</span><span class="p">)</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;list of adaptors instantiated: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">adaptors_class_name</span><span class="p">))</span>
 
+
     <span class="k">def</span> <span class="nf">_instantiate_adaptors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_id</span><span class="p">,</span> <span class="n">template</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Instantiate the list of adaptors from the adaptors class list</span>
 
@@ -218,7 +237,6 @@
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">adaptors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-
         <span class="k">if</span> <span class="n">template</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">adaptors_class_name</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;instantiate </span><span class="si">{}</span><span class="s2">, template&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="p">))</span>
@@ -235,6 +253,7 @@
                 <span class="n">obj</span> <span class="o">=</span> <span class="n">adaptor</span><span class="p">(</span><span class="n">adaptor_id</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">object_config</span><span class="o">.</span><span class="n">adaptor_config</span><span class="p">[</span><span class="n">adaptor</span><span class="o">.</span><span class="vm">__name__</span><span class="p">])</span>
                 <span class="c1">#adaptors.append(obj)</span>
                 <span class="n">adaptors</span><span class="p">[</span><span class="n">adaptor</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span>
+
                 <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;done instntiation of </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">adaptor</span><span class="p">))</span>
 
             <span class="k">return</span> <span class="n">adaptors</span>
@@ -256,6 +275,7 @@
 
 
 
+
     <span class="k">def</span> <span class="nf">_execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_id</span><span class="p">,</span> <span class="n">adaptors</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; method called by the engine to launch the adaptors execute methods &quot;&quot;&quot;</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;launch of the execute methods in each adaptors in a serial way&quot;</span><span class="p">)</span>
@@ -264,8 +284,9 @@
             <span class="n">adaptors</span><span class="p">[</span><span class="n">step</span><span class="p">]</span><span class="o">.</span><span class="n">execute</span><span class="p">()</span>
             <span class="n">executed_adaptors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">adaptors</span><span class="p">[</span><span class="n">step</span><span class="p">])</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="p">[</span><span class="n">app_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">adaptors</span><span class="p">[</span><span class="n">step</span><span class="p">]</span><span class="o">.</span><span class="n">output</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="p">[</span><span class="n">app_id</span><span class="p">][</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">adaptors</span><span class="p">[</span><span class="n">step</span><span class="p">]</span><span class="o">.</span><span class="n">output</span>
             <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="p">[</span><span class="n">app_id</span><span class="p">][</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;no output available&quot;</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;the adaptor doesn&#39;t provice a output attribute&quot;</span><span class="p">)</span>
 
         <span class="c1"># for adaptor in adaptors:</span>
@@ -301,11 +322,33 @@
             <span class="k">try</span><span class="p">:</span>
                 <span class="c1">#self.app_list.update(app_id, Step(adaptor).output)</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">adaptors</span><span class="p">[</span><span class="n">step</span><span class="p">]</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="p">[</span><span class="n">app_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">adaptors</span><span class="p">[</span><span class="n">step</span><span class="p">]</span><span class="o">.</span><span class="n">output</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="p">[</span><span class="n">app_id</span><span class="p">][</span><span class="s2">&quot;output&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">adaptors</span><span class="p">[</span><span class="n">step</span><span class="p">]</span><span class="o">.</span><span class="n">output</span>
             <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;the Adaptor doesn&#39;t provide a output attribute&quot;</span><span class="p">)</span>
 
+<div class="viewcode-block" id="SubmitterEngine.query"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.query">[docs]</a>    <span class="k">def</span> <span class="nf">query</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">app_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; query &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">adaptor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_instantiate_adaptors</span><span class="p">(</span><span class="n">app_id</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">adaptor</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">result</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AdaptorCritical</span><span class="p">(</span><span class="s2">&quot;No query method available&quot;</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="SubmitterEngine.get_status"><a class="viewcode-back" href="../../source/component_submitter.html#component_submitter.submitter_engine.SubmitterEngine.get_status">[docs]</a>    <span class="k">def</span> <span class="nf">get_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app_id</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; method to retrieve the status of the differents adaptor&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="p">[</span><span class="n">app_id</span><span class="p">][</span><span class="s2">&quot;adaptors_object&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">status</span>
+
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;application id </span><span class="si">{}</span><span class="s2"> doesn&#39;t exist&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">app_id</span><span class="p">))</span>
+            <span class="k">raise</span> <span class="ne">KeyError</span>
+        <span class="k">return</span> <span class="n">result</span></div>
 
     <span class="k">def</span> <span class="nf">_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">,</span> <span class="n">adaptors</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; method called by the engine to launch the celanup method of all the components for a specific application</span>
@@ -321,11 +364,25 @@
 <span class="sd">        and the list of the IDs of its components link to the ID of the app.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data_to_save</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">data_to_save</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;key is: </span><span class="si">{}</span><span class="s2"> k is </span><span class="si">{}</span><span class="s2"> v is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="p">))</span>
+                <span class="k">if</span> <span class="s2">&quot;components&quot;</span> <span class="ow">in</span> <span class="n">k</span> <span class="ow">or</span> <span class="s2">&quot;outputs&quot;</span> <span class="ow">in</span> <span class="n">k</span><span class="p">:</span>
+                    <span class="n">data_to_save</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">=</span><span class="p">{</span> <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">}</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">data_to_save</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;data to save is empty&quot;</span><span class="p">)</span>
+            <span class="n">data_to_save</span> <span class="o">=</span> <span class="p">{}</span>
+
+
         <span class="k">try</span><span class="p">:</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">JSON_FILE</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
-                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">app_list</span><span class="p">,</span> <span class="n">outfile</span><span class="p">)</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data_to_save</span><span class="p">,</span> <span class="n">outfile</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+
 
     <span class="k">def</span> <span class="nf">_save_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">id_app</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; method called by the engine to dump the current template being treated to the files/templates directory, with as name</span>
@@ -366,7 +423,7 @@
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../index.html">MiCADO Submitter 0.1 documentation</a> &#187;</li>
-          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

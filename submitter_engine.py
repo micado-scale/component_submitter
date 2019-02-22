@@ -10,13 +10,12 @@ import os
 import time
 from random import randint
 from submitter_config import SubmitterConfig
-
 import logging
 """ set up of Logging """
 config = SubmitterConfig()
 LEVEL = config.main_config['log_level']
 FILENAME = config.main_config['path_log']
-logging.basicConfig(filename=FILENAME, level=LEVEL, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logging.basicConfig(filename=FILENAME, level=LEVEL, format="%(asctime)s - %(lineno)d - %(name)s - %(levelname)s - %(message)s")
 logger=logging.getLogger("submitter."+__name__)
 
 """define the Handler which write message to sys.stderr"""
@@ -55,10 +54,10 @@ class SubmitterEngine(object):
         self.adaptors_class_name = []
         self._get_adaptors_class()
 
+        self.translated_adaptors = {}
+        self.executed_adaptors = {}
 
-
-
-    def launch(self, path_to_file, parsed_params=None, id_app=None):
+    def launch(self, path_to_file, id_app, parsed_params=None):
         """
         Launch method, that will call the in-method egine to execute the application
         Creating empty list for the whole class adaptor and executed adaptor
@@ -69,33 +68,46 @@ class SubmitterEngine(object):
             launch method to accept another parameter to be able to choose which engine to
             launch
         """
-        logger.info("Launching the application located there {} and with params {}".format(path_to_file, parsed_params))
+
+        logger.info("******  Launching the application ****** \n****** located there {} and with params {}******".format(path_to_file, parsed_params))
         if self.app_list and not self.object_config.main_config['dry_run']:
             raise Exception("An application is already running, MiCADO doesn't currently support multi applications")
-            return
+            
         template = self._micado_parser_upload(path_to_file, parsed_params)
         self.object_config.mapping(template)
-
-        if id_app is None:
-            id_app = utils.id_generator()
 
         dict_object_adaptors = self._instantiate_adaptors(id_app, template)
         logger.debug("list of objects adaptor: {}".format(dict_object_adaptors))
         #self._save_file(id_app, path_to_file)
-        self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys())}})
+        self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys()), "adaptors_object": dict_object_adaptors}})
         self._update_json()
-        logger.info("dictionnaty of id is: {}".format(self.app_list))
+        logger.debug("dictionnaty of id is: {}".format(self.app_list))
 
         self._engine(dict_object_adaptors, template, id_app)
+
+        logger.info("launched process done")
+        logger.info("*********************")
         return id_app
 
-    def undeploy(self, id_app):
+    def undeploy(self, id_app, force=False):
         """
         Undeploy method will remove the application from the infrastructure.
         :params: id
         :type: string
         """
-        logger.info("proceding to the undeployment of the application")
+        logger.info("****** proceding to the undeployment of the application *****")
+
+        try:
+            if id_app not in self.app_list.keys() and not force:
+                raise Exception("application doesn't exist")
+        except AttributeError:
+            logger.error("no application has been detected on the infrastructure trying to see if force flag present")
+            if not force:
+                raise Exception("no application detected")
+            else:
+                logger.info("force flag detected, preceeding to undeploy")
+
+
         dict_object_adaptors = self._instantiate_adaptors(id_app)
         logger.debug("{}".format(dict_object_adaptors))
 
@@ -103,8 +115,11 @@ class SubmitterEngine(object):
         self._undeploy(dict_object_adaptors)
 
         self._cleanup(id_app, dict_object_adaptors)
-        self.app_list.pop(id_app)
-        self._update_json()
+        if self.app_list:
+            self.app_list.pop(id_app)
+            self._update_json()
+        logger.info("undeploy process done")
+        logger.info("*********************")
 
 
     def update(self, id_app, path_to_file, parsed_params = None):
@@ -122,12 +137,18 @@ class SubmitterEngine(object):
 
         """
 
-        logger.info("proceding to the update of the application {}".format(id_app))
+        logger.info("****** proceding to the update of the application {}******".format(id_app))
+
         template = self._micado_parser_upload(path_to_file, parsed_params)
         self.object_config.mapping(template)
         dict_object_adaptors = self._instantiate_adaptors(id_app, template)
         logger.debug("list of adaptor created: {}".format(dict_object_adaptors))
+        self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys()), "adaptors_object": dict_object_adaptors}})
+        self._update_json()
         self._update(dict_object_adaptors, id_app)
+        logger.info("update process done")
+        logger.info("*******************")
+
 
     def _engine(self,adaptors, template, app_id):
         """ Engine itself. Creates first a id, then parse the input file. Retreive the list of id created by the translate methods of the adaptors.
@@ -135,16 +156,26 @@ class SubmitterEngine(object):
         """
         try:
             self._translate(adaptors)
-            executed_adaptors = self._execute(app_id, adaptors)
-            logger.debug(executed_adaptors)
+            self._execute(app_id, adaptors)
+            logger.debug(self.executed_adaptors)
 
-        except MultiError as e:
+        except MultiError:
             raise
         except AdaptorCritical as e:
-            raise
-        except AdaptorCritical as e:
-            for adaptor in reversed(executed_adaptors):
-                self._undeploy(adaptor, id_app)
+            logger.info("******* Critical error during deployment, starting to roll back *********")
+            if self.executed_adaptors:
+                logger.info("Starting undeploy on executed components")
+                self._undeploy(self.executed_adaptors)
+            if self.translated_adaptors:
+                logger.info("Starting clean-up on translated files")
+                self._cleanup(app_id, self.translated_adaptors)
+            if self.app_list:
+                logger.info("Removing application ID from deployment")
+                self.app_list.pop(app_id)
+                self._update_json()
+
+            logger.info("The deployment wasn't successful...")
+            logger.info("*******************")
             raise
 
     def _micado_parser_upload(self, path, parsed_params):
@@ -167,6 +198,7 @@ class SubmitterEngine(object):
             self.adaptors_class_name.append(adaptor)
         logger.debug("list of adaptors instantiated: {}".format(self.adaptors_class_name))
 
+
     def _instantiate_adaptors(self, app_id, template = None):
         """ Instantiate the list of adaptors from the adaptors class list
 
@@ -180,7 +212,6 @@ class SubmitterEngine(object):
 
         """
         adaptors = dict()
-
         if template is not None:
             for adaptor in self.adaptors_class_name:
                 logger.debug("instantiate {}, template".format(adaptor))
@@ -197,6 +228,7 @@ class SubmitterEngine(object):
                 obj = adaptor(adaptor_id,self.object_config.adaptor_config[adaptor.__name__])
                 #adaptors.append(obj)
                 adaptors[adaptor.__name__] = obj
+
                 logger.debug("done instntiation of {}".format(adaptor))
 
             return adaptors
@@ -206,67 +238,52 @@ class SubmitterEngine(object):
         """ Launch the translate engine """
         logger.debug("launch of translate method")
         logger.info("translate method called in all the adaptors")
+        self.translated_adaptors = {}
 
         for step in self.object_config.step_config['translate']:
             logger.info("translating method call from {}".format(step))
             while True:
                 try:
+                    self.translated_adaptors[step] = adaptors[step]
                     adaptors[step].translate()
-                except AdaptorError as e:
+                except AdaptorError:
                     continue
                 break
-
-
 
     def _execute(self, app_id, adaptors):
         """ method called by the engine to launch the adaptors execute methods """
         logger.info("launch of the execute methods in each adaptors in a serial way")
-        executed_adaptors = []
+        self.executed_adaptors = {}
+        self.app_list.setdefault(app_id, {}).setdefault("output", {})
         for step in self.object_config.step_config['execute']:
+            self.executed_adaptors[step] = adaptors[step]
             adaptors[step].execute()
-            executed_adaptors.append(adaptors[step])
-            try:
-                self.app_list[app_id]["output"] = adaptors[step].output
-            except AttributeError as e:
-                self.app_list[app_id]["output"] = "no output available"
-                logger.warning("the adaptor doesn't provice a output attribute")
-
-        # for adaptor in adaptors:
-        #         logger.debug("\t execute adaptor: {}".format(adaptor))
-        #         #Step(adaptor).execute()
-        #         adaptor.execute()
-        #         try:
-        #             #self.app_list.update(app_id, Step(adaptor).output)
-        #             #self.app_list.update(app_id, adaptor.output)
-        #             self.app_list[app_id] = adaptor.output
-        #
-        #         except AttributeError as e:
-        #             logger.warning("the Adaptor doesn't provide a output attribute")
+            output = getattr(adaptors[step], "output", None)
+            if output:
+                self.app_list[app_id]["output"].update({step:output})
 
         self._update_json()
-
-        return executed_adaptors
-
-
 
     def _undeploy(self, adaptors):
         """ method called by the engine to launch the adaptor undeploy method of a specific component identified by its ID"""
         logger.info("undeploying component")
         for step in self.object_config.step_config['undeploy']:
-            adaptors[step].undeploy()
+            try:
+                adaptors[step].undeploy()
+            except KeyError as e:
+                logger.debug("{} not in initialised/executed adaptors, skipping...".format(e))
+            except Exception as e:
+                logger.error("error: {}; proceeding to undepployment of the other adaptors".format(e))
 
     def _update(self, adaptors, app_id):
         """ method that will translate first the new component and then see if there's a difference, and then execute"""
         logger.info("update of each components related to the application wanted")
+        self.app_list.setdefault(app_id, {}).setdefault("output", {})
         for step in self.object_config.step_config['update']:
-            #Step(adaptor).update()
             adaptors[step].update()
-            try:
-                #self.app_list.update(app_id, Step(adaptor).output)
-                logger.info(adaptors[step].output)
-                self.app_list[app_id]["output"] = adaptors[step].output
-            except AttributeError as e:
-                logger.warning("the Adaptor doesn't provide a output attribute")
+            output = getattr(adaptors[step], "output", None)
+            if output:
+                self.app_list[app_id]["output"].update({step:output})
 
     def query(self, query, app_id):
         """ query """
@@ -280,13 +297,30 @@ class SubmitterEngine(object):
         else:
             raise AdaptorCritical("No query method available")
 
+    def get_status(self, app_id):
+        """ method to retrieve the status of the differents adaptor"""
+        try:
+            result = dict()
+            for key, value in self.app_list[app_id].get("adaptors_object", {}).items():
+                result[key] = value.status
+
+        except KeyError:
+            logger.error("application id {} doesn't exist".format(app_id))
+            raise KeyError
+        return result
+
     def _cleanup(self, id, adaptors):
         """ method called by the engine to launch the celanup method of all the components for a specific application
         identified by it's ID, and removing the template from files/templates"""
 
         logger.info("cleaning up the file after undeployment")
         for step in self.object_config.step_config['cleanup']:
-            adaptors[step].cleanup()
+            try:
+                adaptors[step].cleanup()
+            except KeyError as e:
+                logger.debug("{} not in initialised/translated adaptors, skipping...".format(e))
+            except Exception as e:
+                logger.error("error: {}; proceeding to cleanup of the other adaptors".format(e))
 
 
     def _update_json(self):
@@ -294,11 +328,25 @@ class SubmitterEngine(object):
         and the list of the IDs of its components link to the ID of the app.
 
         """
+        data_to_save = dict()
+
+        for key, value in self.app_list.items():
+            data_to_save = {key: None}
+            for k, v in self.app_list[key].items():
+                logger.debug("key is: {} k is {} v is {}".format(key, k,v))
+                if "components" in k or "outputs" in k:
+                    data_to_save[key]={ k: v}
+        if not data_to_save:
+            logger.info("data to save is empty")
+            data_to_save = {}
+
+
         try:
             with open(JSON_FILE, 'w') as outfile:
-                json.dump(self.app_list, outfile)
+                json.dump(data_to_save, outfile)
         except Exception as e:
             logger.warning("{}".format(e))
+
 
     def _save_file(self, id_app, path):
         """ method called by the engine to dump the current template being treated to the files/templates directory, with as name

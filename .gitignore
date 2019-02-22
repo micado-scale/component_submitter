@@ -113,3 +113,4 @@ files/templates/*.yml
 .DS_Store
 .idea
 system/ids.json
+.vscode
