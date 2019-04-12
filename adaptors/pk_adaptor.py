@@ -44,7 +44,8 @@ class PkAdaptor(abco.Adaptor):
         for policy in self.tpl.policies:
             for target in policy.targets_list:
                 if "Compute" in target.type:
-                    self.pk_data[SCALING][NODES] = self._pk_scaling_properties(policy)
+                    self.pk_data[SCALING][NODES] = {"name": target.name}
+                    self.pk_data[SCALING][NODES].update(self._pk_scaling_properties(policy))
                 else:
                     if self.pk_data[SCALING].get(SERVICES) is None:
                         self.pk_data[SCALING][SERVICES] = []

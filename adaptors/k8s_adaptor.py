@@ -297,6 +297,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         pod_labels = pod_metadata.get('labels')
         pod_metadata.setdefault('namespace', resource_namespace)
 
+        # Discover node affinity
+        node_affinity = self._get_hosts(node)
+        pod_inputs.update(node_affinity)
+
         # Separate data for pod.spec
         pod_data = _separate_data(POD_SPEC_FIELDS, workload_inputs)
         pod_inputs.update(pod_data)
@@ -358,7 +362,36 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             if not manifest:
                 continue
             self.manifests.append(manifest)
-            self.services.append(service_info)    
+            self.services.append(service_info)
+
+    def _get_hosts(self, node):
+        """ Return node affinity for the spec """
+        host_list = []
+        for host, rel in node.related.items():
+            if rel.type == 'tosca.relationships.HostedOn':
+                host_list.append(host.name)
+
+        # Build the affinity descriptor
+        affinity = {
+            'affinity': {
+                'nodeAffinity': {
+                    'requiredDuringSchedulingIgnoredDuringExecution': {
+                        'nodeSelectorTerms': [
+                            {
+                                'matchExpressions': [
+                                    {
+                                        'key': 'micado.eu/node_type',
+                                        'operator': 'In',
+                                        'values': host_list
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+        return affinity
 
     def _get_volumes(self, container_node):
         """ Return the volume spec for the workload """
