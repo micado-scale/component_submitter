@@ -40,16 +40,23 @@ class PkAdaptor(abco.Adaptor):
         # Hard-coded file structure
         self.pk_data = {STACK: self.ID.split("_")[0],
                         SCALING: {}}
+        # build node-service rels
+        relations = {}
+        for node in self.tpl.nodetemplates:
+            for target, relation in node.related.items():
+                if 'HostedOn' in relation.type:
+                    relations.setdefault(node.name, []).append(target.name)            
 
         for policy in self.tpl.policies:
             for target in policy.targets_list:
                 if "Compute" in target.type:
-                    self.pk_data[SCALING][NODES] = {"name": target.name}
-                    self.pk_data[SCALING][NODES].update(self._pk_scaling_properties(policy))
+                    node_data = {"name": target.name}
+                    node_data.update(self._pk_scaling_properties(policy))
+                    self.pk_data.setdefault(SCALING, {}).setdefault(NODES, []).append(node_data)
                 else:
                     if self.pk_data[SCALING].get(SERVICES) is None:
                         self.pk_data[SCALING][SERVICES] = []
-                    service = {"name": target.name}
+                    service = {"name": target.name, "hosts": relations.get(target.name, [])}
                     service.update(self._pk_scaling_properties(policy))
                     self.pk_data[SCALING][SERVICES].append(service)
             logger.info("Policy of {0} is translated".format(target.name))
