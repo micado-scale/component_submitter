@@ -370,6 +370,8 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         for host, rel in node.related.items():
             if rel.type == 'tosca.relationships.HostedOn':
                 host_list.append(host.name)
+        if not host_list:
+            return {}
 
         # Build the affinity descriptor
         affinity = {
