@@ -11,6 +11,7 @@ import yaml
 import threading
 import queue
 import time
+import urllib.request
 
 def __init__():
 
@@ -119,6 +120,7 @@ def launch():
     """
     response = dict(status_code="", message="", data=[])
     path_to_file = None
+
     try:
         path_to_file = request.form['input']
     except Exception:
@@ -126,7 +128,7 @@ def launch():
 
     try:
         if not path_to_file:
-            template = request.files['file']
+            template = request.files['file']       
     except Exception:
         logger.info("no file provided")
 
@@ -134,6 +136,16 @@ def launch():
          id_app= request.form['id']
     except Exception:
          id_app = utils.id_generator()
+
+    try:
+        dryrun= request.form['dryrun']
+        if dryrun == 'True':
+            dryrun = True
+        else:
+            dryrun = False
+    except Exception:
+        dryrun = False
+
     try:
          params= request.form['params']
     except Exception:
@@ -150,7 +162,7 @@ def launch():
         return jsonify(response)
 
     apps.append(id_app)
-    thread = ExecSubmitterThread(q=queue_exception, target=submitter.launch, args=(path_to_file, id_app, parsed_params), daemon=True)
+    thread = ExecSubmitterThread(q=queue_exception, target=submitter.launch, args=(path_to_file, id_app, dryrun, parsed_params), daemon=True)
     thread.setName("launch_{}".format(id_app))
     queue_threading.put(thread)
 

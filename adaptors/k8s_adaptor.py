@@ -33,13 +33,12 @@ POD_SPEC_FIELDS = ('activeDeadlineSeconds', 'affinity', 'automountServiceAccount
 class KubernetesAdaptor(base_adaptor.Adaptor):
 
     """ The Kubernetes Adaptor class
-
     Carry out a translation from a TOSCA ADT to a Kubernetes Manifest,
     and the subsequent execution, update and undeployment of the translation.
     
     """
     
-    def __init__(self, adaptor_id, config, template=None):
+    def __init__(self, adaptor_id, config, dryrun, template=None):
         """ init method of the Adaptor """ 
         super().__init__()
 
@@ -50,6 +49,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")        
 
         self.ID = adaptor_id
+        self.dryrun = dryrun
         self.short_id = '_'.join(adaptor_id.split('_')[:-1])
         self.config = config
         self.tpl = template
@@ -127,9 +127,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             operation = ['kubectl', 'apply', '-f', self.manifest_path]
         else:
             operation = ['kubectl', 'create', '-f', self.manifest_path, '--save-config']
-
+         
         try:
-            if self.config['dry_run']:
+            if self.dryrun:
                 logger.info("DRY-RUN: kubectl creates workloads...")
             else:
                 logger.debug("Executing {}".format(operation))
@@ -178,7 +178,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         # Try to delete workloads relying on hosted mounts first (WORKAROUND)
         operation = ["kubectl", "delete", "-f", self.manifest_path, "-l", "!volume"]
         try:
-            if self.config['dry_run']:
+            if self.dryrun:
                 logger.info("DRY-RUN: kubectl removes all workloads but hosted volumes...")
             else:
                 logger.debug("Undeploy {}".format(operation))
@@ -191,7 +191,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         # Delete workloads hosting volumes
         operation = ["kubectl", "delete", "-f", self.manifest_path, "-l", "volume"]
         try:
-            if self.config['dry_run']:
+            if self.dryrun:
                 logger.info("DRY-RUN: kubectl removes remaining workloads...")
             else:
                 logger.debug("Undeploy {}".format(operation))
@@ -216,7 +216,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             logger.warning("Could not remove manifest file")
 
         try:
-            if self.config['dry_run']:
+            if self.dryrun:
                 logger.info("DRY-RUN: cleaning up old manifests...")
             else:
                 operation = ["docker", "exec", "occopus_redis", "redis-cli", "FLUSHALL"]
