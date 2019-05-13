@@ -56,8 +56,9 @@ class SubmitterEngine(object):
 
         self.translated_adaptors = {}
         self.executed_adaptors = {}
+        
 
-    def launch(self, path_to_file, id_app, parsed_params=None):
+    def launch(self, path_to_file, id_app, dry_run, parsed_params=None):
         """
         Launch method, that will call the in-method egine to execute the application
         Creating empty list for the whole class adaptor and executed adaptor
@@ -68,15 +69,15 @@ class SubmitterEngine(object):
             launch method to accept another parameter to be able to choose which engine to
             launch
         """
-
+        global dryrun
+        dryrun = dry_run
         logger.info("******  Launching the application ****** \n****** located there {} and with params {}******".format(path_to_file, parsed_params))
-        if self.app_list and not self.object_config.main_config['dry_run']:
+        if self.app_list and not dryrun:
             raise Exception("An application is already running, MiCADO doesn't currently support multi applications")
-            
         template = self._micado_parser_upload(path_to_file, parsed_params)
         self.object_config.mapping(template)
-
-        dict_object_adaptors = self._instantiate_adaptors(id_app, template)
+    
+        dict_object_adaptors = self._instantiate_adaptors(id_app, dryrun, template)
         logger.debug("list of objects adaptor: {}".format(dict_object_adaptors))
         #self._save_file(id_app, path_to_file)
         self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys()), "adaptors_object": dict_object_adaptors}})
@@ -108,7 +109,7 @@ class SubmitterEngine(object):
                 logger.info("force flag detected, preceeding to undeploy")
 
 
-        dict_object_adaptors = self._instantiate_adaptors(id_app)
+        dict_object_adaptors = self._instantiate_adaptors(id_app, dryrun)
         logger.debug("{}".format(dict_object_adaptors))
 
 
@@ -199,7 +200,7 @@ class SubmitterEngine(object):
         logger.debug("list of adaptors instantiated: {}".format(self.adaptors_class_name))
 
 
-    def _instantiate_adaptors(self, app_id, template = None):
+    def _instantiate_adaptors(self, app_id, dryrun, template = None):
         """ Instantiate the list of adaptors from the adaptors class list
 
             :params app_id: id of the application
@@ -216,7 +217,7 @@ class SubmitterEngine(object):
             for adaptor in self.adaptors_class_name:
                 logger.debug("instantiate {}, template".format(adaptor))
                 adaptor_id="{}_{}".format(app_id, adaptor.__name__)
-                obj = adaptor(adaptor_id, self.object_config.adaptor_config[adaptor.__name__], template = template)
+                obj = adaptor(adaptor_id, self.object_config.adaptor_config[adaptor.__name__], dryrun, template = template)
                 adaptors[adaptor.__name__] = obj
                 #adaptors.append(obj)
             return adaptors
@@ -225,7 +226,7 @@ class SubmitterEngine(object):
             for adaptor in self.adaptors_class_name:
                 logger.debug("instantiate {}, no template".format(adaptor))
                 adaptor_id="{}_{}".format(app_id, adaptor.__name__)
-                obj = adaptor(adaptor_id,self.object_config.adaptor_config[adaptor.__name__])
+                obj = adaptor(adaptor_id,self.object_config.adaptor_config[adaptor.__name__], dryrun)
                 #adaptors.append(obj)
                 adaptors[adaptor.__name__] = obj
 
