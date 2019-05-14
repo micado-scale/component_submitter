@@ -189,6 +189,11 @@ def undeploy(id_app):
             return jsonify(response)
     except Exception:
         logger.info("no force flag found")
+    
+    if id_app not in apps:
+        response["message"] = "There is no running application with ID={}, please use a correct application ID".format(id_app)
+        response["status_code"] = 400
+        return jsonify(response)
 
     for item in queue_threading.queue:
         if "undeploy_{}".format(id_app) in item.getName():
