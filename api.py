@@ -189,6 +189,15 @@ def undeploy(id_app):
             return jsonify(response)
     except Exception:
         logger.info("no force flag found")
+    
+    if not apps:
+        response["message"] = "There is no running applications to undelploy"
+        response["status_code"] = 400
+        return jsonify(response)
+    elif id_app not in apps:
+        response["message"] = "There is no running application with ID={}, please use a correct application ID".format(id_app)
+        response["status_code"] = 400
+        return jsonify(response)
 
     for item in queue_threading.queue:
         if "undeploy_{}".format(id_app) in item.getName():
@@ -317,6 +326,11 @@ def list_thread():
 def list_app():
     """ API function to list all the running aplications"""
     response = dict(status_code=200, message="List running applications", data=[])
+    if not apps:
+        response["message"] = "There are no running applications"
+        response["status_code"] = 200
+        return jsonify(response)
+
     for key, value in submitter.app_list.items():
         response["data"].append(dict(type="application",
                                      id=key,
