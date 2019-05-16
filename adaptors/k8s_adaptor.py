@@ -123,16 +123,18 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             self.status = "Skipped Execution"
             return
 
+        if self.dryrun:
+            logger.info("DRY-RUN: kubectl creates workloads...")
+            self.status = "DRY-RUN Deployment"
+            return
+        
         if update:
             operation = ['kubectl', 'apply', '-n', 'default', '-f', self.manifest_path]
         else:
             operation = ['kubectl', 'create', '-n', 'default', '-f', self.manifest_path, '--save-config']
         try:
-            if self.dryrun:
-                logger.info("DRY-RUN: kubectl creates workloads...")
-            else:
-                logger.debug("Executing {}".format(operation))
-                subprocess.run(operation, stderr=subprocess.PIPE, check=True)
+            logger.debug("Executing {}".format(operation))
+            subprocess.run(operation, stderr=subprocess.PIPE, check=True)
 
         except subprocess.CalledProcessError as e:            
             logger.error("kubectl: {}".format(e.stderr))

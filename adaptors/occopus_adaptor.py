@@ -109,6 +109,8 @@ class OccopusAdaptor(abco.Adaptor):
         self.status = "executing"
         if self.dryrun:
                 logger.info("DRY-RUN: Occopus execution in dry-run mode...")
+                self.status = "DRY-RUN Deployment"
+                return
         else:
             if self.created:
                 run = False

@@ -76,6 +76,8 @@ class PkAdaptor(abco.Adaptor):
         headers = {'Content-Type': 'application/x-yaml'}
         if self.dryrun:
                 logger.info("DRY-RUN: PK execution in dry-run mode...")
+                self.status = "DRY-RUN Deployment"
+                return
         else:
             try:
                 with open(self.path, 'rb') as data:
