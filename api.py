@@ -138,7 +138,8 @@ def launch():
          id_app = utils.id_generator()
 
     try:
-        dryrun= request.form['dryrun']
+        global dryrun
+        dryrun = request.form['dryrun']
         if dryrun == 'True':
             dryrun = True
         else:
@@ -275,8 +276,6 @@ def info_app(id_app):
                 if "launch_{}".format(id_app) in item.getName():
                     this_app_status = "pending, other application in the queue."
 
-
-
     except KeyError:
         response["status_code"]=404
         response["message"]="App with ID {} does not exist".format(id_app)
@@ -286,8 +285,10 @@ def info_app(id_app):
         return jsonify(response)
     else:
         response["status_code"]=200
-
-        response["message"]="Detail application {}".format(id_app)
+        if dryrun:
+            response["message"]="Application {} deployed in DRY-RUN mode".format(id_app)
+        else:
+            response["message"]="Detail application {}".format(id_app)
         response["data"] = dict(type="application",
                                 id=id_app,
                                 outputs=this_app.get("output"),
