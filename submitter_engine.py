@@ -74,11 +74,13 @@ class SubmitterEngine(object):
         logger.info("******  Launching the application ****** \n****** located there {} and with params {}******".format(path_to_file, parsed_params))
         if self.app_list and not dryrun:
             raise Exception("An application is already running, MiCADO doesn't currently support multi applications")
-        template = self._micado_parser_upload(path_to_file, parsed_params)
-        self.object_config.mapping(template)
+        
+        #template = self._micado_parser_upload(path_to_file, parsed_params)
+        #self.object_config.mapping(template)
+        template, dict_object_adaptors = self._validate(path_to_file, id_app, parsed_params)
     
-        dict_object_adaptors = self._instantiate_adaptors(id_app, dryrun, template)
-        logger.debug("list of objects adaptor: {}".format(dict_object_adaptors))
+        #dict_object_adaptors = self._instantiate_adaptors(id_app, dryrun, template)
+        #logger.debug("list of objects adaptor: {}".format(dict_object_adaptors))
         #self._save_file(id_app, path_to_file)
         self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys()), "adaptors_object": dict_object_adaptors}})
         self._update_json()
@@ -150,19 +152,59 @@ class SubmitterEngine(object):
         logger.info("update process done")
         logger.info("*******************")
 
+    def _validate(self, path_to_file, app_id=None, parsed_params=None):
+        """Validates app template, instantiate adaptors and validate adaptor translation
+        
+        Arguments:
+            path_to_file {str} -- path to the app template
+        
+        Keyword Arguments:
+            app_id {str} -- application id (default: {None})
+            parsed_params -- (default: {None})
+        
+        Returns:
+            tuple -- template and dictionary of adaptors
+        """
+        # MiCADO Validation
+        template = self._micado_parser_upload(path_to_file, parsed_params)
+        self.object_config.mapping(template)
+        logger.info("MiCADO Validation, the provided template is valid")
+
+        # Adaptors instantiation
+        dict_object_adaptors = self._instantiate_adaptors(app_id, dryrun, template)
+        logger.info("Adaptors are successfully instantiated")
+        logger.debug("list of objects adaptor: {}".format(dict_object_adaptors))
+
+        # Adaptors translation
+        try:
+            self._translate(dict_object_adaptors)
+        except MultiError:
+            raise
+        except AdaptorCritical:
+            logger.info("******* Critical error during deployment, starting to roll back *********")
+            if self.translated_adaptors:
+                logger.info("Starting clean-up on translated files")
+                self._cleanup(app_id, self.translated_adaptors)
+
+            logger.info("Adaptor translation wasn't successful...")
+            logger.info("*******************")
+            raise
+        logger.info("Adaptors are successfully translated")
+
+        return template, dict_object_adaptors
 
     def _engine(self,adaptors, template, app_id):
-        """ Engine itself. Creates first a id, then parse the input file. Retreive the list of id created by the translate methods of the adaptors.
+        """ Engine itself. Creates first an id, then parse the input file. Retreive the list of id created by the translate methods of the adaptors.
         Excute those id in their respective adaptor. Update the app_list and the json file.
         """
         try:
-            self._translate(adaptors)
+            #self._translate(adaptors)
             self._execute(app_id, adaptors)
             logger.debug(self.executed_adaptors)
 
         except MultiError:
             raise
-        except AdaptorCritical as e:
+        except AdaptorCritical:
             logger.info("******* Critical error during deployment, starting to roll back *********")
             if self.executed_adaptors:
                 logger.info("Starting undeploy on executed components")
@@ -216,7 +258,10 @@ class SubmitterEngine(object):
         if template is not None:
             for adaptor in self.adaptors_class_name:
                 logger.debug("instantiate {}, template".format(adaptor))
-                adaptor_id="{}_{}".format(app_id, adaptor.__name__)
+                if app_id:
+                    adaptor_id="{}_{}".format(app_id, adaptor.__name__)
+                else:
+                    adaptor_id = adaptor.__name__
                 obj = adaptor(adaptor_id, self.object_config.adaptor_config[adaptor.__name__], dryrun, template = template)
                 adaptors[adaptor.__name__] = obj
                 #adaptors.append(obj)
@@ -225,7 +270,10 @@ class SubmitterEngine(object):
         elif template is None:
             for adaptor in self.adaptors_class_name:
                 logger.debug("instantiate {}, no template".format(adaptor))
-                adaptor_id="{}_{}".format(app_id, adaptor.__name__)
+                if app_id:
+                    adaptor_id="{}_{}".format(app_id, adaptor.__name__)
+                else:
+                    adaptor_id = adaptor.__name__
                 obj = adaptor(adaptor_id,self.object_config.adaptor_config[adaptor.__name__], dryrun)
                 #adaptors.append(obj)
                 adaptors[adaptor.__name__] = obj
