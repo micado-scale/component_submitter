@@ -120,6 +120,7 @@ def launch():
     """
     response = dict(status_code="", message="", data=[])
     path_to_file = None
+    global dryrun
 
     try:
         path_to_file = request.form['input']
@@ -138,7 +139,6 @@ def launch():
          id_app = utils.id_generator()
 
     try:
-        global dryrun
         dryrun = request.form['dryrun']
         if dryrun == 'True':
             dryrun = True
@@ -157,6 +157,7 @@ def launch():
     if template:
         template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
         path_to_file = "files/templates/{}.yaml".format(id_app)
+
     if id_app in apps:
         response["message"] = "id already register on this service"
         response["status_code"] = 400
@@ -171,6 +172,42 @@ def launch():
     response["status_code"]= 200
     global last_error
     last_error = ''
+    return jsonify(response)
+
+@app.route('/v1.0/app/validate/', methods=['POST'])
+def validate():
+    """ API functions to validate a TOSCA template provided by the user
+
+        :params intput: path to the file wanted
+        :type input: string
+
+        :params params: dictionary with the update of input.
+        :type params: dictionary
+    """
+    response = dict(status_code="", message="", data=[])
+    path_to_file = None
+    global dryrun
+    dryrun = True
+
+    try:
+        path_to_file = request.form['input']
+    except Exception:
+        logger.info("no input provided")
+
+    try:
+        if not path_to_file:
+            template = request.files['file']       
+    except Exception:
+        logger.info("no file provided")
+
+    if template:
+        template.save("{}/files/templates/template.yaml".format(app.root_path))
+        path_to_file = "files/templates/template.yaml"
+
+    submitter._validate(path_to_file)
+
+    response["message"] = "The provided application template is valid"
+    response["status_code"]= 200
     return jsonify(response)
 
 
