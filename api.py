@@ -370,10 +370,12 @@ def list_app():
         return jsonify(response)
 
     for key, value in submitter.app_list.items():
+        if dryrun:
+            response["message"]="Application {} deployed in DRY-RUN mode".format(key)
         response["data"].append(dict(type="application",
-                                     id=key,
-                                     outputs=value.get("output"),
-                                     components=value.get("components")))
+                                    id=key,
+                                    outputs=value.get("output"),
+                                    components=value.get("components")))
     return jsonify(response)
 
 if __name__ == "__main__":
