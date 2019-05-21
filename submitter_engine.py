@@ -144,7 +144,7 @@ class SubmitterEngine(object):
 
         template = self._micado_parser_upload(path_to_file, parsed_params)
         self.object_config.mapping(template)
-        dict_object_adaptors = self._instantiate_adaptors(id_app, template)
+        dict_object_adaptors = self._instantiate_adaptors(id_app, dryrun, template)
         logger.debug("list of adaptor created: {}".format(dict_object_adaptors))
         self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys()), "adaptors_object": dict_object_adaptors}})
         self._update_json()
@@ -326,7 +326,7 @@ class SubmitterEngine(object):
 
     def _update(self, adaptors, app_id):
         """ method that will translate first the new component and then see if there's a difference, and then execute"""
-        logger.info("update of each components related to the application wanted")
+        logger.info("update of each component related to the application wanted")
         self.app_list.setdefault(app_id, {}).setdefault("output", {})
         for step in self.object_config.step_config['update']:
             adaptors[step].update()
@@ -336,7 +336,7 @@ class SubmitterEngine(object):
 
     def query(self, query, app_id):
         """ query """
-        for adaptor in self._instantiate_adaptors(app_id).values():
+        for adaptor in self._instantiate_adaptors(app_id, dryrun).values():
             try:
                 result = adaptor.query(query)
             except AttributeError:

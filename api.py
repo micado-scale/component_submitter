@@ -259,6 +259,16 @@ def update(id_app):
 
     response = dict(status_code="", message="", data=[])
     path_to_file = None
+
+    if not apps:
+        response["message"] = "There is no running applications to update"
+        response["status_code"] = 400
+        return jsonify(response)
+    elif id_app not in apps:
+        response["message"] = "There is no running application with ID={}, please use a correct application ID to update".format(id_app)
+        response["status_code"] = 400
+        return jsonify(response)
+
     for item in queue_threading.queue:
         if "update_{}".format(id_app) in item.getName():
             response["message"] = "this application has already an update pending, please wait for it to be completed before sending a new one."
@@ -370,10 +380,12 @@ def list_app():
         return jsonify(response)
 
     for key, value in submitter.app_list.items():
+        if dryrun:
+            response["message"]="Application {} deployed in DRY-RUN mode".format(key)
         response["data"].append(dict(type="application",
-                                     id=key,
-                                     outputs=value.get("output"),
-                                     components=value.get("components")))
+                                    id=key,
+                                    outputs=value.get("output"),
+                                    components=value.get("components")))
     return jsonify(response)
 
 if __name__ == "__main__":
