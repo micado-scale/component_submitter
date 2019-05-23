@@ -259,6 +259,16 @@ def update(id_app):
 
     response = dict(status_code="", message="", data=[])
     path_to_file = None
+
+    if not apps:
+        response["message"] = "There is no running applications to update"
+        response["status_code"] = 400
+        return jsonify(response)
+    elif id_app not in apps:
+        response["message"] = "There is no running application with ID={}, please use a correct application ID to update".format(id_app)
+        response["status_code"] = 400
+        return jsonify(response)
+
     for item in queue_threading.queue:
         if "update_{}".format(id_app) in item.getName():
             response["message"] = "this application has already an update pending, please wait for it to be completed before sending a new one."
