@@ -429,7 +429,7 @@ class OccopusAdaptor(abco.Adaptor):
 
         while not self.created and i < 5:
             try:
-                self.occopus = self.client.containers.get('occopus')
+                self.occopus = self.client.containers.list(filters={'label':'io.kubernetes.container.name=occopus'})[0]
                 self.created = True
             except Exception as e:
                 i += 1
