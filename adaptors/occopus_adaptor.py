@@ -325,6 +325,9 @@ class OccopusAdaptor(abco.Adaptor):
             security_groups = list()
             security_groups = properties["security_group_ids"].value
             self.node_data[key]["security_group_ids"] = security_groups
+        if properties.get("tags") is not None:
+            tags = properties["tags"].value
+            self.node_data[key]["tags"] = tags
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
 
