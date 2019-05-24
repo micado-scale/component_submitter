@@ -114,3 +114,4 @@ files/templates/*.yml
 .idea
 system/ids.json
 .vscode
+micado_application.py

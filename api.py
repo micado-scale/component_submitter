@@ -123,6 +123,20 @@ def launch():
     global dryrun
 
     try:
+        dryrun = request.form['dryrun']
+        if dryrun == 'True':
+            dryrun = True
+        else:
+            dryrun = False
+    except Exception:
+        dryrun = False
+
+    if apps:
+        response["message"] = "An application is already running, MiCADO doesn't currently support multi applications"
+        response["status_code"] = 400
+        return jsonify(response)
+
+    try:
         path_to_file = request.form['input']
     except Exception:
         logger.info("no input provided")
@@ -132,20 +146,15 @@ def launch():
             template = request.files['file']       
     except Exception:
         logger.info("no file provided")
+        response["message"] = "Invalid file for the template"
+        response["status_code"] = 400
+        return jsonify(response)
+        
 
     try:
          id_app= request.form['id']
     except Exception:
          id_app = utils.id_generator()
-
-    try:
-        dryrun = request.form['dryrun']
-        if dryrun == 'True':
-            dryrun = True
-        else:
-            dryrun = False
-    except Exception:
-        dryrun = False
 
     try:
          params= request.form['params']
