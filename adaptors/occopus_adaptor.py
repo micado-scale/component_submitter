@@ -7,6 +7,8 @@ import time
 import requests
 import utils
 
+import jinja2
+
 from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
 from toscaparser.tosca_template import ToscaTemplate
@@ -25,7 +27,8 @@ class OccopusAdaptor(abco.Adaptor):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")
         self.status = "init"
         self.config = config
-        self.node_name = "node_def:worker"
+        self.node_prefix = "node_def:"
+        self.node_name = ""
         self.worker_infra_name = "micado_worker_infra"
         self.min_instances = 1
         self.max_instances = 1
@@ -39,10 +42,7 @@ class OccopusAdaptor(abco.Adaptor):
         self.cloudinit_path = "/var/lib/submitter/system/cloud_init_worker.yaml"
 
         self.node_data = {}
-        self.cloudsigma = {}
-        self.ec2 = {}
-        self.nova = {}
-        self.cloudbroker = {}
+        self.node_def = {}
 
         self.created = False
         self.client = None
@@ -60,75 +60,47 @@ class OccopusAdaptor(abco.Adaptor):
         Translate the self.tpl subset to Occopus node definition and infrastructure format
         The adaptor create a mapping between TOSCA and Occopus template descriptor.
         """
-        self.node_data = {}
+        self.node_def = {}
         logger.info("Starting OccoTranslation")
-        ec2 = False
-        nova = False
-        cloudbroker = False
-        cloudsigma = False
         self.status = "translating"
 
         for node in self.template.nodetemplates:
 
+            self.node_name = node.name.replace('_','-')
+            self.node_data = {}
+
             cloud_type = self._node_data_get_interface(node, "resource")
-            if cloud_type == "cloudsigma":
+            if not cloud_type:
+                continue
+            elif cloud_type == "cloudsigma":
                 logger.info("CloudSigma resource detected")
                 self._node_data_get_cloudsigma_host_properties(node, "resource")
-                self._get_policies()
-                self._get_infra_def(tmp)
-                cloudsigma = True
-            if cloud_type == "ec2":
+            elif cloud_type == "ec2":
                 logger.info("EC2 resource detected")
                 self._node_data_get_ec2_host_properties(node, "resource")
-                self._get_policies()
-                self._get_infra_def(tmp)
-                ec2 = True
-            if cloud_type == "cloudbroker":
+            elif cloud_type == "cloudbroker":
                 logger.info("CloudBroker resource detected")
                 self._node_data_get_cloudbroker_host_properties(node, "resource")
-                self._get_policies()
-                self._get_infra_def(tmp)
-                cloudbroker = True
-            if cloud_type == "nova":
+            elif cloud_type == "nova":
                 logger.info("Nova resource detected")
                 self._node_data_get_nova_host_properties(node, "resource")
-                self._get_policies()
-                self._get_infra_def(tmp)
-                nova = True
 
-        if cloudsigma:
-            self.cloudsigma = {self.node_name: []}
-            self.cloudsigma[self.node_name].append(self.node_data)
+            self._get_policies()
+            self._get_infra_def(tmp)
+
+            node_type = self.node_prefix + self.node_name
+            self.node_def.setdefault(node_type, [])
+            self.node_def[node_type].append(self.node_data)
             if tmp:
-                utils.dump_order_yaml(self.cloudsigma, self.node_path_tmp)
+                utils.dump_order_yaml(self.node_def, self.node_path_tmp)
             else:
-                utils.dump_order_yaml(self.cloudsigma, self.node_path)
-        elif ec2:
-            self.ec2 = {self.node_name: []}
-            self.ec2[self.node_name].append(self.node_data)
-            if tmp:
-                utils.dump_order_yaml(self.ec2, self.node_path_tmp)
-            else:
-                utils.dump_order_yaml(self.ec2, self.node_path)
-        elif cloudbroker:
-            self.cloudbroker = {self.node_name: []}
-            self.cloudbroker[self.node_name].append(self.node_data)
-            if tmp:
-                utils.dump_order_yaml(self.cloudbroker, self.node_path_tmp)
-            else:
-                utils.dump_order_yaml(self.cloudbroker, self.node_path)
-        elif nova:
-            self.nova = {self.node_name: []}
-            self.nova[self.node_name].append(self.node_data)
-            if tmp:
-                utils.dump_order_yaml(self.nova, self.node_path_tmp)
-            else:
-                utils.dump_order_yaml(self.nova, self.node_path)
+                utils.dump_order_yaml(self.node_def, self.node_path)
+
         self.status = "translated"
 
     def execute(self):
         """
-        Import Occopus node definition, and build ip the infrastructure
+        Import Occopus node definition, and build up the infrastructure
         through occopus container.
         """
         logger.info("Starting Occopus execution {}".format(self.ID))
@@ -238,6 +210,7 @@ class OccopusAdaptor(abco.Adaptor):
             self.node_data.setdefault(key, {}).setdefault("endpoint", cloud_inputs["endpoint_cloud"])
 
             return cloud_inputs["interface_cloud"]
+        return None
 
 
     def _node_data_get_context_section(self,properties):
@@ -395,7 +368,9 @@ class OccopusAdaptor(abco.Adaptor):
         yaml.default_flow_style = False
         try:
             with open(self.cloudinit_path, 'r') as f:
-                default_cloud_config = yaml.round_trip_load(f, preserve_quotes=True)
+                template = jinja2.Template(f.read())
+                rendered = template.render(worker_name=self.node_name)
+                default_cloud_config = yaml.round_trip_load(rendered, preserve_quotes=True)
         except OSError as e:
             logger.error(e)
         if override:
@@ -417,12 +392,24 @@ class OccopusAdaptor(abco.Adaptor):
         If the template doesn't have policy section or it is invalid then the adaptor set the default value """
         yaml.default_flow_style = False
 
+        node_infra = {}
+        node_infra['name'] = self.node_name
+        node_infra['type'] = self.node_name
+        node_infra.setdefault('scaling', {})['min'] = self.min_instances
+        node_infra.setdefault('scaling', {})['max'] = self.max_instances
+
+        if not tmp and os.path.isfile(self.infra_def_path_output):
+            path = self.infra_def_path_output
+        elif tmp and os.path.isfile(self.infra_def_path_output_tmp):
+            path = self.infra_def_path_output_tmp
+        else:
+            path = self.infra_def_path_input
+
         try:
-            with open(self.infra_def_path_input, 'r') as f:
+            with open(path, 'r') as f:
                 infra_def = yaml.round_trip_load(f, preserve_quotes=True)
-            infra_def["nodes"][0]["scaling"]["min"] = self.min_instances
-            infra_def["nodes"][0]["scaling"]["max"] = self.max_instances
-            infra_def["variables"]["master_host_ip"]
+            infra_def.setdefault('nodes', [])
+            infra_def["nodes"].append(node_infra)
         except OSError as e:
             logger.error(e)
 
@@ -453,10 +440,12 @@ class OccopusAdaptor(abco.Adaptor):
 
     def _get_policies(self):
         """ Get the TOSCA policies """
+        self.min_instances = 1
+        self.max_instances = 1
         for policy in self.template.policies:
             for target in policy.targets_list:
-                if "Compute" in target.type:
-                    logger.debug("policy target found for compute node")
+                if self.node_name == target.name.replace('_', '-'):
+                    logger.debug("policy target match for compute node")
                     properties = policy.get_properties()
                     self.min_instances = properties["min_instances"].value
                     self.max_instances = properties["max_instances"].value
