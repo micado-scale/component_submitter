@@ -296,6 +296,14 @@ class OccopusAdaptor(abco.Adaptor):
             pubkeys = list()
             pubkeys.append(properties["public_key_id"].value)
             self.node_data[key]["description"]["pubkeys"] = pubkeys
+        if properties.get("hv_relaxed") is not None:
+            self.node_data.setdefault(key, {})\
+            .setdefault("description", {})\
+            .setdefault("hv_relaxed", properties["hv_relaxed"].value)
+        if properties.get("hv_tsc") is not None:
+            self.node_data.setdefault(key, {})\
+            .setdefault("description", {})\
+            .setdefault("hv_tsc", properties["hv_tsc"].value)
         nics=properties.get("nics").value
         self.node_data[key]["description"]["nics"] = nics
         self._node_data_get_context_section(properties)
@@ -325,6 +333,9 @@ class OccopusAdaptor(abco.Adaptor):
             security_groups = list()
             security_groups = properties["security_group_ids"].value
             self.node_data[key]["security_group_ids"] = security_groups
+        if properties.get("tags") is not None:
+            tags = properties["tags"].value
+            self.node_data[key]["tags"] = tags
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
 
