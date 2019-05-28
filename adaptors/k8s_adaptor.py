@@ -124,9 +124,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             return
 
         if update:
-            operation = ['kubectl', 'apply', '-f', self.manifest_path]
+            operation = ['kubectl', 'apply', '-n', 'default', '-f', self.manifest_path]
         else:
-            operation = ['kubectl', 'create', '-f', self.manifest_path, '--save-config']
+            operation = ['kubectl', 'create', '-n', 'default', '-f', self.manifest_path, '--save-config']
 
         try:
             if self.config['dry_run']:
@@ -176,7 +176,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         error = False
         
         # Try to delete workloads relying on hosted mounts first (WORKAROUND)
-        operation = ["kubectl", "delete", "-f", self.manifest_path, "-l", "!volume"]
+        operation = ["kubectl", "delete", "-n", "default", "-f", self.manifest_path, "-l", "!volume"]
         try:
             if self.config['dry_run']:
                 logger.info("DRY-RUN: kubectl removes all workloads but hosted volumes...")
@@ -189,7 +189,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         time.sleep(15)
 
         # Delete workloads hosting volumes
-        operation = ["kubectl", "delete", "-f", self.manifest_path, "-l", "volume"]
+        operation = ["kubectl", "delete", "-n", "default", "-f", self.manifest_path, "-l", "volume"]
         try:
             if self.config['dry_run']:
                 logger.info("DRY-RUN: kubectl removes remaining workloads...")
@@ -219,8 +219,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             if self.config['dry_run']:
                 logger.info("DRY-RUN: cleaning up old manifests...")
             else:
-                operation = ["docker", "exec", "occopus_redis", "redis-cli", "FLUSHALL"]
-                subprocess.run(operation, stderr=subprocess.PIPE, check=True)
+                operation = ["docker ps -f label=io.kubernetes.container.name=occopus-redis -q"]
+                occo_id = subprocess.check_output(operation, stderr=subprocess.PIPE, shell=True).decode('utf-8').strip()
+                operation = ["docker exec " + occo_id + " redis-cli FLUSHALL"]
+                subprocess.run(operation, stderr=subprocess.PIPE, shell=True, check=True)
         except subprocess.CalledProcessError:
             logger.warning("Could not flush occopus_redis")
 
@@ -289,7 +291,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             vol_list = pod_inputs.setdefault('volumes', [])
             vol_list += volumes
         if volume_mounts:
-            vol_list = properties.setdefault('volumeMounts', []) 
+            vol_list = container.setdefault('volumeMounts', []) 
             vol_list += volume_mounts
 
         # Get pod metadata from container or resource

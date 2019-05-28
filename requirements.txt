@@ -9,6 +9,7 @@ Flask==1.0.2
 idna==2.6
 itsdangerous==0.24
 Jinja2==2.10
+kubernetes==9.0.0
 MarkupSafe==1.0
 pbr==4.0.2
 prettytable==0.7.2
