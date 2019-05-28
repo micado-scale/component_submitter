@@ -72,7 +72,7 @@ class SubmitterEngine(object):
         global dryrun
         dryrun = dry_run
         logger.info("******  Launching the application ****** \n****** located there {} and with params {}******".format(path_to_file, parsed_params))
-        if self.app_list and not dryrun:
+        if self.app_list:
             raise Exception("An application is already running, MiCADO doesn't currently support multi applications")
         
         #template = self._micado_parser_upload(path_to_file, parsed_params)

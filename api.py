@@ -131,7 +131,7 @@ def launch():
     except Exception:
         dryrun = False
 
-    if apps and not dryrun:
+    if apps:
         response["message"] = "An application is already running, MiCADO doesn't currently support multi applications"
         response["status_code"] = 400
         return jsonify(response)
