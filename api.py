@@ -130,7 +130,7 @@ def launch():
             dryrun = False
     except Exception:
         dryrun = False
-
+        
     if apps:
         response["message"] = "An application is already running, MiCADO doesn't currently support multi applications"
         response["status_code"] = 400
