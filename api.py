@@ -130,23 +130,25 @@ def launch():
             dryrun = False
     except Exception:
         dryrun = False
-        
+
     if apps:
-        response["message"] = "An application is already running, MiCADO doesn't currently support multi applications"
+        response["message"] = "An application is already running, MiCADO doesn't currently support multiple applications"
         response["status_code"] = 400
         return jsonify(response)
-
+    
     try:
         path_to_file = request.form['input']
+        logger.debug("User provided a URL for the application template")
     except Exception:
-        logger.info("no input provided")
+        pass
 
     try:
         if not path_to_file:
-            template = request.files['file']       
+            template = request.files['file']
+            logger.debug("User provided a local file for the application template")       
     except Exception:
-        logger.info("no file provided")
-        response["message"] = "Invalid file for the template"
+        logger.error("Neither a correct URL nor a local file has been provided for the application template")
+        response["message"] = "Application template is required; please provide a correct URL or file for the application template"
         response["status_code"] = 400
         return jsonify(response)
         
