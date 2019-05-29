@@ -128,7 +128,7 @@ class OccopusAdaptor(abco.Adaptor):
                 logger.info(result)
                 if "Successfully imported" in result[1].decode("utf-8"):
                     try:
-                        logger.info("Occopus build starting...")
+                        logger.debug("Occopus build starting...")
                         exit_code, out = self.occopus.exec_run("occopus-build {} -i {} --auth_data_path {} --parallelize"
                                                           .format(self.occo_infra_path,
                                                                   self.worker_infra_name,
@@ -139,7 +139,7 @@ class OccopusAdaptor(abco.Adaptor):
                                                   .format(self.occopus_address, self.worker_infra_name))
                         if occo_api_call.status_code != 200:
                             raise AdaptorCritical("Cannot submit infra to Occopus API!")
-                        logger.info("Occopus build has been successful")
+                        logger.debug("Occopus build has been successful")
                         
                     except docker.errors.APIError as e:
                         logger.error("{0}. Error caught in calling Docker container".format(str(e)))
