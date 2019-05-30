@@ -161,7 +161,7 @@ class OccopusAdaptor(abco.Adaptor):
                                                         .format(self.occo_infra_path,
                                                                 self.worker_infra_name,
                                                                 self.auth_data_file))
-                        logger.info(requests.post("http://{0}/infrastructures/{1}/attach"
+                        logger.debug(requests.post("http://{0}/infrastructures/{1}/attach"
                                                 .format(self.occopus_address, self.worker_infra_name)))
                         logger.info("Occopus build has been successful")
                     except Exception as e:

@@ -202,14 +202,19 @@ def validate():
 
     try:
         path_to_file = request.form['input']
+        logger.debug("User provided a URL for the application template")
     except Exception:
-        logger.info("no input provided")
+        pass
 
     try:
         if not path_to_file:
-            template = request.files['file']       
+            template = request.files['file']
+            logger.debug("User provided a local file for the application template")       
     except Exception:
-        logger.info("no file provided")
+        logger.error("Neither a correct URL nor a local file has been provided for the application template")
+        response["message"] = "Application template is required; please provide a correct URL or file for the application template"
+        response["status_code"] = 400
+        return jsonify(response)
 
     if template:
         template.save("{}/files/templates/template.yaml".format(app.root_path))
@@ -237,19 +242,21 @@ def undeploy(id_app):
             response["message"]= "correctly send force undeploy command to MiCADO master."
             return jsonify(response)
     except Exception:
-        logger.info("no force flag found")
+        logger.debug("no force flag found")
     
     if not apps:
         response["message"] = "There is no running applications to undelploy"
         response["status_code"] = 400
         return jsonify(response)
     elif id_app not in apps:
+        logger.warning("Trying to undeploy an application with a non-existing id")
         response["message"] = "There is no running application with ID={}, please use a correct application ID".format(id_app)
         response["status_code"] = 400
         return jsonify(response)
 
     for item in queue_threading.queue:
         if "undeploy_{}".format(id_app) in item.getName():
+            logger.debug("The application with id={} has already undeploy action pending")
             response["message"] = "this application has already undeploy action pending."
             response['status_code'] = 400
             return jsonify(response)
@@ -257,6 +264,7 @@ def undeploy(id_app):
     thread.setName("undeploy_{}".format(id_app))
     queue_threading.put(thread)
 
+    logger.debug("successfully send undeploy request for {} to MiCADO master".format(id_app))
     response["message"] = "successfully send undeployed for {} to MiCADO master".format(id_app)
     response["status_code"] = 200
     global last_error

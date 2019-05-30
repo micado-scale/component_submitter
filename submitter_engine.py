@@ -166,11 +166,12 @@ class SubmitterEngine(object):
             tuple -- template and dictionary of adaptors
         """
         # MiCADO Validation
+        logger.info("****** Starting the validation process of {} *****".format(path_to_file))
         template = self._micado_parser_upload(path_to_file, parsed_params)
         self.object_config.mapping(template)
-        logger.info("MiCADO Validation, the provided template is valid")
 
         # Adaptors instantiation
+        logger.debug("Instantiating the required adaptors")
         dict_object_adaptors = self._instantiate_adaptors(app_id, dryrun, template)
         logger.info("Adaptors are successfully instantiated")
         logger.debug("list of objects adaptor: {}".format(dict_object_adaptors))
@@ -223,7 +224,7 @@ class SubmitterEngine(object):
 
     def _micado_parser_upload(self, path, parsed_params):
         """ Parse the file and retrieve the object """
-        logger.debug("instantiation of submitter and retrieve template")
+        logger.debug("Instantiation of the submitter and retrieving the template")
         parser = MiCADOParser()
         template= parser.set_template(path=path, parsed_params=parsed_params)
         logger.info("Valid & Compatible TOSCA template")
@@ -386,7 +387,7 @@ class SubmitterEngine(object):
                 if "components" in k or "outputs" in k:
                     data_to_save[key]={ k: v}
         if not data_to_save:
-            logger.info("data to save is empty")
+            logger.debug("data to save is empty")
             data_to_save = {}
 
 
