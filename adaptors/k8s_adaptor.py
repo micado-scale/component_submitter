@@ -129,9 +129,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             return
         
         if update:
-            operation = ['kubectl', 'apply', '-f', self.manifest_path]
+            operation = ['kubectl', 'apply', '-n', 'default', '-f', self.manifest_path]
         else:
-            operation = ['kubectl', 'create', '-f', self.manifest_path, '--save-config']
+            operation = ['kubectl', 'create', '-n', 'default', '-f', self.manifest_path, '--save-config']
 
         try:
             logger.debug("Executing {}".format(operation))
@@ -178,7 +178,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         error = False
         
         # Try to delete workloads relying on hosted mounts first (WORKAROUND)
-        operation = ["kubectl", "delete", "-f", self.manifest_path, "-l", "!volume"]
+        operation = ["kubectl", "delete", "-n", "default", "-f", self.manifest_path, "-l", "!volume"]
         try:
             if self.dryrun:
                 logger.info("DRY-RUN: kubectl removes all workloads but hosted volumes...")
@@ -191,7 +191,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         time.sleep(15)
 
         # Delete workloads hosting volumes
-        operation = ["kubectl", "delete", "-f", self.manifest_path, "-l", "volume"]
+        operation = ["kubectl", "delete", "-n", "default", "-f", self.manifest_path, "-l", "volume"]
         try:
             if self.dryrun:
                 logger.info("DRY-RUN: kubectl removes remaining workloads...")
@@ -221,8 +221,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             if self.dryrun:
                 logger.info("DRY-RUN: cleaning up old manifests...")
             else:
-                operation = ["docker", "exec", "occopus_redis", "redis-cli", "FLUSHALL"]
-                subprocess.run(operation, stderr=subprocess.PIPE, check=True)
+                operation = ["docker ps -f label=io.kubernetes.container.name=occopus-redis -q"]
+                occo_id = subprocess.check_output(operation, stderr=subprocess.PIPE, shell=True).decode('utf-8').strip()
+                operation = ["docker exec " + occo_id + " redis-cli FLUSHALL"]
+                subprocess.run(operation, stderr=subprocess.PIPE, shell=True, check=True)
         except subprocess.CalledProcessError:
             logger.warning("Could not flush occopus_redis")
 
@@ -291,7 +293,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             vol_list = pod_inputs.setdefault('volumes', [])
             vol_list += volumes
         if volume_mounts:
-            vol_list = properties.setdefault('volumeMounts', []) 
+            vol_list = container.setdefault('volumeMounts', []) 
             vol_list += volume_mounts
 
         # Get pod metadata from container or resource
@@ -299,6 +301,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         pod_metadata.setdefault('labels', {'run': node.name})
         pod_labels = pod_metadata.get('labels')
         pod_metadata.setdefault('namespace', resource_namespace)
+
+        # Discover node affinity
+        node_affinity = self._get_hosts(node)
+        pod_inputs.update(node_affinity)
 
         # Separate data for pod.spec
         pod_data = _separate_data(POD_SPEC_FIELDS, workload_inputs)
@@ -361,7 +367,38 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             if not manifest:
                 continue
             self.manifests.append(manifest)
-            self.services.append(service_info)    
+            self.services.append(service_info)
+
+    def _get_hosts(self, node):
+        """ Return node affinity for the spec """
+        host_list = []
+        for host, rel in node.related.items():
+            if rel.type == 'tosca.relationships.HostedOn':
+                host_list.append(host.name)
+        if not host_list:
+            return {}
+
+        # Build the affinity descriptor
+        affinity = {
+            'affinity': {
+                'nodeAffinity': {
+                    'requiredDuringSchedulingIgnoredDuringExecution': {
+                        'nodeSelectorTerms': [
+                            {
+                                'matchExpressions': [
+                                    {
+                                        'key': 'micado.eu/node_type',
+                                        'operator': 'In',
+                                        'values': host_list
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+        return affinity
 
     def _get_volumes(self, container_node):
         """ Return the volume spec for the workload """
