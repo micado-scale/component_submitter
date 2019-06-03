@@ -1,5 +1,4 @@
 main_config:
-  dry_run: False
   log_level: INFO
   path_log: "submitter.log"
 
