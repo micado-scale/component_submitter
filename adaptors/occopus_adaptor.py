@@ -157,15 +157,22 @@ class OccopusAdaptor(abco.Adaptor):
                 if "Successfully imported" in result[1].decode("utf-8"):
                     try:
                         logger.info("Occopus build starting...")
-                        buildinfo = self.occopus.exec_run("occopus-build {} -i {} --auth_data_path {} --parallelize"
+                        exit_code, out = self.occopus.exec_run("occopus-build {} -i {} --auth_data_path {} --parallelize"
                                                         .format(self.occo_infra_path,
                                                                 self.worker_infra_name,
                                                                 self.auth_data_file))
-                        logger.debug(requests.post("http://{0}/infrastructures/{1}/attach"
-                                                .format(self.occopus_address, self.worker_infra_name)))
+                        if exit_code == 1:
+                            raise AdaptorCritical(out)
+                        occo_api_call = requests.post("http://{0}/infrastructures/{1}/attach"
+                                                .format(self.occopus_address, self.worker_infra_name))
+                        if occo_api_call.status_code != 200:
+                            raise AdaptorCritical("Cannot submit infra to Occopus API!")
                         logger.info("Occopus build has been successful")
-                    except Exception as e:
-                        logger.error("{0}. Error caught in deploy phase".format(str(e)))
+                        
+                    except docker.errors.APIError as e:
+                        logger.error("{0}. Error caught in calling Docker container".format(str(e)))
+                    except requests.exceptions.RequestException as e:
+                        logger.error("{0}. Error caught in call to occopus API".format(str(e)))
                 else:
                     logger.error("Occopus import was unsuccessful!")
             else:

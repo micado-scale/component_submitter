@@ -60,14 +60,14 @@ def threads_management():
         try:
            if not queue_exception.empty():
                exception = queue_exception.get()
-               logger.info("exception caught on thread {}".format(exception["name"]))
+               logger.error("exception caught on thread {}".format(exception["name"]))
                if "launch" in exception["name"]:
                    apps.pop(apps.index(exception["name"].split('_',1)[1]))
                raise exception["exception"]
 
         except Exception as e:
             last_error = e
-            logger.info("{}".format(e))
+            logger.error("{}".format(e))
 
 
 __init__()
