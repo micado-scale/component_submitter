@@ -120,6 +120,5 @@ system/infrastructure_descriptor.yaml
 system/ids.json
 run-flask.sh
 stressng.yaml
-system/key_config.yml
 call_api.py
 .gitignore
