@@ -4,6 +4,7 @@ import logging
 import requests
 from toscaparser.tosca_template import ToscaTemplate
 from abstracts import base_adaptor as abco
+from api import validate_only
 from abstracts.exceptions import AdaptorCritical
 import ruamel.yaml as yaml
 
@@ -62,12 +63,13 @@ class PkAdaptor(abco.Adaptor):
                     self.pk_data[SCALING][SERVICES].append(service)
             logger.info("Policy of {0} is translated".format(target.name))
 
-        if tmp is False:
-            self._yaml_write(self.path)
-            logger.info("PK file created")
-        else:
-            self._yaml_write(self.tmp_path)
-            logger.info("Updated PK file created")
+        if not validate_only:
+            if tmp is False:
+                self._yaml_write(self.path)
+                logger.info("PK file created")
+            else:
+                self._yaml_write(self.tmp_path)
+                logger.info("Updated PK file created")
         self.status = "translated"
 
     def execute(self):

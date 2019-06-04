@@ -8,6 +8,7 @@ import time
 import kubernetes.client
 import kubernetes.config
 from toscaparser.tosca_template import ToscaTemplate
+from api import validate_only
 
 import utils
 from abstracts import base_adaptor
@@ -105,10 +106,11 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             self.status = "Skipped Translation"
             return
 
-        if update:
-            utils.dump_list_yaml(self.manifests, self.manifest_tmp_path)
-        else:
-            utils.dump_list_yaml(self.manifests, self.manifest_path)
+        if not validate_only:
+            if update:
+                utils.dump_list_yaml(self.manifests, self.manifest_tmp_path)
+            else:
+                utils.dump_list_yaml(self.manifests, self.manifest_path)
 
         logger.info("Translation complete")
         self.status = "Translated"
