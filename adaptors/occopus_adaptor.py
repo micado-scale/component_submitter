@@ -12,6 +12,7 @@ import jinja2
 from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
 from toscaparser.tosca_template import ToscaTemplate
+from api import validate_only
 
 logger = logging.getLogger("adaptor."+__name__)
 
@@ -93,10 +94,12 @@ class OccopusAdaptor(abco.Adaptor):
             node_type = self.node_prefix + self.node_name
             self.node_def.setdefault(node_type, [])
             self.node_def[node_type].append(self.node_data)
-            if tmp:
-                utils.dump_order_yaml(self.node_def, self.node_path_tmp)
-            else:
-                utils.dump_order_yaml(self.node_def, self.node_path)
+
+            if not validate_only:
+                if tmp:
+                    utils.dump_order_yaml(self.node_def, self.node_path_tmp)
+                else:
+                    utils.dump_order_yaml(self.node_def, self.node_path)
 
         self.status = "translated"
 
