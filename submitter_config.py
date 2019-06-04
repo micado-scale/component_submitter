@@ -32,14 +32,14 @@ class SubmitterConfig():
   """
 
   def __init__(self, testing=None):
-      if testing:
-          CONFIG_FILE = testing
-
       logger.debug("initialisation of SubmitterConfig class")
+      if testing:
+          self.config_path = testing
+      else:
+          self.config_path = CONFIG_FILE
       config = self._reading_config()
       self.main_config = config["main_config"]
       self.step_config = config["step"]
-
       self.mapping()
 
 
@@ -68,7 +68,8 @@ class SubmitterConfig():
       """reading the config file and creating a dictionary related to it"""
       logger.debug("reading config file")
       dic_types=dict()
-      with open(CONFIG_FILE, 'r') as stream:
+
+      with open(self.config_path, 'r') as stream:
           try:
                dic_types=yaml.load(stream)
           except yaml.YAMLError as exc:
