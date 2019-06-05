@@ -386,9 +386,7 @@ class SubmitterEngine(object):
                 data_to_save.setdefault(key, {})
                 if isinstance(self.app_list[key], dict):
                     for k, v in self.app_list[key].items():
-                        logger.info("key is: {} k is {} v is {}".format(key, k,v))
                         if "components" in k or "outputs" in k or "dry_run" in k: 
-                            logger.info("putting components")
                             data_to_save[key].setdefault(k,v)
         if not data_to_save:
             logger.debug("data to save is empty")
