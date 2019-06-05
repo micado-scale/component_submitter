@@ -15,8 +15,7 @@ import urllib.request
 
 def __init__():
 
-    global logger, submitter, queue_exception, queue_threading, apps, validate_only
-    validate_only = False
+    global logger, submitter, queue_exception, queue_threading, apps
     apps = list()
     logger =  logging.getLogger("submitter."+__name__)
     submitter = SubmitterEngine()
