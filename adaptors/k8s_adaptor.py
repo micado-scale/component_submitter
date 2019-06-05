@@ -39,7 +39,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     
     """
     
-    def __init__(self, adaptor_id, config, dryrun, template=None):
+    def __init__(self, adaptor_id, config, dryrun, validate=False, template=None):
         """ init method of the Adaptor """ 
         super().__init__()
 
@@ -61,10 +61,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.services = []
         self.volumes = {}
         self.output = {}
-
+        self.validate = validate
         logger.info("Kubernetes Adaptor is ready.")
         self.status = "Initialised"
-
     def translate(self, update=False):
         """ Translate the relevant sections of the ADT into a Kubernetes Manifest """
         logger.info("Translating into Kubernetes Manifests")
@@ -106,7 +105,8 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             self.status = "Skipped Translation"
             return
 
-        if not validate_only:
+        if self.validate is False:
+            logger.info("self validate is false")
             if update:
                 utils.dump_list_yaml(self.manifests, self.manifest_tmp_path)
             else:

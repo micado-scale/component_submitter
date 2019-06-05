@@ -17,7 +17,7 @@ PK = (STACK, DATA, SOURCES, CONSTANTS, QUERIES, ALERTS, SCALING, NODES, SERVICES
 
 class PkAdaptor(abco.Adaptor):
 
-    def __init__(self, adaptor_id, config, dryrun, template=None):
+    def __init__(self, adaptor_id, config, dryrun, validate=False, template=None):
 
         super().__init__()
         if template and not isinstance(template, ToscaTemplate):
@@ -25,6 +25,7 @@ class PkAdaptor(abco.Adaptor):
         logger.info("Initialising the Pk adaptor with ID, config & TPL...")
         self.config = config
         self.dryrun = dryrun
+        self.validate = validate
         self.pk_data = {}
         self.ID = adaptor_id
         self.status = "init"
@@ -63,7 +64,7 @@ class PkAdaptor(abco.Adaptor):
                     self.pk_data[SCALING][SERVICES].append(service)
             logger.info("Policy of {0} is translated".format(target.name))
 
-        if not validate_only:
+        if self.validate is False:
             if tmp is False:
                 self._yaml_write(self.path)
                 logger.info("PK file created")

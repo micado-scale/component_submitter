@@ -121,7 +121,6 @@ def launch():
     """
     response = dict(status_code="", message="", data=[])
     path_to_file = None
-    global dryrun
 
     try:
         dryrun = request.form['dryrun']
@@ -198,9 +197,7 @@ def validate():
     """
     response = dict(status_code="", message="", data=[])
     path_to_file = None
-    global dryrun
-    dryrun = True
-    validate_only = True
+    validate= True
 
     try:
         path_to_file = request.form['input']
@@ -222,7 +219,7 @@ def validate():
         template.save("{}/files/templates/template.yaml".format(app.root_path))
         path_to_file = "files/templates/template.yaml"
 
-    submitter._validate(path_to_file)
+    submitter._validate(path_to_file, validate=True)
 
     response["message"] = "The provided application template is valid"
     response["status_code"]= 200

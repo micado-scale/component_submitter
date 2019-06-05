@@ -19,7 +19,7 @@ logger = logging.getLogger("adaptor."+__name__)
 
 class OccopusAdaptor(abco.Adaptor):
 
-    def __init__(self, adaptor_id, config, dryrun, template=None):
+    def __init__(self, adaptor_id, config, dryrun, validate=False, template=None):
         super().__init__()
         """
         Constructor method of the Adaptor
@@ -29,6 +29,7 @@ class OccopusAdaptor(abco.Adaptor):
         self.status = "init"
         self.dryrun = dryrun
         self.config = config
+        self.validate = validate
         self.node_prefix = "node_def:"
         self.node_name = ""
         self.worker_infra_name = "micado_worker_infra"
@@ -95,7 +96,7 @@ class OccopusAdaptor(abco.Adaptor):
             self.node_def.setdefault(node_type, [])
             self.node_def[node_type].append(self.node_data)
 
-            if not validate_only:
+            if self.validate is False:
                 if tmp:
                     utils.dump_order_yaml(self.node_def, self.node_path_tmp)
                 else:
@@ -425,21 +426,21 @@ class OccopusAdaptor(abco.Adaptor):
             path = self.infra_def_path_output_tmp
         else:
             path = self.infra_def_path_input
+        if self.validate is False:
+            try:
+                with open(path, 'r') as f:
+                    infra_def = yaml.round_trip_load(f, preserve_quotes=True)
+                infra_def.setdefault('nodes', [])
+                infra_def["nodes"].append(node_infra)
+            except OSError as e:
+                logger.error(e)
 
-        try:
-            with open(path, 'r') as f:
-                infra_def = yaml.round_trip_load(f, preserve_quotes=True)
-            infra_def.setdefault('nodes', [])
-            infra_def["nodes"].append(node_infra)
-        except OSError as e:
-            logger.error(e)
-
-        if tmp:
-            with open(self.infra_def_path_output_tmp, 'w') as ofile:
-                yaml.round_trip_dump(infra_def, ofile)
-        else:
-            with open(self.infra_def_path_output, 'w') as ofile:
-                yaml.round_trip_dump(infra_def, ofile)
+            if tmp:
+                with open(self.infra_def_path_output_tmp, 'w') as ofile:
+                    yaml.round_trip_dump(infra_def, ofile)
+            else:
+                with open(self.infra_def_path_output, 'w') as ofile:
+                    yaml.round_trip_dump(infra_def, ofile)
 
     def _init_docker(self):
         """ Initialize docker and get Occopus container """
