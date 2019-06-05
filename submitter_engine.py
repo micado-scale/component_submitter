@@ -110,7 +110,7 @@ class SubmitterEngine(object):
                 logger.info("force flag detected, preceeding to undeploy")
         
        
-        dict_object_adaptors = self._instantiate_adaptors(id_app)
+        dict_object_adaptors = self._instantiate_adaptors(id_app, self.app_list[id_app]['dry_run'])
         logger.debug("{}".format(dict_object_adaptors))
 
 
