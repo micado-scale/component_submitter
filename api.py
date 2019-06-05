@@ -175,6 +175,12 @@ def launch():
         return jsonify(response)
 
     apps.append(id_app)
+    try:
+        submitter._validate(path_to_file, validate=True)
+    except Exception as e:
+        response["message"]= "The application is not valid: {}".format(e)
+        response["status_code"]= 422
+        return jsonify(response)
     thread = ExecSubmitterThread(q=queue_exception, target=submitter.launch, args=(path_to_file, id_app, dryrun, parsed_params), daemon=True)
     thread.setName("launch_{}".format(id_app))
     queue_threading.put(thread)
@@ -313,6 +319,12 @@ def update(id_app):
         template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
         path_to_file = "files/templates/{}.yaml".format(id_app)
     try:
+        submitter._validate(path_to_file, validate=True)
+    except Exception as e:
+        response["message"]= "The application is not valid: {}".format(e)
+        response["status_code"]= 422
+        return jsonify(response)
+    try:
         thread = ExecSubmitterThread(q=queue_exception, target=submitter.update, args=(id_app, path_to_file, parsed_params), daemon=True)
         thread.setName("update_{}".format(id_app))
         queue_threading.put(thread)
@@ -398,12 +410,13 @@ def list_app():
         return jsonify(response)
 
     for key, value in submitter.app_list.items():
-        if dryrun:
-            response["message"]="Application {} deployed in DRY-RUN mode".format(key)
+        #if dryrun:
+        #    response["message"]="Application {} deployed in DRY-RUN mode".format(key)
         response["data"].append(dict(type="application",
                                     id=key,
                                     outputs=value.get("output"),
-                                    components=value.get("components")))
+                                    components=value.get("components"),
+                                    dryrun=value.get("dry_run")))
     return jsonify(response)
 
 if __name__ == "__main__":
