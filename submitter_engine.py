@@ -124,7 +124,7 @@ class SubmitterEngine(object):
         logger.info("*********************")
 
 
-    def update(self, id_app, path_to_file, dry_run=False, parsed_params = None):
+    def update(self, id_app, path_to_file, parsed_params = None):
         """
         Update method that will be updating the application we want to update.
 
@@ -143,6 +143,8 @@ class SubmitterEngine(object):
 
         template = self._micado_parser_upload(path_to_file, parsed_params)
         self.object_config.mapping(template)
+        dry_run = self.app_list[id_app]['dry_run']
+        
         dict_object_adaptors = self._instantiate_adaptors(id_app, dry_run, False, template)
         logger.debug("list of adaptor created: {}".format(dict_object_adaptors))
         self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys()), "adaptors_object": dict_object_adaptors, "dry_run": dry_run}})
@@ -384,7 +386,9 @@ class SubmitterEngine(object):
                 data_to_save.setdefault(key, {})
                 if isinstance(self.app_list[key], dict):
                     for k, v in self.app_list[key].items():
+                        logger.info("key is: {} k is {} v is {}".format(key, k,v))
                         if "components" in k or "outputs" in k or "dry_run" in k: 
+                            logger.info("putting components")
                             data_to_save[key].setdefault(k,v)
         if not data_to_save:
             logger.debug("data to save is empty")

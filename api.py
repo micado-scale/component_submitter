@@ -174,13 +174,13 @@ def launch():
         response["status_code"] = 400
         return jsonify(response)
 
-    apps.append(id_app)
     try:
         submitter._validate(path_to_file, validate=True)
     except Exception as e:
         response["message"]= "The application is not valid: {}".format(e)
         response["status_code"]= 422
         return jsonify(response)
+    apps.append(id_app)
     thread = ExecSubmitterThread(q=queue_exception, target=submitter.launch, args=(path_to_file, id_app, dryrun, parsed_params), daemon=True)
     thread.setName("launch_{}".format(id_app))
     queue_threading.put(thread)
