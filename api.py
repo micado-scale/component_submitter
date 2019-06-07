@@ -179,7 +179,7 @@ def launch():
     thread.setName("launch_{}".format(id_app))
     queue_threading.put(thread)
 
-    response["message"] = "Thread to deploy application launched. To check process curl http://YOUR_HOST/v1.0/app/{}/status".format(id_app)
+    response["message"] = "Thread to deploy application launched. To check the progress: curl -u <MICADO_ADMIN_USER>:<MICADO_ADMIN_PASS> https://<MICADO_MASTER_IP>:<MICADO_MASTER_PORT>/v1.0/app/{}/status".format(id_app)
     response["status_code"]= 200
     global last_error
     last_error = ''
