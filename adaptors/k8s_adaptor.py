@@ -105,7 +105,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             return
 
         if self.validate is False:
-            logger.info("self validate is false")
+            logger.debug("self validate is false")
             if update:
                 utils.dump_list_yaml(self.manifests, self.manifest_tmp_path)
             else:

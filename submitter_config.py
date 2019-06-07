@@ -130,7 +130,6 @@ class SubmitterConfig():
                                   _list_inter.append({item: obj})
                       if _list_inter:
                          _for_dic[key_inter] = _list_inter
-                         #_for_dic['dry_run'] = self.main_config['dry_run']
                          tmp_dic[key] = _for_dic
                   else:
                        tmp_dic[key][key_inter] = value_inter

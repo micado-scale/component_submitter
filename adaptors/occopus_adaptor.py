@@ -120,15 +120,15 @@ class OccopusAdaptor(abco.Adaptor):
                 i = 0
                 while not run and i < 5:
                     try:
-                        logger.info("Occopus import starting...")
+                        logger.debug("Occopus import starting...")
                         result = self.occopus.exec_run("occopus-import {0}".format(self.occo_node_path))
-                        logger.info("Occopus import has been successful")
+                        logger.debug("Occopus import has been successful")
                         run = True
                     except Exception as e:
                         i += 1
-                        logger.error("{0}. Try {1} of 5.".format(str(e), i))
+                        logger.debug("{0}. Try {1} of 5.".format(str(e), i))
                         time.sleep(5)
-                logger.info(result)
+                logger.debug(result)
                 if "Successfully imported" in result[1].decode("utf-8"):
                     try:
                         logger.debug("Occopus build starting...")
@@ -152,6 +152,7 @@ class OccopusAdaptor(abco.Adaptor):
                     logger.error("Occopus import was unsuccessful!")
             else:
                 logger.error("Occopus is not created!")
+        logger.info("Occopus executed")
         self.status = "executed"
 
     def undeploy(self):
