@@ -12,7 +12,6 @@ import jinja2
 from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
 from toscaparser.tosca_template import ToscaTemplate
-from api import validate_only
 
 logger = logging.getLogger("adaptor."+__name__)
 

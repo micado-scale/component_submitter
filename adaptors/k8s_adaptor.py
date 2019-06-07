@@ -8,7 +8,6 @@ import time
 import kubernetes.client
 import kubernetes.config
 from toscaparser.tosca_template import ToscaTemplate
-from api import validate_only
 
 import utils
 from abstracts import base_adaptor

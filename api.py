@@ -12,13 +12,15 @@ import threading
 import queue
 import time
 import urllib.request
+import json
+
+JSON_FILE = "system/ids.json"
 
 def __init__():
 
-    global logger, submitter, queue_exception, queue_threading, apps, validate_only
-    validate_only = False
-    apps = list()
-    logger =  logging.getLogger("submitter."+__name__)
+    global logger, submitter, queue_exception, queue_threading
+            
+    logger =  logging.getLogger("submitter."+__name__)     
     submitter = SubmitterEngine()
     queue_exception = queue.Queue()
     queue_threading = queue.Queue()
@@ -53,17 +55,10 @@ def threads_management():
            current_thread = thread.getName()
            thread.start()
            thread.join()
-           if 'undeploy' in current_thread:
-               try:
-                   apps.pop(apps.index(current_thread.split('_', 1 )[1]))
-               except ValueError:
-                   pass
         try:
            if not queue_exception.empty():
                exception = queue_exception.get()
-               logger.info("exception caught on thread {}".format(exception["name"]))
-               if "launch" in exception["name"]:
-                   apps.pop(apps.index(exception["name"].split('_',1)[1]))
+               logger.error("exception caught on thread {}".format(exception["name"]))
                raise exception["exception"]
 
         except Exception as e:
@@ -131,7 +126,7 @@ def launch():
     except Exception:
         dryrun = False
 
-    if apps:
+    if submitter.app_list.keys():
         response["message"] = "An application is already running, MiCADO doesn't currently support multiple applications"
         response["status_code"] = 400
         return jsonify(response)
@@ -169,19 +164,18 @@ def launch():
         template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
         path_to_file = "files/templates/{}.yaml".format(id_app)
 
-    if id_app in apps:
+    if id_app in submitter.app_list.keys():
         response["message"] = "id already register on this service"
         response["status_code"] = 400
         return jsonify(response)
 
     try:
-        submitter._validate(path_to_file, validate=True)
+        template, dict_object_adaptors = submitter._validate(path_to_file, dryrun, False, id_app, parsed_params)
     except Exception as e:
         response["message"]= "The application is not valid: {}".format(e)
         response["status_code"]= 422
         return jsonify(response)
-    apps.append(id_app)
-    thread = ExecSubmitterThread(q=queue_exception, target=submitter.launch, args=(path_to_file, id_app, dryrun, parsed_params), daemon=True)
+    thread = ExecSubmitterThread(q=queue_exception, target=submitter.launch, args=(template, dict_object_adaptors, id_app, dryrun), daemon=True)
     thread.setName("launch_{}".format(id_app))
     queue_threading.put(thread)
 
@@ -249,11 +243,11 @@ def undeploy(id_app):
     except Exception:
         logger.debug("no force flag found")
     
-    if not apps:
+    if not submitter.app_list.keys():
         response["message"] = "There is no running applications to undelploy"
         response["status_code"] = 400
         return jsonify(response)
-    elif id_app not in apps:
+    elif id_app not in submitter.app_list.keys():
         logger.warning("Trying to undeploy an application with a non-existing id")
         response["message"] = "There is no running application with ID={}, please use a correct application ID".format(id_app)
         response["status_code"] = 400
@@ -284,11 +278,11 @@ def update(id_app):
     response = dict(status_code="", message="", data=[])
     path_to_file = None
 
-    if not apps:
+    if not submitter.app_list.keys():
         response["message"] = "There is no running applications to update"
         response["status_code"] = 400
         return jsonify(response)
-    elif id_app not in apps:
+    elif id_app not in submitter.app_list.keys():
         response["message"] = "There is no running application with ID={}, please use a correct application ID to update".format(id_app)
         response["status_code"] = 400
         return jsonify(response)
@@ -319,13 +313,15 @@ def update(id_app):
         template.save("{}/files/templates/{}.yaml".format(app.root_path,id_app))
         path_to_file = "files/templates/{}.yaml".format(id_app)
     try:
-        submitter._validate(path_to_file, validate=True)
+        dryrun = submitter.app_list[id_app]["dry_run"]
+        template, dict_object_adaptors = submitter._validate(path_to_file, dryrun, False, id_app, parsed_params)
+
     except Exception as e:
         response["message"]= "The application is not valid: {}".format(e)
         response["status_code"]= 422
         return jsonify(response)
     try:
-        thread = ExecSubmitterThread(q=queue_exception, target=submitter.update, args=(id_app, path_to_file, parsed_params), daemon=True)
+        thread = ExecSubmitterThread(q=queue_exception, target=submitter.update, args=(id_app, template, dict_object_adaptors), daemon=True)
         thread.setName("update_{}".format(id_app))
         queue_threading.put(thread)
         response["message"] = "Thread to update the application is launch. To check process curl http://YOUR_HOST/v1.0/app/{}/status ".format(id_app)
@@ -357,15 +353,12 @@ def info_app(id_app):
         response["status_code"]=404
         response["message"]="App with ID {} does not exist".format(id_app)
         if last_error:
-            response["data"].append('Error on last action: {}'.format(last_error))
+            response["data"].append('Error on last threaded action: {}'.format(last_error))
 
         return jsonify(response)
     else:
         response["status_code"]=200
-        if dryrun:
-            response["message"]="Application {} deployed in DRY-RUN mode".format(id_app)
-        else:
-            response["message"]="Detail application {}".format(id_app)
+        response["message"]="Detail application {}".format(id_app)
         response["data"] = dict(type="application",
                                 id=id_app,
                                 outputs=this_app.get("output"),
@@ -404,7 +397,7 @@ def list_thread():
 def list_app():
     """ API function to list all the running aplications"""
     response = dict(status_code=200, message="List running applications", data=[])
-    if not apps:
+    if not submitter.app_list.keys():
         response["message"] = "There are no running applications"
         response["status_code"] = 200
         return jsonify(response)

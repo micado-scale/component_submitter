@@ -4,7 +4,6 @@ import logging
 import requests
 from toscaparser.tosca_template import ToscaTemplate
 from abstracts import base_adaptor as abco
-from api import validate_only
 from abstracts.exceptions import AdaptorCritical
 import ruamel.yaml as yaml
 

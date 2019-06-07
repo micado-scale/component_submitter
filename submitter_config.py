@@ -3,7 +3,7 @@ MiCADO Submitter Engine Submitter Config
 ----------------------------------------
 A module allowing the configuration of the whole submitter
 """
-import yaml
+import ruamel.yaml as yaml
 import re
 import collections
 import utils
@@ -68,11 +68,13 @@ class SubmitterConfig():
       """reading the config file and creating a dictionary related to it"""
       logger.debug("reading config file")
       dic_types=dict()
-
+      yaml.default_flow_style = False
       with open(self.config_path, 'r') as stream:
           try:
-               dic_types=yaml.load(stream)
-          except yaml.YAMLError as exc:
+               
+               dic_types=yaml.round_trip_load(stream.read(), preserve_quotes=True)
+          except OSError as exc:
+             
               logger.error("Error while reading file, error: %s" % exc)
       logger.debug("return dictionary of types from config file")
       return dic_types

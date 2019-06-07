@@ -58,7 +58,8 @@ class SubmitterEngine(object):
         self.executed_adaptors = {}
         
 
-    def launch(self, path_to_file, id_app, dry_run=False, parsed_params=None):
+    #def launch(self, path_to_file, id_app, dry_run=False, parsed_params=None):
+    def launch(self, template, dict_object_adaptors, id_app, dry_run):
         """
         Launch method, that will call the in-method egine to execute the application
         Creating empty list for the whole class adaptor and executed adaptor
@@ -70,13 +71,13 @@ class SubmitterEngine(object):
             launch
         """
      
-        logger.info("******  Launching the application ****** \n****** located there {} and with params {}******".format(path_to_file, parsed_params))
+        logger.info("******  Launching the application ******")
         if self.app_list:
             raise Exception("An application is already running, MiCADO doesn't currently support multi applications")
         
         #template = self._micado_parser_upload(path_to_file, parsed_params)
         #self.object_config.mapping(template)
-        template, dict_object_adaptors = self._validate(path_to_file, dry_run, False, id_app, parsed_params)
+        #template, dict_object_adaptors = self._validate(path_to_file, dry_run, False, id_app, parsed_params)
     
         #dict_object_adaptors = self._instantiate_adaptors(id_app, dryrun, template)
         #logger.debug("list of objects adaptor: {}".format(dict_object_adaptors))
@@ -124,7 +125,7 @@ class SubmitterEngine(object):
         logger.info("*********************")
 
 
-    def update(self, id_app, path_to_file, parsed_params = None):
+    def update(self, id_app, template, dict_object_adaptors):
         """
         Update method that will be updating the application we want to update.
 
@@ -141,11 +142,11 @@ class SubmitterEngine(object):
 
         logger.info("****** proceding to the update of the application {}******".format(id_app))
 
-        template = self._micado_parser_upload(path_to_file, parsed_params)
+        #template = self._micado_parser_upload(path_to_file, parsed_params)
         self.object_config.mapping(template)
         dry_run = self.app_list[id_app]['dry_run']
         
-        dict_object_adaptors = self._instantiate_adaptors(id_app, dry_run, False, template)
+        #dict_object_adaptors = self._instantiate_adaptors(id_app, dry_run, False, template)
         logger.debug("list of adaptor created: {}".format(dict_object_adaptors))
         self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys()), "adaptors_object": dict_object_adaptors, "dry_run": dry_run}})
         self._update(dict_object_adaptors, id_app)
