@@ -18,7 +18,7 @@ logger = logging.getLogger("adaptor."+__name__)
 
 class OccopusAdaptor(abco.Adaptor):
 
-    def __init__(self, adaptor_id, config, template=None):
+    def __init__(self, adaptor_id, config, dryrun, validate=False, template=None):
         super().__init__()
         """
         Constructor method of the Adaptor
@@ -26,7 +26,9 @@ class OccopusAdaptor(abco.Adaptor):
         if template and not isinstance(template, ToscaTemplate):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")
         self.status = "init"
+        self.dryrun = dryrun
         self.config = config
+        self.validate = validate
         self.node_prefix = "node_def:"
         self.node_name = ""
         self.worker_infra_name = "micado_worker_infra"
@@ -38,8 +40,8 @@ class OccopusAdaptor(abco.Adaptor):
         self.node_path_tmp = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
         self.infra_def_path_output = "{}{}-infra.yaml".format(self.config['volume'], self.ID)
         self.infra_def_path_output_tmp = "{}{}-infra.tmp.yaml".format(self.config['volume'], self.ID)
-        self.infra_def_path_input = "/var/lib/submitter/system/infrastructure_descriptor.yaml"
-        self.cloudinit_path = "/var/lib/submitter/system/cloud_init_worker.yaml"
+        self.infra_def_path_input = "./system/infrastructure_descriptor.yaml"
+        self.cloudinit_path = "./system/cloud_init_worker.yaml"
 
         self.node_data = {}
         self.node_def = {}
@@ -47,7 +49,8 @@ class OccopusAdaptor(abco.Adaptor):
         self.created = False
         self.client = None
         self.occopus = None
-        self._init_docker()
+        if not self.dryrun:
+                self._init_docker()
 
         self.occopus_address = "occopus:5000"
         self.auth_data_file = "/var/lib/micado/occopus/data/auth_data.yaml"
@@ -91,9 +94,10 @@ class OccopusAdaptor(abco.Adaptor):
             node_type = self.node_prefix + self.node_name
             self.node_def.setdefault(node_type, [])
             self.node_def[node_type].append(self.node_data)
+
             if tmp:
                 utils.dump_order_yaml(self.node_def, self.node_path_tmp)
-            else:
+            elif self.validate is False:
                 utils.dump_order_yaml(self.node_def, self.node_path)
 
         self.status = "translated"
@@ -105,53 +109,63 @@ class OccopusAdaptor(abco.Adaptor):
         """
         logger.info("Starting Occopus execution {}".format(self.ID))
         self.status = "executing"
-        if self.created:
-            run = False
-            i = 0
-            while not run and i < 5:
-                try:
-                    logger.info("Occopus import starting...")
-                    result = self.occopus.exec_run("occopus-import {0}".format(self.occo_node_path))
-                    logger.info("Occopus import has been successful")
-                    run = True
-                except Exception as e:
-                    i += 1
-                    logger.error("{0}. Try {1} of 5.".format(str(e), i))
-                    time.sleep(5)
-            logger.info(result)
-            if "Successfully imported" in result[1].decode("utf-8"):
-                try:
-                    logger.info("Occopus build starting...")
-                    exit_code, out = self.occopus.exec_run("occopus-build {} -i {} --auth_data_path {} --parallelize"
-                                                      .format(self.occo_infra_path,
-                                                              self.worker_infra_name,
-                                                              self.auth_data_file))
-                    if exit_code == 1:
-                        raise AdaptorCritical(out)
-                    occo_api_call = requests.post("http://{0}/infrastructures/{1}/attach"
-                                              .format(self.occopus_address, self.worker_infra_name))
-                    if occo_api_call.status_code != 200:
-                        raise AdaptorCritical("Cannot submit infra to Occopus API!")
-                    logger.info("Occopus build has been successful")
-                    
-                except docker.errors.APIError as e:
-                    logger.error("{0}. Error caught in calling Docker container".format(str(e)))
-                except requests.exceptions.RequestException as e:
-                    logger.error("{0}. Error caught in call to occopus API".format(str(e)))
-            else:
-                logger.error("Occopus import was unsuccessful!")
+        if self.dryrun:
+                logger.info("DRY-RUN: Occopus execution in dry-run mode...")
+                self.status = "DRY-RUN Deployment"
+                return
         else:
-            logger.error("Occopus is not created!")
+            if self.created:
+                run = False
+                i = 0
+                while not run and i < 5:
+                    try:
+                        logger.debug("Occopus import starting...")
+                        result = self.occopus.exec_run("occopus-import {0}".format(self.occo_node_path))
+                        logger.debug("Occopus import has been successful")
+                        run = True
+                    except Exception as e:
+                        i += 1
+                        logger.debug("{0}. Try {1} of 5.".format(str(e), i))
+                        time.sleep(5)
+                logger.debug(result)
+                if "Successfully imported" in result[1].decode("utf-8"):
+                    try:
+                        logger.debug("Occopus build starting...")
+                        exit_code, out = self.occopus.exec_run("occopus-build {} -i {} --auth_data_path {} --parallelize"
+                                                          .format(self.occo_infra_path,
+                                                                  self.worker_infra_name,
+                                                                  self.auth_data_file))
+                        if exit_code == 1:
+                            raise AdaptorCritical(out)
+                        occo_api_call = requests.post("http://{0}/infrastructures/{1}/attach"
+                                                  .format(self.occopus_address, self.worker_infra_name))
+                        if occo_api_call.status_code != 200:
+                            raise AdaptorCritical("Cannot submit infra to Occopus API!")
+                        logger.debug("Occopus build has been successful")
+                        
+                    except docker.errors.APIError as e:
+                        logger.error("{0}. Error caught in calling Docker container".format(str(e)))
+                    except requests.exceptions.RequestException as e:
+                        logger.error("{0}. Error caught in call to occopus API".format(str(e)))
+                else:
+                    logger.error("Occopus import was unsuccessful!")
+            else:
+                logger.error("Occopus is not created!")
+        logger.info("Occopus executed")
         self.status = "executed"
+
     def undeploy(self):
         """
         Undeploy Occopus infrastructure through Occopus rest API
         """
         self.status = "undeploying"
         logger.info("Undeploy {} infrastructure".format(self.ID))
-        requests.delete("http://{0}/infrastructures/{1}".format(self.occopus_address, self.worker_infra_name))
-        # self.occopus.exec_run("occopus-destroy --auth_data_path {0} -i {1}"
-        # .format(self.auth_data_file, self.worker_infra_name))
+        if self.dryrun:
+                logger.info("DRY-RUN: deleting infrastructure...")
+        else:
+            requests.delete("http://{0}/infrastructures/{1}".format(self.occopus_address, self.worker_infra_name))
+            # self.occopus.exec_run("occopus-destroy --auth_data_path {0} -i {1}"
+            # .format(self.auth_data_file, self.worker_infra_name))
         self.status = "undeployed"
 
     def cleanup(self):
@@ -411,21 +425,21 @@ class OccopusAdaptor(abco.Adaptor):
             path = self.infra_def_path_output_tmp
         else:
             path = self.infra_def_path_input
+        if self.validate is False or tmp:
+            try:
+                with open(path, 'r') as f:
+                    infra_def = yaml.round_trip_load(f, preserve_quotes=True)
+                infra_def.setdefault('nodes', [])
+                infra_def["nodes"].append(node_infra)
+            except OSError as e:
+                logger.error(e)
 
-        try:
-            with open(path, 'r') as f:
-                infra_def = yaml.round_trip_load(f, preserve_quotes=True)
-            infra_def.setdefault('nodes', [])
-            infra_def["nodes"].append(node_infra)
-        except OSError as e:
-            logger.error(e)
-
-        if tmp:
-            with open(self.infra_def_path_output_tmp, 'w') as ofile:
-                yaml.round_trip_dump(infra_def, ofile)
-        else:
-            with open(self.infra_def_path_output, 'w') as ofile:
-                yaml.round_trip_dump(infra_def, ofile)
+            if tmp:
+                with open(self.infra_def_path_output_tmp, 'w') as ofile:
+                    yaml.round_trip_dump(infra_def, ofile)
+            elif self.validate is False:
+                with open(self.infra_def_path_output, 'w') as ofile:
+                    yaml.round_trip_dump(infra_def, ofile)
 
     def _init_docker(self):
         """ Initialize docker and get Occopus container """
