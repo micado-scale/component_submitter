@@ -4,6 +4,7 @@ import logging
 import shutil
 import filecmp
 import time
+import copy
 
 import kubernetes.client
 import kubernetes.config
@@ -67,9 +68,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         """ Translate the relevant sections of the ADT into a Kubernetes Manifest """
         logger.info("Translating into Kubernetes Manifests")
         self.status = "Translating..."
-
-        nodes = self.tpl.nodetemplates
-        repositories = self.tpl.repositories
+        tpl_translate = self.tpl
+        nodes = copy.deepcopy(tpl_translate.nodetemplates)
+        repositories = copy.deepcopy(tpl_translate.repositories)
         
         for node in sorted(nodes, key=lambda x: x.type, reverse=True):
             interface = {}
@@ -104,12 +105,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             self.status = "Skipped Translation"
             return
 
-        if self.validate is False:
-            logger.debug("self validate is false")
-            if update:
-                utils.dump_list_yaml(self.manifests, self.manifest_tmp_path)
-            else:
-                utils.dump_list_yaml(self.manifests, self.manifest_path)
+        if update:
+            utils.dump_list_yaml(self.manifests, self.manifest_tmp_path)
+        elif self.validate is False:
+            utils.dump_list_yaml(self.manifests, self.manifest_path)
 
         logger.info("Translation complete")
         self.status = "Translated"
@@ -152,6 +151,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.status = "Updating..."
 
         logger.debug("Creating tmp translation...")
+        self.manifests = []
         self.translate(True)
         
         if not self.manifests:

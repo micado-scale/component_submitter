@@ -314,7 +314,7 @@ def update(id_app):
         path_to_file = "files/templates/{}.yaml".format(id_app)
     try:
         dryrun = submitter.app_list[id_app]["dry_run"]
-        template, dict_object_adaptors = submitter._validate(path_to_file, dryrun, False, id_app, parsed_params)
+        template, dict_object_adaptors = submitter._validate(path_to_file, dryrun, True, id_app, parsed_params)
 
     except Exception as e:
         response["message"]= "The application is not valid: {}".format(e)

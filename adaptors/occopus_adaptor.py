@@ -95,11 +95,10 @@ class OccopusAdaptor(abco.Adaptor):
             self.node_def.setdefault(node_type, [])
             self.node_def[node_type].append(self.node_data)
 
-            if self.validate is False:
-                if tmp:
-                    utils.dump_order_yaml(self.node_def, self.node_path_tmp)
-                else:
-                    utils.dump_order_yaml(self.node_def, self.node_path)
+            if tmp:
+                utils.dump_order_yaml(self.node_def, self.node_path_tmp)
+            elif self.validate is False:
+                utils.dump_order_yaml(self.node_def, self.node_path)
 
         self.status = "translated"
 
@@ -426,7 +425,7 @@ class OccopusAdaptor(abco.Adaptor):
             path = self.infra_def_path_output_tmp
         else:
             path = self.infra_def_path_input
-        if self.validate is False:
+        if self.validate is False or tmp:
             try:
                 with open(path, 'r') as f:
                     infra_def = yaml.round_trip_load(f, preserve_quotes=True)
@@ -438,7 +437,7 @@ class OccopusAdaptor(abco.Adaptor):
             if tmp:
                 with open(self.infra_def_path_output_tmp, 'w') as ofile:
                     yaml.round_trip_dump(infra_def, ofile)
-            else:
+            elif self.validate is False:
                 with open(self.infra_def_path_output, 'w') as ofile:
                     yaml.round_trip_dump(infra_def, ofile)
 
