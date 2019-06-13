@@ -3,7 +3,7 @@ MiCADO Submitter Engine Submitter Config
 ----------------------------------------
 A module allowing the configuration of the whole submitter
 """
-import yaml
+import ruamel.yaml as yaml
 import re
 import collections
 import utils
@@ -32,14 +32,14 @@ class SubmitterConfig():
   """
 
   def __init__(self, testing=None):
-      if testing:
-          CONFIG_FILE = testing
-
       logger.debug("initialisation of SubmitterConfig class")
+      if testing:
+          self.config_path = testing
+      else:
+          self.config_path = CONFIG_FILE
       config = self._reading_config()
       self.main_config = config["main_config"]
       self.step_config = config["step"]
-
       self.mapping()
 
 
@@ -68,10 +68,13 @@ class SubmitterConfig():
       """reading the config file and creating a dictionary related to it"""
       logger.debug("reading config file")
       dic_types=dict()
-      with open(CONFIG_FILE, 'r') as stream:
+      yaml.default_flow_style = False
+      with open(self.config_path, 'r') as stream:
           try:
-               dic_types=yaml.load(stream)
-          except yaml.YAMLError as exc:
+               
+               dic_types=yaml.round_trip_load(stream.read(), preserve_quotes=True)
+          except OSError as exc:
+             
               logger.error("Error while reading file, error: %s" % exc)
       logger.debug("return dictionary of types from config file")
       return dic_types
@@ -127,7 +130,6 @@ class SubmitterConfig():
                                   _list_inter.append({item: obj})
                       if _list_inter:
                          _for_dic[key_inter] = _list_inter
-                         _for_dic['dry_run'] = self.main_config['dry_run']
                          tmp_dic[key] = _for_dic
                   else:
                        tmp_dic[key][key_inter] = value_inter
@@ -141,7 +143,7 @@ class SubmitterConfig():
                           _list_inter.append(item)
                       logger.debug("key_inter is: {}".format(_list_inter))
                       _for_dic[key_inter] = _list_inter
-                      _for_dic['dry_run'] = self.main_config['dry_run']
+                      #_for_dic['dry_run'] = self.main_config['dry_run']
                       tmp_dic[key] = _for_dic
                   else:
                       tmp_dic[key][key_inter] = value_inter
