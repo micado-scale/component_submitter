@@ -352,6 +352,10 @@ class OccopusAdaptor(abco.Adaptor):
             self.node_data.setdefault(key, {}) \
               .setdefault("description", {}) \
               .setdefault("opened_port", properties["opened_port"].value)
+        if properties.get("infrastructure_component_id") is not None:
+            self.node_data.setdefault(key,{}) \
+              .setdefault("description", {}) \
+              .setdefault("infrastructure_component_id", properties["infrastructure_component_id"].value)
         self._node_data_get_context_section(properties)
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
