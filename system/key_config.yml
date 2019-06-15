@@ -1,58 +1,46 @@
 main_config:
-  dry_run: True
-  #path_log: "/var/lib/toscasubmitter/submitter.log"
   log_level: INFO
   path_log: "submitter.log"
 
 step:
   translate:
-    - SecurityEnforcerAdaptor
-    - DockerAdaptor
+    - KubernetesAdaptor
     - OccopusAdaptor
     - PkAdaptor
   execute:
-    - DockerAdaptor
-    - SecurityEnforcerAdaptor
     - OccopusAdaptor
+    - KubernetesAdaptor
     - PkAdaptor
   update:
-    - DockerAdaptor
-    - SecurityEnforcerAdaptor
     - OccopusAdaptor
+    - KubernetesAdaptor
     - PkAdaptor
   undeploy:
-    - SecurityEnforcerAdaptor
-    - DockerAdaptor
-    - OccopusAdaptor
     - PkAdaptor
+    - KubernetesAdaptor
+    - OccopusAdaptor
   cleanup:
-    - DockerAdaptor
-    - SecurityEnforcerAdaptor
+    - KubernetesAdaptor
     - OccopusAdaptor
     - PkAdaptor
 
 adaptor_config:
- SecurityEnforcerAdaptor:
-   types:
-     - "tosca.policies.Scaling.*"
-   endoint: "endpoint"
-   volume: "/var/lib/submitter/security_workdir_example/"
- DockerAdaptor:
+ KubernetesAdaptor:
    types:
      - "tosca.nodes.MiCADO.Container.Application.Docker"
    endoint: "endpoint"
-   volume: "/var/lib/submitter/files/output_configs/"
+   volume: "./files/output_configs/"
 
 
  OccopusAdaptor:
    types:
      - "tosca.nodes.MiCADO.Occopus.*"
    endoint: "endpoint"
-   volume: "/var/lib/submitter/files/output_configs/"
+   volume: "./files/output_configs/"
 
 
  PkAdaptor:
    types:
      - "tosca.policies.Scaling.MiCADO"
    endpoint: "policykeeper:12345"
-   volume: "/var/lib/submitter/files/output_configs/"
+   volume: "./files/output_configs/"

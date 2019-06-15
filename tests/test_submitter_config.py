@@ -10,9 +10,10 @@ class TestSubmitterConfig(unittest.TestCase):
 
     def setUp(self):
         """ Setup Validator object and prep a bad TOSCA template """
-        self.config_path = "tests/templates/key_config.yaml"
+        self.config_path = "tests/configs/key_config.yaml"
         self.bad_tpl = ToscaTemplate("tests/templates/bad_tosca.yaml")
         self.good_tpl = ToscaTemplate("tests/templates/good_tosca.yaml")
+
     def test_main_config(self):
         dic = {"dry_run": True, "path_log": "submitter.log", "log_level": "INFO" }
         self.assertDictEqual(dic, SubConfig(self.config_path).main_config)

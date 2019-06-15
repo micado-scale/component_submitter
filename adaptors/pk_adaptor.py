@@ -16,13 +16,15 @@ PK = (STACK, DATA, SOURCES, CONSTANTS, QUERIES, ALERTS, SCALING, NODES, SERVICES
 
 class PkAdaptor(abco.Adaptor):
 
-    def __init__(self, adaptor_id, config, template=None):
+    def __init__(self, adaptor_id, config, dryrun, validate=False, template=None):
 
         super().__init__()
         if template and not isinstance(template, ToscaTemplate):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")
         logger.info("Initialising the Pk adaptor with ID, config & TPL...")
         self.config = config
+        self.dryrun = dryrun
+        self.validate = validate
         self.pk_data = {}
         self.ID = adaptor_id
         self.status = "init"
@@ -40,50 +42,66 @@ class PkAdaptor(abco.Adaptor):
         # Hard-coded file structure
         self.pk_data = {STACK: self.ID.split("_")[0],
                         SCALING: {}}
+        # build node-service rels
+        relations = {}
+        for node in self.tpl.nodetemplates:
+            for target, relation in node.related.items():
+                if 'HostedOn' in relation.type:
+                    relations.setdefault(node.name, []).append(target.name)            
 
         for policy in self.tpl.policies:
             for target in policy.targets_list:
                 if "Compute" in target.type:
-                    self.pk_data[SCALING][NODES] = self._pk_scaling_properties(policy)
+                    node_data = {"name": target.name}
+                    node_data.update(self._pk_scaling_properties(policy))
+                    self.pk_data.setdefault(SCALING, {}).setdefault(NODES, []).append(node_data)
                 else:
                     if self.pk_data[SCALING].get(SERVICES) is None:
                         self.pk_data[SCALING][SERVICES] = []
-                    service = {"name": target.name}
+                    service = {"name": target.name, "hosts": relations.get(target.name, [])}
                     service.update(self._pk_scaling_properties(policy))
                     self.pk_data[SCALING][SERVICES].append(service)
             logger.info("Policy of {0} is translated".format(target.name))
 
-        if tmp is False:
-            self._yaml_write(self.path)
-            logger.info("PK file created")
-        else:
+        if tmp:
             self._yaml_write(self.tmp_path)
             logger.info("Updated PK file created")
+        elif self.validate is False:
+            self._yaml_write(self.path)
+            logger.info("PK file created")
         self.status = "translated"
 
     def execute(self):
         self.status = "executing"
         logger.info("Starting Pk execution")
         headers = {'Content-Type': 'application/x-yaml'}
-        try:
-            with open(self.path, 'rb') as data:
-                try:
-                    requests.post("http://{0}/policy/start".format(self.config['endpoint']), data=data, headers=headers)
-                except Exception as e:
-                    logger.error(e)
-                logger.info("Policy with {0} id is sent.".format(self.ID))
-        except Exception as e:
-            logger.error(e)
+        if self.dryrun:
+                logger.info("DRY-RUN: PK execution in dry-run mode...")
+                self.status = "DRY-RUN Deployment"
+                return
+        else:
+            try:
+                with open(self.path, 'rb') as data:
+                    try:
+                        requests.post("http://{0}/policy/start".format(self.config['endpoint']), data=data, headers=headers)
+                    except Exception as e:
+                        logger.error(e)
+                    logger.info("Policy with {0} id is sent.".format(self.ID))
+            except Exception as e:
+                logger.error(e)
         self.status = "executed"
 
 
     def undeploy(self):
         self.status = "undeploying"
         logger.info("Removing the policy in Pk service with id {0}".format(self.ID))
-        try:
-            requests.post("http://{0}/policy/stop".format(self.config['endpoint']))
-        except Exception as e:
-            logger.error(e)
+        if self.dryrun:
+                logger.info("DRY-RUN: PK deletion in process...")
+        else:
+            try:
+                requests.post("http://{0}/policy/stop".format(self.config['endpoint']))
+            except Exception as e:
+                logger.error(e)
         logger.info("Policy {0} removed.".format(self.ID))
         self.status = "undeployed"
 
