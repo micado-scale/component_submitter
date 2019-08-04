@@ -329,7 +329,21 @@ class Container:
             repositories (toscaparser.repositories.Repository): The top level repo information
     """
 
-    SWARM_PROPERTIES = ["expose"]
+    SWARM_PROPERTIES = [
+        "configs",
+        "deploy",
+        "env_file",
+        "expose",
+        "extra_hosts",
+        "healthcheck",
+        "init",
+        "logging",
+        "networks",
+        "secrets",
+        "stop_signal",
+        "ulimits",
+        "volumes",
+    ]
 
     def __init__(self, node, repositories):
         """init the container class with the required properties"""
@@ -348,8 +362,9 @@ class Container:
         # Remove any PodSpec keys
         self.grace = self.spec.pop("stop_grace_period", None)
         self.pid = self.spec.pop("pid", None)
-        self.netmode = self.spec.pop("network_mode", None)
         self.labels = self.spec.pop("labels", {})
+        self.dns = self.spec.pop("dns", [])
+        self.dns_search = self.spec.pop("dns_search", [])
         self.ports = self.spec.pop("ports", {})
 
         # Get image & tag version
@@ -363,6 +378,7 @@ class Container:
         self.spec.setdefault("args", self.spec.pop("cmd", "").split())
         self.spec.setdefault("env", _make_env(self.spec.pop("environment", {})))
         self.spec.setdefault("stdin", self.spec.pop("stdin_open", None))
+        self.spec.setdefault("workingDir", self.spec.pop("working_dir", None))
 
         privileged = self.spec.pop("privileged", None)
         if privileged:
@@ -608,9 +624,21 @@ class WorkloadManifest(Manifest):
                     "terminationGracePeriodSeconds", container.grace
                 )
             if container.pid == "host":
-                self.pod["spec"].setdefault("pid", True)
-            if container.netmode == "host":
-                self.pod["spec"].setdefault("hostNetwork", True)
+                self.pod["spec"].setdefault("hostPID", True)
+            if container.dns:
+                dnslist = (
+                    self.pod["spec"]
+                    .setdefault("dnsConfig", {})
+                    .setdefault("nameservers", [])
+                )
+                dnslist += container.dns
+            if container.dns_search:
+                dnslist = (
+                    self.pod["spec"]
+                    .setdefault("dnsConfig", {})
+                    .setdefault("searches", [])
+                )
+                dnslist += container.dns_search
             # Add the container to the PodSpec
             self.pod["spec"].setdefault("containers", []).append(container.spec)
 
