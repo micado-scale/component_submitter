@@ -382,16 +382,15 @@ class Container:
             tuple: the full path to the Docker image, and the version tag
         """
         # Check top level properties in case someone dislikes TOSCA artifacts
-        image = self.node.get_property_value("image")
-        if image:
-            try:
-                version = image.split(":")[1]
-            except IndexError:
-                version = "latest"
-            return image, version
+        # image = self.node.get_property_value("image")
+        # if image:
+        #    try:
+        #        version = image.split(":")[1]
+        #    except IndexError:
+        #        version = "latest"
+        #    return image, version
 
         # Get the Docker image info from this TOSCA node, otherwise from a parent
-        image = ""
         try:
             image = self.node.entity_tpl["artifacts"]["image"]["file"]
             repository = self.node.entity_tpl["artifacts"]["image"]["repository"]
@@ -406,10 +405,11 @@ class Container:
                 .get("image", {})
                 .get("repository")
             )
-        # Assume get_property is asking for property image on this node
-        # TODO: check which node & property this is actually looking for
-        if "get_property" in image:
-            image = self.spec.pop("image", None)
+        # Assume get_property is asking for a property on this node
+        # TODO: check which node this is actually looking for
+        if isinstance(image, dict):
+            key_name = image.get("get_property", [])[-1]
+            image = self.spec.pop(key_name, None)
 
         if not image:
             raise AdaptorCritical("No image specified for {}!".format(self.node.name))
@@ -456,7 +456,7 @@ class Manifest:
             "app.kubernetes.io/name": self.name,
             "app.kubernetes.io/instance": self.app_id,
             "app.kubernetes.io/managed-by": "micado",
-        }        
+        }
         self.kind = spec.pop("kind", kind)
         self.resource = self._build_resource(spec, self.kind)
         self.namespace = self.resource.get("metadata", {}).get("namespace")
@@ -740,7 +740,10 @@ class WorkloadManifest(Manifest):
         # (the name of this node) has the same ServiceType as this service then
         # use the default-named service name. Otherwise use a new name based on type.
         if not service_name:
-            if not self.services or self.services.get(self.name.lower()).type == service_type:
+            if (
+                not self.services
+                or self.services.get(self.name.lower()).type == service_type
+            ):
                 service_name = self.name.lower()
             else:
                 service_name = "{}-{}".format(self.name, service_type).lower()
@@ -897,7 +900,7 @@ class VolumeManifest(Manifest):
     def _get_specs(self, lifecycle, node):
         """Get PV or PVC inputs from TOSCA interfaces
 
-        Also, small hack for some common volumes
+        Work with the TOSCA get_property function
         
         Args:
             lifecycle (dict): inputs from TOSCA interfaces
@@ -906,15 +909,19 @@ class VolumeManifest(Manifest):
         Returns:
             tuple: two dicts, PV & PVC specs
         """
-        # Cheat for Kubernetes specific volumes
-        # TODO: Use get_property properly here
-        if node.type == "tosca.nodes.MiCADO.Container.Volume.HostPath":
-            spec = lifecycle["create"].setdefault("spec", {})
-            spec.setdefault("hostPath", {})["path"] = node.get_property_value("path")
-        elif node.type == "tosca.nodes.MiCADO.Container.Volume.NFS":
-            spec = lifecycle["create"].setdefault("spec", {})
-            spec.setdefault("nfs", {})["path"] = node.get_property_value("path")
-            spec.setdefault("nfs", {})["server"] = node.get_property_value("server")
+        # Assume get_property always refers to node SELF
+        # TODO: Allow get_property to get other nodes
+        for inputs in lifecycle.values():
+            for stage, element in inputs.get("spec", {}).items():
+                if not isinstance(element, dict):
+                    continue
+                for key, val in element.items():
+                    if not isinstance(val, dict) or not "get_property" in val:
+                        continue
+                    element[key] = node.get_property_value(val.get("get_property")[-1])
+                # Clean out empty fields
+                inputs["spec"][stage] = {k: v for k, v in element.items() if v}
+
         return lifecycle.get("create", {}), lifecycle.get("configure", {})
 
     def _set_pv_defaults(self):
@@ -953,12 +960,18 @@ class ConfigMapManifest(Manifest):
         super().__init__(app_id, node.name, spec, kind="ConfigMap")
         self.resource.update(self.resource.pop("spec", {}))
 
-        # Assume get_property is asking for property data/databinary on this node
-        # TODO: check which node & property this is actually looking for
-        if "get_property" in self.resource.get("data", ""):
-            self.resource["data"] = node.get_property_value("data")
+        # Assume get_property is asking for a property on this node
+        # TODO: check which node this is actually looking for
+        if "get_property" in self.resource.get("data", {}):
+            key_name = self.resource.get("data").get("get_property", [])[-1]
+            self.resource["data"] = node.get_property_value(key_name)
+
         if "get_property" in self.resource.get("binaryData", ""):
-            self.resource["binaryData"] = node.get_property_value("binaryData")
+            key_name = self.resource.get("binaryData").get("get_property", [])[-1]
+            self.resource["binaryData"] = node.get_property_value(key_name)
+
+        # Remove empty fields
+        self.resource = {k: v for k, v in self.resource.items() if v}
 
         self.manifests = [self.resource]
 
