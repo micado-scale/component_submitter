@@ -1157,7 +1157,7 @@ def _make_env(environment):
         return []
 
     env = []
-    for key, value in environment:
+    for key, value in environment.items():
         env.append({"name": key, "value": value})
 
     return env
