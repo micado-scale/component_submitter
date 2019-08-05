@@ -357,7 +357,8 @@ class Container:
         # Remove any swarm-only keys
         for key in self.SWARM_PROPERTIES:
             if self.spec.pop(key, None):
-                logger.warning("Removed Swarm-option {}".format(key))
+                # logger.warning("Removed Swarm-option {}".format(key))
+                pass
 
         # Remove any PodSpec keys
         self.grace = self.spec.pop("stop_grace_period", None)
@@ -473,6 +474,7 @@ class Manifest:
             "app.kubernetes.io/instance": self.app_id,
             "app.kubernetes.io/managed-by": "micado",
         }
+
         self.kind = spec.pop("kind", kind)
         self.resource = self._build_resource(spec, self.kind)
         self.namespace = self.resource.get("metadata", {}).get("namespace")
@@ -601,7 +603,7 @@ class WorkloadManifest(Manifest):
         for container in reversed(self.containers):
             container_labels.update(container.labels)
         pod_labels = {**self.labels, **container_labels}
-        self.pod["metadata"].setdefault("labels", {}).update(pod_labels)
+        self.pod.setdefault("metadata", {}).setdefault("labels", {}).update(pod_labels)
 
         # Add the generic Kubernetes version label to the top spec
         version = self.pod["metadata"]["labels"]["app.kubernetes.io/version"]
@@ -710,7 +712,16 @@ class WorkloadManifest(Manifest):
                 vol_name = node.get_property_value("name") or node.name
                 pvc = {"claimName": node.name}
                 volume_spec = {"name": vol_name, "persistentVolumeClaim": pvc}
-                default_path = "/etc/micado/volumes"
+
+                # Try to build the default path from a path field on the node interface
+                [node_spec] = [
+                    x.inputs
+                    for x in node.interfaces
+                    if x.name == "create" and x.type == KUBERNETES_INTERFACE
+                ] or [{}]
+                vol_path = [x for x in node_spec.values() if "path" in x] or [{}]
+                default_path = vol_path[0].get("path") or "/etc/micado/volumes"
+
             elif node.is_derived_from(CONTAINER_CONFIG):
                 vol_name = node.name + "-volume"
                 config_vol = {"name": node.name}
@@ -736,10 +747,14 @@ class WorkloadManifest(Manifest):
                     continue
                 if not path:
                     path = (
-                        volume.get("relationship", {})
-                        .get("properties", {})
-                        .get("location")
-                    ) or default_path
+                        (
+                            volume.get("relationship", {})
+                            .get("properties", {})
+                            .get("location")
+                        )
+                        or node.get_property_value("path")
+                        or default_path
+                    )
                 volume_mount_spec = {"name": vol_name, "mountPath": path}
 
                 # Add the volumeMount to the ContainerSpec
@@ -827,6 +842,7 @@ class WorkloadManifest(Manifest):
 
         # Make sure the NodePort is in range
         if node_port:
+            port.setdefault("type", "NodePort")
             if 30000 > int(node_port) or int(node_port) > 32767:
                 logger.error("nodePort out of range 30000-32767")
                 raise TranslateError(
@@ -901,6 +917,7 @@ class ServiceManifest(Manifest):
 
     def add_namespace(self, namespace):
         """ Add a namespace to this ServiceSpec """
+        self.namespace = namespace
         self.resource.setdefault("metadata", {}).setdefault("namespace", namespace)
 
 
@@ -956,7 +973,8 @@ class VolumeManifest(Manifest):
         """Set some defaults for PersistentVolumes"""
         spec = self.resource.setdefault("spec", {})
         spec.setdefault("capacity", {}).setdefault("storage", self.size)
-        spec.setdefault("accessModes", []).append("ReadWriteMany")
+        if not spec.get("accessModes"):
+            spec.setdefault("accessModes", []).append("ReadWriteMany")
         spec.setdefault("persistentVolumeReclaimPolicy", "Retain")
 
     def _set_pvc_defaults(self):
@@ -965,7 +983,8 @@ class VolumeManifest(Manifest):
         spec.setdefault("resources", {}).setdefault("requests", {}).setdefault(
             "storage", self.size
         )
-        spec.setdefault("accessModes", []).append("ReadWriteMany")
+        if not spec.get("accessModes"):
+            spec.setdefault("accessModes", []).append("ReadWriteMany")
 
         ## Select the appropriate PV
         spec.setdefault("selector", {}).setdefault("matchLabels", {}).update(
@@ -1118,11 +1137,6 @@ def _convert_long_port(port):
     rename_key(port, "published", "port")
     if not port.get("port"):
         port["port"] = port.pop("target", None)
-
-    # Support NodePort here, because we did once
-    # TODO: Maybe get rid of this
-    if port.get("nodePort"):
-        port.setdefault("type", "NodePort")
 
     # Rename target (Docker) to targetPort (Kubernetes)
     # Get rid of mode and uppercase the protocol
