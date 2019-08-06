@@ -90,7 +90,7 @@ class OccopusAdaptor(abco.Adaptor):
                 logger.info("Nova resource detected")
                 self._node_data_get_nova_host_properties(node, "resource")
 
-            self._get_policies()
+            self._get_policies(node)
             self._get_infra_def(tmp)
 
             node_type = self.node_prefix + self.node_name
@@ -464,13 +464,18 @@ class OccopusAdaptor(abco.Adaptor):
         """ Get host properties """
         return node.get_properties()
 
-    def _get_policies(self):
+    def _get_policies(self, node):
         """ Get the TOSCA policies """
         self.min_instances = 1
         self.max_instances = 1
+        if "scalable" in node.entity_tpl.get("capabilities", {}):
+            scalable = node.get_capabilities()["scalable"]
+            self.min_instances = scalable.get_property_value("min_instances")
+            self.max_instances = scalable.get_property_value("max_instances")
+            return
         for policy in self.template.policies:
             for target in policy.targets_list:
-                if self.node_name == target.name:
+                if node.name == target.name:
                     logger.debug("policy target match for compute node")
                     properties = policy.get_properties()
                     self.min_instances = properties["min_instances"].value
