@@ -69,7 +69,9 @@ class OccopusAdaptor(abco.Adaptor):
 
         for node in self.template.nodetemplates:
 
-            self.node_name = node.name.replace('_','-')
+            if '_' in node.name:                
+                raise AdaptorCritical("Underscores in node {} not allowed".format(node.name))
+            self.node_name = node.name
             self.node_data = {}
 
             cloud_type = self._node_data_get_interface(node, "resource")
@@ -88,7 +90,7 @@ class OccopusAdaptor(abco.Adaptor):
                 logger.info("Nova resource detected")
                 self._node_data_get_nova_host_properties(node, "resource")
 
-            self._get_policies()
+            self._get_policies(node)
             self._get_infra_def(tmp)
 
             node_type = self.node_prefix + self.node_name
@@ -388,6 +390,7 @@ class OccopusAdaptor(abco.Adaptor):
         Get cloud-config from MiCADO cloud-init template
         """
         yaml.default_flow_style = False
+        default_cloud_config = {}
         try:
             with open(self.cloudinit_path, 'r') as f:
                 template = jinja2.Template(f.read())
@@ -428,6 +431,7 @@ class OccopusAdaptor(abco.Adaptor):
             path = self.infra_def_path_input
         if self.validate is False or tmp:
             try:
+                infra_def = {}
                 with open(path, 'r') as f:
                     infra_def = yaml.round_trip_load(f, preserve_quotes=True)
                 infra_def.setdefault('nodes', [])
@@ -460,13 +464,18 @@ class OccopusAdaptor(abco.Adaptor):
         """ Get host properties """
         return node.get_properties()
 
-    def _get_policies(self):
+    def _get_policies(self, node):
         """ Get the TOSCA policies """
         self.min_instances = 1
         self.max_instances = 1
+        if "scalable" in node.entity_tpl.get("capabilities", {}):
+            scalable = node.get_capabilities()["scalable"]
+            self.min_instances = scalable.get_property_value("min_instances")
+            self.max_instances = scalable.get_property_value("max_instances")
+            return
         for policy in self.template.policies:
             for target in policy.targets_list:
-                if self.node_name == target.name.replace('_', '-'):
+                if node.name == target.name:
                     logger.debug("policy target match for compute node")
                     properties = policy.get_properties()
                     self.min_instances = properties["min_instances"].value
