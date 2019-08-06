@@ -390,6 +390,7 @@ class OccopusAdaptor(abco.Adaptor):
         Get cloud-config from MiCADO cloud-init template
         """
         yaml.default_flow_style = False
+        default_cloud_config = {}
         try:
             with open(self.cloudinit_path, 'r') as f:
                 template = jinja2.Template(f.read())
@@ -430,6 +431,7 @@ class OccopusAdaptor(abco.Adaptor):
             path = self.infra_def_path_input
         if self.validate is False or tmp:
             try:
+                infra_def = {}
                 with open(path, 'r') as f:
                     infra_def = yaml.round_trip_load(f, preserve_quotes=True)
                 infra_def.setdefault('nodes', [])
