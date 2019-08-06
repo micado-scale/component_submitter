@@ -69,7 +69,9 @@ class OccopusAdaptor(abco.Adaptor):
 
         for node in self.template.nodetemplates:
 
-            self.node_name = node.name.replace('_','-')
+            if '_' in node.name:                
+                raise AdaptorCritical("Underscores in node {} not allowed".format(node.name))
+            self.node_name = node.name
             self.node_data = {}
 
             cloud_type = self._node_data_get_interface(node, "resource")
@@ -466,7 +468,7 @@ class OccopusAdaptor(abco.Adaptor):
         self.max_instances = 1
         for policy in self.template.policies:
             for target in policy.targets_list:
-                if self.node_name == target.name.replace('_', '-'):
+                if self.node_name == target.name:
                     logger.debug("policy target match for compute node")
                     properties = policy.get_properties()
                     self.min_instances = properties["min_instances"].value
