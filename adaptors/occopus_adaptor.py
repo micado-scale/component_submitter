@@ -223,6 +223,7 @@ class OccopusAdaptor(abco.Adaptor):
         interfaces = utils.get_lifecycle(node, "Occopus")
         if not interfaces:
             logger.debug("No interface for Occopus in {}".format(node.name))
+            return None
         cloud_inputs = interfaces.get("create")
         self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
         self.node_data.setdefault(key, {}).setdefault("endpoint", cloud_inputs["endpoint_cloud"])
