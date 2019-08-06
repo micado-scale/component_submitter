@@ -2,7 +2,8 @@ import unittest
 
 from toscaparser.tosca_template import ToscaTemplate
 
-import adaptors.k8s_adaptor as kutils
+import utils
+import adaptors.k8s_adaptor as kutil
 
 from abstracts.exceptions import AdaptorCritical
 
@@ -358,7 +359,7 @@ class TestK8sTranslation(unittest.TestCase):
 
     def test_create_service_with_namespace(self):
         cont = self.getContainerbyName("docker-by-kube")
-        spec = kutils._get_lifecycle(cont)
+        spec = utils.get_lifecycle(cont, "Kubernetes")
         test = WorkloadManifest("myapp", cont, spec, self.tpl.repositories)
         self.assertEqual(
             test.services.get("docker-by-kube")
@@ -481,7 +482,7 @@ class TestK8sTranslation(unittest.TestCase):
 
     def test_volume_manifest_spec_from_interface(self):
         cont = self.getContainerbyName("fake-vol-interface")
-        spec = kutils._get_lifecycle(cont)
+        spec = utils.get_lifecycle(cont, "Kubernetes")
         test = VolumeManifest("myapp", cont, spec)
         self.assertEqual(
             test.resource.get("spec").get("hostPath").get("path"), "getthispath"
@@ -489,25 +490,25 @@ class TestK8sTranslation(unittest.TestCase):
 
     def test_volume_manifest_spec_overwrite_from_interface(self):
         cont = self.getContainerbyName("fake-vol-interface")
-        spec = kutils._get_lifecycle(cont)
+        spec = utils.get_lifecycle(cont, "Kubernetes")
         test = VolumeManifest("myapp", cont, spec)
         self.assertEqual(len(test.resource.get("spec").get("accessModes")), 1)
 
     def test_volume_manifest_spec_from_property(self):
         cont = self.getContainerbyName("fake-vol-abst")
-        spec = kutils._get_lifecycle(cont)
+        spec = utils.get_lifecycle(cont, "Kubernetes")
         test = VolumeManifest("myapp", cont, spec)
         self.assertEqual(test.resource.get("spec").get("nfs").get("path"), "volinprop")
 
     def test_config_manifest_spec_overwrite_from_interface(self):
         cont = self.getContainerbyName("fake-config")
-        spec = kutils._get_lifecycle(cont)
+        spec = utils.get_lifecycle(cont, "Kubernetes")
         test = ConfigMapManifest("myapp", cont, spec)
         self.assertEqual(test.resource.get("binaryData"), {"bingoes": "here"})
 
     def test_config_manifest_spec_from_property(self):
         cont = self.getContainerbyName("fake-config-abst")
-        spec = kutils._get_lifecycle(cont)
+        spec = utils.get_lifecycle(cont, "Kubernetes")
         test = ConfigMapManifest("myapp", cont, spec)
         self.assertEqual(test.resource.get("data"), {"datagoes": "here"})
 
@@ -516,15 +517,15 @@ class TestK8sTranslation(unittest.TestCase):
     def test_get_node_checks(self):
         cont = self.getContainerbyName("docker-container-with-artifact_bad_name")
         with self.assertRaises(AdaptorCritical):
-            kutils._get_node(cont)
+            kutil._get_node(cont)
 
     def test_get_parent_interfaces(self):
         cont = self.getContainerbyName("daemonset-by-auto")
-        test = kutils._get_lifecycle(cont)
+        test = utils.get_lifecycle(cont, "Kubernetes")
         self.assertEqual(test.get("create").get("kind"), "DaemonSet")
 
     def test_overwrite_parent_interfaces(self):
         cont = self.getContainerbyName("overwrite-with-auto")
-        test = kutils._get_lifecycle(cont)
+        test = utils.get_lifecycle(cont, "Kubernetes")
         self.assertEqual(test.get("create").get("kind"), "Deployment")
 

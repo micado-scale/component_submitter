@@ -79,7 +79,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             if "tosca.nodes.MiCADO.Container" not in node.type:
                 continue
             node = _get_node(node)
-            lifecycle = _get_lifecycle(node)
+            lifecycle = utils.get_lifecycle(node, KUBERNETES_INTERFACE)
             if not lifecycle:
                 continue
 
@@ -1051,28 +1051,7 @@ def _get_node(node):
     return copy.deepcopy(node)
 
 
-def _get_lifecycle(node):
-    """Get inputs from TOSCA interfaces
 
-    First, gets the interface from the direct parent, then updates it with the
-    TOSCA interface inputs from the current node
-
-    Returns:
-        dict: a set of inputs for different lifecycle stages
-    """
-    lifecycle = {}
-    # Get the interfaces from the first parent
-    parent_interfaces = node.type_definition.interfaces.get("Kubernetes", {})
-    parent_interfaces.pop("type", None)
-    for stage, value in parent_interfaces.items():
-        lifecycle[stage] = value.get("inputs")
-
-    # Update these interfaces with any inputs from the current node
-    interfaces = [x for x in node.interfaces if KUBERNETES_INTERFACE in x.type]
-    for stage in interfaces:
-        lifecycle.setdefault(stage.name, {}).update(stage.inputs or {})
-
-    return lifecycle
 
 
 def _get_api(kind):

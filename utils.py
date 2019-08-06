@@ -39,3 +39,27 @@ def get_yaml_data(path):
 def id_generator(size=8, chars=string.ascii_uppercase + string.digits):
     """ Generate an ID """
     return ''.join(random.choice(chars) for _ in range(size))
+
+def get_lifecycle(node, interface_type):
+    """Get inputs from TOSCA interfaces
+
+    First, gets the interface from the direct parent, then updates it with the
+    TOSCA interface inputs from the current node
+
+    Returns:
+        dict: a set of inputs for different lifecycle stages
+    """
+    lifecycle = {}
+    # Get the interfaces from the first parent
+    parent_interfaces = node.type_definition.interfaces.get(interface_type, {})
+    for stage, value in parent_interfaces.items():
+        if stage == "type":
+            continue
+        lifecycle[stage] = value.get("inputs")
+
+    # Update these interfaces with any inputs from the current node
+    interfaces = [x for x in node.interfaces if interface_type in x.type]
+    for stage in interfaces:
+        lifecycle.setdefault(stage.name, {}).update(stage.inputs or {})
+
+    return lifecycle
