@@ -246,27 +246,6 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         except OSError:
             logger.warning("Could not remove manifest file")
 
-        try:
-            if self.dryrun:
-                logger.info("DRY-RUN: cleaning up old manifests...")
-            else:
-                operation = [
-                    "docker ps -f label=io.kubernetes.container.name=occopus-redis -q"
-                ]
-                occo_id = (
-                    subprocess.check_output(
-                        operation, stderr=subprocess.PIPE, shell=True
-                    )
-                    .decode("utf-8")
-                    .strip()
-                )
-                operation = ["docker exec " + occo_id + " redis-cli FLUSHALL"]
-                subprocess.run(
-                    operation, stderr=subprocess.PIPE, shell=True, check=True
-                )
-        except subprocess.CalledProcessError:
-            logger.warning("Could not flush occopus_redis")
-
         self.status = "Clean!"
 
     def query(self, query):
