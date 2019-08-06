@@ -180,6 +180,17 @@ class OccopusAdaptor(abco.Adaptor):
             os.remove(self.infra_def_path_output)
         except OSError as e:
             logger.warning(e)
+        # Flush the occopus-redis db
+        try:
+            redis = self.client.containers.list(filters={'label':'io.kubernetes.container.name=occopus-redis'})[0]
+            if redis.exec_run("redis-cli FLUSHALL").exit_code != 0:
+                raise AdaptorCritical
+        except AdaptorCritical:
+            logger.warning("FLUSH in occopus-redis container failed")
+        except IndexError:
+            logger.warning("Could not find occopus-redis container for FLUSH")
+        except Exception:
+            logger.warning("Could not connect to Docker for FLUSH")
 
     def update(self):
         """
