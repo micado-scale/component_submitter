@@ -186,31 +186,27 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.status = "Undeploying..."
         error = False
 
-        # Try to delete workloads relying on hosted mounts first (WORKAROUND)
+        # Delete nodes from the cluster
         operation = [
             "kubectl",
             "delete",
-            "-n",
-            "default",
-            "-f",
-            self.manifest_path,
+            "no",
             "-l",
-            "!volume",
+            "micado.eu/node_type",
         ]
         try:
             if self.dryrun:
                 logger.info(
-                    "DRY-RUN: kubectl removes all workloads but hosted volumes..."
+                    "DRY-RUN: kubectl removes all MiCADO nodes..."
                 )
             else:
                 logger.debug("Undeploy {}".format(operation))
                 subprocess.run(operation, stderr=subprocess.PIPE, check=True)
         except subprocess.CalledProcessError:
-            logger.debug("Got error deleting non-hosted-mount workloads")
+            logger.debug("Got error deleting nodes")
             error = True
-        time.sleep(15)
 
-        # Delete workloads hosting volumes
+        # Delete resources in the manifest
         operation = [
             "kubectl",
             "delete",
@@ -218,17 +214,15 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             "default",
             "-f",
             self.manifest_path,
-            "-l",
-            "volume",
         ]
         try:
             if self.dryrun:
-                logger.info("DRY-RUN: kubectl removes remaining workloads...")
+                logger.info("DRY-RUN: kubectl removes workloads...")
             else:
                 logger.debug("Undeploy {}".format(operation))
                 subprocess.run(operation, stderr=subprocess.PIPE, check=True)
         except subprocess.CalledProcessError:
-            logger.debug("Had some trouble removing hosted volume workload...")
+            logger.debug("Had some trouble removing Kubernetes workloads...")
             error = True
 
         if error:
