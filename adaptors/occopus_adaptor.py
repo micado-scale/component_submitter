@@ -220,18 +220,14 @@ class OccopusAdaptor(abco.Adaptor):
         """
         Get cloud relevant information from tosca
         """
-        interfaces = node.interfaces
-        try:
-            occo_inf = [inf for inf in interfaces if inf.type == "Occopus"][0]
-        except (IndexError, AttributeError):
+        interfaces = utils.get_lifecycle(node, "Occopus")
+        if not interfaces:
             logger.debug("No interface for Occopus in {}".format(node.name))
-        else:
-            cloud_inputs = occo_inf.inputs
-            self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
-            self.node_data.setdefault(key, {}).setdefault("endpoint", cloud_inputs["endpoint_cloud"])
+        cloud_inputs = interfaces.get("create")
+        self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
+        self.node_data.setdefault(key, {}).setdefault("endpoint", cloud_inputs["endpoint_cloud"])
 
-            return cloud_inputs["interface_cloud"]
-        return None
+        return cloud_inputs["interface_cloud"]
 
 
     def _node_data_get_context_section(self,properties):
