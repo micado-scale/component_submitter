@@ -1,5 +1,6 @@
 import filecmp
 import os
+import copy
 import logging
 import docker
 import ruamel.yaml as yaml
@@ -12,6 +13,7 @@ import jinja2
 from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
 from toscaparser.tosca_template import ToscaTemplate
+from toscaparser.functions import GetProperty
 
 logger = logging.getLogger("adaptor."+__name__)
 
@@ -73,7 +75,8 @@ class OccopusAdaptor(abco.Adaptor):
                 raise AdaptorCritical("Underscores in node {} not allowed".format(node.name))
             self.node_name = node.name
             self.node_data = {}
-
+            
+            node = copy.deepcopy(node)
             cloud_type = self._node_data_get_interface(node, "resource")
             if not cloud_type:
                 continue
@@ -238,6 +241,15 @@ class OccopusAdaptor(abco.Adaptor):
             logger.debug("No interface for Occopus in {}".format(node.name))
             return None
         cloud_inputs = interfaces.get("create")
+
+        # Resolve get_property in interfaces
+        for field, value in cloud_inputs.items():
+            if isinstance(value, GetProperty):
+                cloud_inputs[field] = value.result()
+                continue
+            elif not isinstance(value, dict) or not "get_property" in value:
+                continue
+            cloud_inputs[field] = node.get_property_value(value.get("get_property")[-1])
         self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
         self.node_data.setdefault(key, {}).setdefault("endpoint", cloud_inputs["endpoint_cloud"])
 
