@@ -11,23 +11,11 @@ import time
 from random import randint
 from submitter_config import SubmitterConfig
 import logging
+import logging.config
 """ set up of Logging """
 config = SubmitterConfig()
-LEVEL = config.main_config['log_level']
-FILENAME = config.main_config['path_log']
-logging.basicConfig(filename=FILENAME, level=LEVEL, format="%(asctime)s - %(lineno)d - %(name)s - %(levelname)s - %(message)s")
+logging.config.dictConfig(config.logging_config)
 logger=logging.getLogger("submitter."+__name__)
-
-"""define the Handler which write message to sys.stderr"""
-console = logging.StreamHandler()
-console.setLevel(LEVEL)
-""" set format which is simpler for console use"""
-formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-
-console.setFormatter(formatter)
-
-""" add the handler to the root logger"""
-logging.getLogger('').addHandler(console)
 
 JSON_FILE = "system/ids.json"
 

@@ -40,6 +40,7 @@ class SubmitterConfig():
       config = self._reading_config()
       self.main_config = config["main_config"]
       self.step_config = config["step"]
+      self.logging_config = config["logging"]
       self.mapping()
 
 
