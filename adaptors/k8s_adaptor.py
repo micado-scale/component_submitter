@@ -6,8 +6,7 @@ import filecmp
 import time
 import copy
 
-import kubernetes.client
-import kubernetes.config
+import pykube
 from toscaparser.tosca_template import ToscaTemplate
 
 import utils
@@ -245,49 +244,32 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     def query(self, query):
         """ Query """
         logger.info("Query ID {}".format(self.ID))
-        kubernetes.config.load_kube_config()
+        kube_config = pykube.KubeConfig.from_file("~/.kube/config")
+        api = pykube.HTTPClient(kube_config)
 
         if query == "nodes":
-            client = kubernetes.client.CoreV1Api()
+            nodes = pykube.Node.objects(api)
             return [
-                x.metadata.to_dict()
-                for x in client.list_node().items
-                if not x.spec.taints
+                x.name
+                for x in nodes.iterator()
             ]
         elif query == "services":
-            client = kubernetes.client.ExtensionsV1beta1Api()
+            pods = pykube.Pod.objects(api)
             return [
-                x.metadata.to_dict()
-                for x in client.list_namespaced_deployment("default").items
+                x.name
+                for x in pods.iterator()
             ]
 
     def _get_outputs(self):
         """Get outputs and their resultant attributes"""
         logger.info("Fetching outputs...")
-
-        def get_attribute(service, query):
-            kubernetes.config.load_kube_config()
-            if query == "port":
-                for svc in self.services:
-                    if svc.get("node") == service:
-                        name = svc.get("name")
-                        namespace = svc.get("namespace")
-                        client = kubernetes.client.CoreV1Api()
-                        result = [
-                            x.to_dict()
-                            for x in client.read_namespaced_service(
-                                name, namespace
-                            ).spec.ports
-                        ]
-                        self.output.setdefault(service, []).append(result)
-
         for output in self.tpl.outputs:
             node = output.value.get_referenced_node_template()
-            if node.type == DOCKER_CONTAINER:
-                service = node.name
-                logger.debug("Inspect service: {}".format(service))
+            if node.is_derived_from(TOSCA_CONTAINER):
+                logger.debug("Inspect node: {}".format(node.name))
                 query = output.value.attribute_name
-                get_attribute(service, query)
+                if query == "port":
+                    self.output.setdefault(node.name, {})[query] = query_port(node.name)
             else:
                 logger.warning("{} is not a Docker container!".format(node.name))
 
@@ -1148,3 +1130,19 @@ def _separate_data(key_names, spec_dict):
 
     return data
 
+def query_port(service_name):
+    """Queries a specific service for its port listing
+    
+    Args:
+        service_name (string): Name of service to query
+    
+    Returns:
+        dict: port listing
+    """
+    kube_config = pykube.KubeConfig.from_file("~/.kube/config")
+    api = pykube.HTTPClient(kube_config)
+    try:
+        service = pykube.Service.objects(api).get_by_name(service_name)
+    except Exception:
+        return "Service {} not found".format(service_name)
+    return service.obj.get("spec", {}).get("ports", {})
