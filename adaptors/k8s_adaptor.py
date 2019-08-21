@@ -23,6 +23,7 @@ TOSCA_TYPES = (
     KUBERNETES_POD,
     TOSCA_CONTAINER,
     MICADO_COMPUTE,
+    MICADO_MONITORING,
 ) = (
     "tosca.nodes.MiCADO.Container.Application.Docker",
     "tosca.nodes.MiCADO.Container.Volume",
@@ -31,6 +32,7 @@ TOSCA_TYPES = (
     "tosca.nodes.MiCADO.Container.Pod.Kubernetes",
     "tosca.nodes.Container.Application",
     "tosca.nodes.MiCADO.Compute",
+    "tosca.policies.Monitoring.MiCADO",
 )
 
 
@@ -57,8 +59,14 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.short_id = "_".join(adaptor_id.split("_")[:-1]) or adaptor_id
         self.config = config
         self.tpl = template
-        self.manifest_path = "{}{}.yaml".format(self.config["volume"], self.ID)
-        self.manifest_tmp_path = "{}tmp_{}.yaml".format(self.config["volume"], self.ID)
+
+        out_volume = self.config.get("volume", "files/output_configs")
+        self.manifest_path = "{}{}.yaml".format(out_volume, self.ID)
+        self.manifest_tmp_path = "{}tmp_{}.yaml".format(out_volume, self.ID)
+
+        sys_volume = self.config.get("system", "system/")
+        self.cadvisor_manifest_path = "{}cadvisor.yaml".format(sys_volume)
+        self.nodex_manifest_path = "{}nodex.yaml".format(sys_volume)
 
         self.manifests = []
         self.services = []
@@ -94,6 +102,37 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 )
             self.manifests += manifest.manifests
 
+        # Look for a monitoring policy and attach default metric exporters to the application
+        for policy in self.tpl.policies:
+            if policy.type != MICADO_MONITORING:
+                continue
+            if policy.get_property_value("enable_container_metrics"):
+                try:
+                    cadvisor = utils.get_yaml_data(self.cadvisor_manifest_path)
+                    cadvisor["metadata"]["labels"][
+                        "app.kubernetes.io/instance"
+                    ] = self.short_id
+                    self.manifests.append(cadvisor)
+                except FileNotFoundError:
+                    logger.warning(
+                        "Could not find cAdvisor manifest at {}".format(
+                            self.cadvisor_manifest_path
+                        )
+                    )
+            if policy.get_property_value("enable_node_metrics"):
+                try:
+                    nodex = utils.get_yaml_data(self.nodex_manifest_path)
+                    nodex["metadata"]["labels"][
+                        "app.kubernetes.io/instance"
+                    ] = self.short_id
+                    self.manifests.append(nodex)
+                except FileNotFoundError:
+                    logger.warning(
+                        "Could not find NodeExporter manifest at {}".format(
+                            self.nodex_manifest_path
+                        )
+                    )
+
         if not self.manifests:
             logger.info(
                 "No nodes to orchestrate with Kubernetes. Do you need this adaptor?"
@@ -127,17 +166,17 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             return
 
         if update:
-            operation = ["kubectl", "apply", "-n", "default", "-f", self.manifest_path]
-        else:
             operation = [
                 "kubectl",
-                "create",
-                "-n",
-                "default",
+                "apply",
+                "--prune",
+                "-l",
+                "app.kubernetes.io/instance={}".format(self.short_id),
                 "-f",
                 self.manifest_path,
-                "--save-config",
             ]
+        else:
+            operation = ["kubectl", "create", "-f", self.manifest_path, "--save-config"]
         try:
             logger.debug("Executing {}".format(operation))
             subprocess.run(operation, stderr=subprocess.PIPE, check=True)
@@ -186,18 +225,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         error = False
 
         # Delete nodes from the cluster
-        operation = [
-            "kubectl",
-            "delete",
-            "no",
-            "-l",
-            "micado.eu/node_type",
-        ]
+        operation = ["kubectl", "delete", "no", "-l", "micado.eu/node_type"]
         try:
             if self.dryrun:
-                logger.info(
-                    "DRY-RUN: kubectl removes all MiCADO nodes..."
-                )
+                logger.info("DRY-RUN: kubectl removes all MiCADO nodes...")
             else:
                 logger.debug("Undeploy {}".format(operation))
                 subprocess.run(operation, stderr=subprocess.PIPE, check=True)
@@ -206,14 +237,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             error = True
 
         # Delete resources in the manifest
-        operation = [
-            "kubectl",
-            "delete",
-            "-n",
-            "default",
-            "-f",
-            self.manifest_path,
-        ]
+        operation = ["kubectl", "delete", "-f", self.manifest_path]
         try:
             if self.dryrun:
                 logger.info("DRY-RUN: kubectl removes workloads...")
@@ -249,16 +273,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         if query == "nodes":
             nodes = pykube.Node.objects(api)
-            return [
-                x.name
-                for x in nodes.iterator()
-            ]
+            return [x.name for x in nodes.iterator()]
         elif query == "services":
             pods = pykube.Pod.objects(api)
-            return [
-                x.name
-                for x in pods.iterator()
-            ]
+            return [x.name for x in pods.iterator()]
 
     def _get_outputs(self):
         """Get outputs and their resultant attributes"""
@@ -448,6 +466,7 @@ class Manifest:
         resource["kind"] = kind
         resource["apiVersion"] = spec.pop("apiVersion", _get_api(kind))
         resource["metadata"] = spec.pop("metadata", {})
+        resource["metadata"].setdefault("namespace", "default")
         resource["metadata"].setdefault("name", self.name)
         resource["metadata"].setdefault("labels", {}).update(self.labels)
         resource["spec"] = spec.pop("spec", spec)
@@ -724,6 +743,8 @@ class WorkloadManifest(Manifest):
         port = service_spec.pop("ports", {})
         metadata = service_spec.pop("metadata", {})
         metadata.setdefault("labels", {}).update(self.labels)
+        service_namespace = metadata.get("namespace")
+        metadata.setdefault("namespace", self.namespace)
 
         # Set the type and selector inside our ServiceSpec
         service_spec.setdefault("type", "ClusterIP")
@@ -752,10 +773,10 @@ class WorkloadManifest(Manifest):
         if not service:
             service = ServiceManifest(self.app_id, service_name, {"metadata": metadata})
             service.type = service_type
-            if self.namespace:
-                service.add_namespace(self.namespace)
 
         # Update the spec with fields from this ServiceSpec, and add the new port
+        if service_namespace:
+            service.update_namespace(service_namespace)
         service.add_spec(service_spec)
         service.add_port(port)
         self.services[service_name] = service
@@ -870,10 +891,10 @@ class ServiceManifest(Manifest):
         """ Update the ServiceSpec """
         self.resource.setdefault("spec", {}).update(spec)
 
-    def add_namespace(self, namespace):
-        """ Add a namespace to this ServiceSpec """
+    def update_namespace(self, namespace):
+        """ Adjust the namespace of this ServiceSpec """
         self.namespace = namespace
-        self.resource.setdefault("metadata", {}).setdefault("namespace", namespace)
+        self.resource["metadata"]["namespace"] = namespace
 
 
 class VolumeManifest(Manifest):
@@ -889,6 +910,10 @@ class VolumeManifest(Manifest):
         """Build the PV & PVC specs into manifests with some defaults"""
         pv_spec, pvc_spec = self._get_specs(lifecycle, node)
         super().__init__(app_id, node.name, pv_spec, kind="PersistentVolume")
+
+        # PVs are not namespaced, if one exists, pass it to the PVC
+        pv_namespace = self.resource["metadata"].pop("namespace", "default")
+        pvc_spec.setdefault("metadata", {}).setdefault("namespace", pv_namespace)
         self.claim = self._build_resource(pvc_spec, "PersistentVolumeClaim")
 
         # Set some defaults for these resources
@@ -1004,9 +1029,6 @@ def _get_node(node):
         )
 
     return copy.deepcopy(node)
-
-
-
 
 
 def _get_api(kind):
@@ -1129,6 +1151,7 @@ def _separate_data(key_names, spec_dict):
             pass
 
     return data
+
 
 def query_port(service_name):
     """Queries a specific service for its port listing
