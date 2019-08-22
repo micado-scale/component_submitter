@@ -82,14 +82,17 @@ topology_template:
         image: happy-image
         ports:
         - port: 3000
-      interfaces:
-        Kubernetes:
-          create:
-            inputs:
-              kind: Deployment
-              subdomain: test-podspec
-              metadata:
-                namespace: "custom-ns"
+        - port: 4000
+
+    docker-by-kube-service:
+      type: tosca.nodes.MiCADO.Container.Application.Docker
+      properties:
+        image: happy-image
+        ports:
+        - port: 3000
+        - port: 4000
+          metadata:
+            namespace: service-ns
     
 
     add-container-to-workload:

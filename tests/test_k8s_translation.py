@@ -357,23 +357,28 @@ class TestK8sTranslation(unittest.TestCase):
             30009,
         )
 
-    def test_create_service_with_namespace(self):
+    def test_create_service_use_parent_namespace(self):
         cont = self.getContainerbyName("docker-by-kube")
-        spec = utils.get_lifecycle(cont, "Kubernetes")
+        spec = {"create": {"metadata": {"namespace": "custom-ns"}}}
         test = WorkloadManifest("myapp", cont, spec, self.tpl.repositories)
-        self.assertEqual(
-            test.services.get("docker-by-kube")
-            .resource.get("spec")
-            .get("ports")[0]
-            .get("port"),
-            3000,
-        )
         self.assertEqual(test.services.get("docker-by-kube").namespace, "custom-ns")
         self.assertEqual(
             test.services.get("docker-by-kube")
             .resource.get("metadata")
             .get("namespace"),
             "custom-ns",
+        )
+
+    def test_create_service_use_service_namespace(self):
+        cont = self.getContainerbyName("docker-by-kube-service")
+        spec = {"create": {"metadata": {"namespace": "custom-ns"}}}
+        test = WorkloadManifest("myapp", cont, spec, self.tpl.repositories)
+        self.assertEqual(test.services.get("docker-by-kube-service").namespace, "service-ns")
+        self.assertEqual(
+            test.services.get("docker-by-kube-service")
+            .resource.get("metadata")
+            .get("namespace"),
+            "service-ns",
         )
 
     """ Test volumes, requirements, VolumeManifest """
