@@ -211,8 +211,11 @@ class OccopusAdaptor(abco.Adaptor):
             logger.debug("Node tmp file different, replacing old config and executing")
             os.rename(self.node_path_tmp, self.node_path)
             os.rename(self.infra_def_path_output_tmp, self.infra_def_path_output)
-            # Undeploy the infra and rebuild
-            self.undeploy()
+            # Detach from the infra and rebuild
+            detach = requests.post("http://{0}/infrastructures/{1}/detach"
+                                        .format(self.occopus_address, self.worker_infra_name))
+            if detach.status_code != 200:
+                raise AdaptorCritical("Cannot detach infra from Occopus API!")
             self.execute()
             self.status = "updated"
             logger.debug("Node definition changed")
