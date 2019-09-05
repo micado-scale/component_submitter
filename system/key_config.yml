@@ -25,14 +25,17 @@ logging:
 
 step:
   translate:
+    - SecurityPolicyManagerAdaptor
     - KubernetesAdaptor
     - OccopusAdaptor
     - PkAdaptor
   execute:
+    - SecurityPolicyManagerAdaptor
     - OccopusAdaptor
     - KubernetesAdaptor
     - PkAdaptor
   update:
+    - SecurityPolicyManagerAdaptor
     - OccopusAdaptor
     - KubernetesAdaptor
     - PkAdaptor
@@ -40,10 +43,12 @@ step:
     - PkAdaptor
     - KubernetesAdaptor
     - OccopusAdaptor
+    - SecurityPolicyManagerAdaptor
   cleanup:
     - KubernetesAdaptor
     - OccopusAdaptor
     - PkAdaptor
+    - SecurityPolicyManagerAdaptor
 
 adaptor_config:
  KubernetesAdaptor:
@@ -64,4 +69,11 @@ adaptor_config:
    types:
      - "tosca.policies.Scaling.MiCADO"
    endpoint: "policykeeper:12345"
+   volume: "./files/output_configs/"
+
+
+ SecurityPolicyManagerAdaptor:
+   types:
+     - "tosca.policies.DockerSecretDistribution.*"
+   endoint: "endpoint"
    volume: "./files/output_configs/"
