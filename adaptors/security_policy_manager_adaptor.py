@@ -84,10 +84,22 @@ class SecurityPolicyManagerAdaptor(abco.Adaptor):
 
     def undeploy(self):
         """ Send to the Security Enforcer the id of the policy to undeploy """
+        for policy in self.policies:
+            if "tosca.policies.KubernetesSecretDistribution" in policy.type:
+                _interm_dict = policy.get_properties()["text_secrets"].value
+                for key, value in _interm_dict.items():
+                    if self.config["dry_run"] is True:
+                        logger.info("launch api command to delete secrets with {}/v1.0/appsecrets/{}".format(self.endpoint, key))
+                    elif self.config["dry_run"] is False:
+                        logger.info("launch secret delete")
+                        response = requests.delete("{}/v1.0/appsecrets/{}".format(self.endpoint, key))
+        self.status = "undeployed"
+
 
     def cleanup(self):
         pass
 
     def update(self):
         """ Send to the Security Enforcer if needed the updated policy """
-        pass
+        self.undeploy()
+        self.execute()
