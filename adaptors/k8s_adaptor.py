@@ -1,9 +1,7 @@
 import os
 import subprocess
 import logging
-import shutil
 import filecmp
-import time
 import copy
 
 import pykube
@@ -41,7 +39,6 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     """ The Kubernetes Adaptor class
     Carry out a translation from a TOSCA ADT to a Kubernetes Manifest,
     and the subsequent execution, update and undeployment of the translation.
-    
     """
 
     def __init__(self, adaptor_id, config, dryrun, validate=False, template=None):
@@ -83,55 +80,13 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.manifests = []
 
         for node in self.tpl.nodetemplates:
-            if "tosca.nodes.MiCADO.Container" not in node.type:
-                continue
-            node = _get_node(node)
-            lifecycle = utils.get_lifecycle(node, KUBERNETES_INTERFACE)
-            if not lifecycle:
-                continue
-
-            if node.is_derived_from(CONTAINER_VOLUME):
-                manifest = VolumeManifest(self.short_id, node, lifecycle)
-
-            elif node.is_derived_from(CONTAINER_CONFIG):
-                manifest = ConfigMapManifest(self.short_id, node, lifecycle)
-
-            else:
-                manifest = WorkloadManifest(
-                    self.short_id, node, lifecycle, self.tpl.repositories
-                )
-            self.manifests += manifest.manifests
+            if "tosca.nodes.MiCADO.Container" in node.type:
+                self._translate_node_templates(node)
 
         # Look for a monitoring policy and attach default metric exporters to the application
         for policy in self.tpl.policies:
-            if policy.type != MICADO_MONITORING:
-                continue
-            if policy.get_property_value("enable_container_metrics"):
-                try:
-                    cadvisor = utils.get_yaml_data(self.cadvisor_manifest_path)
-                    cadvisor["metadata"]["labels"][
-                        "app.kubernetes.io/instance"
-                    ] = self.short_id
-                    self.manifests.append(cadvisor)
-                except FileNotFoundError:
-                    logger.warning(
-                        "Could not find cAdvisor manifest at {}".format(
-                            self.cadvisor_manifest_path
-                        )
-                    )
-            if policy.get_property_value("enable_node_metrics"):
-                try:
-                    nodex = utils.get_yaml_data(self.nodex_manifest_path)
-                    nodex["metadata"]["labels"][
-                        "app.kubernetes.io/instance"
-                    ] = self.short_id
-                    self.manifests.append(nodex)
-                except FileNotFoundError:
-                    logger.warning(
-                        "Could not find NodeExporter manifest at {}".format(
-                            self.nodex_manifest_path
-                        )
-                    )
+            if policy.type == MICADO_MONITORING:
+                self._translate_monitoring_policy(policy)
 
         if not self.manifests:
             logger.info(
@@ -147,6 +102,59 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         logger.info("Translation complete")
         self.status = "Translated"
+
+    def _translate_node_templates(self, node):
+        node = _get_node(node)
+
+        lifecycle = utils.get_lifecycle(node, KUBERNETES_INTERFACE)
+        if not lifecycle:
+            return
+
+        if node.is_derived_from(CONTAINER_VOLUME):
+            manifest = VolumeManifest(self.short_id, node, lifecycle)
+        elif node.is_derived_from(CONTAINER_CONFIG):
+            manifest = ConfigMapManifest(self.short_id, node, lifecycle)
+        else:
+            manifest = WorkloadManifest(
+                self.short_id, node, lifecycle, self.tpl.repositories
+            )
+
+        self.manifests += manifest.manifests
+
+    def _translate_monitoring_policy(self, policy):
+        if policy.get_property_value("enable_container_metrics"):
+            self._translate_container_monitoring_policy()
+
+        if policy.get_property_value("enable_node_metrics"):
+            self._translate_node_monitoring_policy()
+
+    def _translate_container_monitoring_policy(self):
+        try:
+            cadvisor = utils.get_yaml_data(self.cadvisor_manifest_path)
+            cadvisor["metadata"]["labels"][
+                "app.kubernetes.io/instance"
+            ] = self.short_id
+            self.manifests.append(cadvisor)
+        except FileNotFoundError:
+            logger.warning(
+                "Could not find cAdvisor manifest at {}".format(
+                    self.cadvisor_manifest_path
+                )
+            )
+
+    def _translate_node_monitoring_policy(self):
+        try:
+            nodex = utils.get_yaml_data(self.nodex_manifest_path)
+            nodex["metadata"]["labels"][
+                "app.kubernetes.io/instance"
+            ] = self.short_id
+            self.manifests.append(nodex)
+        except FileNotFoundError:
+            logger.warning(
+                "Could not find NodeExporter manifest at {}".format(
+                    self.nodex_manifest_path
+                )
+            )
 
     def execute(self, update=False):
         """ Execute """
@@ -296,7 +304,7 @@ class Container:
     """Store ContainerSpec data
 
         Builds a basic ContainerSpec object using node properties
-        
+
         Args:
             node (toscaparser.nodetemplate.NodeTemplate): The node being built
             repositories (toscaparser.repositories.Repository): The top level repo information
@@ -364,10 +372,10 @@ class Container:
 
     def _get_image(self):
         """Return the Docker image & the version tag
-        
+
         Raises:
             AdaptorCritical: Force a rollback when no container image is given
-        
+
         Returns:
             tuple: the full path to the Docker image, and the version tag
         """
@@ -428,7 +436,7 @@ class Container:
 
 class Manifest:
     """Store the data generic to all Kubernetes manifests
-        
+
     Args:
         app_id (string): The ID of the created deployment
         name (string): The name of this component
@@ -454,11 +462,11 @@ class Manifest:
 
     def _build_resource(self, spec, kind):
         """Build the top level spec of this resource
-        
+
         Args:
             spec (dict): The user provided spec fields
             kind (string): The kind of Kubernetes resource
-        
+
         Returns:
             dict: A dictionary with the top level manifest fields completed
         """
@@ -474,14 +482,13 @@ class Manifest:
 
 
 class WorkloadManifest(Manifest):
-    """ Stores workload spec data for a manifest    
-        
+    """ Stores workload spec data for a manifest
+
     Args:
         app_id (string): ID of this deployment
         node (toscaparser.nodetemplate.NodeTemplate): TOSCA node object
         lifecycle (dict): User spec inputs from TOSCA interfaces
         repositories (toscaparser.repositories.Repository): Top level TOSCA repository data
-    
     """
 
     # All possible fields of a Kubernetes PodSpec
@@ -633,10 +640,10 @@ class WorkloadManifest(Manifest):
 
     def _handle_ports(self, container):
         """Handle docker ports & get individual ServiceSpec dicts for kube ports
-        
+
         Args:
-            container (Container object): The container to extract ports from 
-        
+            container (Container object): The container to extract ports from
+
         Returns:
             list: A list of ServiceSpec dicts, one for each port
         """
@@ -673,7 +680,7 @@ class WorkloadManifest(Manifest):
 
     def _build_volumes(self, container):
         """Add volumes / volumeMounts to PodSpec / ContainerSpec
-        
+
         Args:
             container (Container Object): The container to find volumes for
         """
@@ -736,7 +743,7 @@ class WorkloadManifest(Manifest):
 
     def _build_services(self, service_spec):
         """Join like services together into ServiceManifests
-        
+
         Args:
             service_spec (dict): A dictionary representation of a Kubernetes ServiceSpec
         """
@@ -785,10 +792,9 @@ class WorkloadManifest(Manifest):
         """Carry out basic validation of a port
 
         Checks to see a port & name exist, ClusterIP and NodePort are in range
-        
+
         Args:
             port (dict): Port data from TOSCA properties
-        
         """
         # Make sure we have a port
         port_spec = port.get("ports", {})
@@ -835,7 +841,7 @@ class WorkloadManifest(Manifest):
 
     def _get_hosts(self):
         """Finds hosts and builds node affinity for the spec
-        
+
         Returns:
             dict: NodeAffinity descriptor for the PodSpec
         """
@@ -871,7 +877,7 @@ class WorkloadManifest(Manifest):
 
 class ServiceManifest(Manifest):
     """Store ServiceSpec data for a Service manifest
-    
+
     Args:
         app_id (string): The ID of this deployment
         name (string): The node name
@@ -899,7 +905,7 @@ class ServiceManifest(Manifest):
 
 class VolumeManifest(Manifest):
     """Store the data for a PersistentVolume & Claim
-    
+
     Args:
         app_id (string): ID for this deployment
         node (toscaparser.nodetemplate.NodeTemplate): The node object from toscaparser
@@ -926,11 +932,11 @@ class VolumeManifest(Manifest):
         """Get PV or PVC inputs from TOSCA interfaces
 
         Work with the TOSCA get_property function
-        
+
         Args:
             lifecycle (dict): inputs from TOSCA interfaces
             node (toscaparser.nodetemplate.NodeTemplate): Node object from toscaparser
-        
+
         Returns:
             tuple: two dicts, PV & PVC specs
         """
@@ -941,7 +947,7 @@ class VolumeManifest(Manifest):
                 if not isinstance(element, dict):
                     continue
                 for key, val in element.items():
-                    if not isinstance(val, dict) or not "get_property" in val:
+                    if not isinstance(val, dict) or "get_property" not in val:
                         continue
                     element[key] = node.get_property_value(val.get("get_property")[-1])
                 # Clean out empty fields
@@ -966,7 +972,7 @@ class VolumeManifest(Manifest):
         if not spec.get("accessModes"):
             spec.setdefault("accessModes", []).append("ReadWriteMany")
 
-        ## Select the appropriate PV
+        # Select the appropriate PV
         spec.setdefault("selector", {}).setdefault("matchLabels", {}).update(
             self.labels
         )
@@ -974,7 +980,7 @@ class VolumeManifest(Manifest):
 
 class ConfigMapManifest(Manifest):
     """Store the required data for a Kubernetes ConfigMap
-    
+
     Args:
         app_id (string): ID of this deployment
         node (toscaparser.nodetemplate.NodeTemplate): The node object from toscaparser
@@ -1005,7 +1011,7 @@ class ConfigMapManifest(Manifest):
 
 def _get_node(node):
     """Check the node name for errors (underscores)
-    
+
     Returns:
         toscaparser.nodetemplate.NodeTemplate: a deepcopy of a valid node object
     """
@@ -1033,10 +1039,10 @@ def _get_node(node):
 
 def _get_api(kind):
     """Determine the apiVersion for different kinds of resources
-    
+
     Args:
         kind (string): The name of the resource
-    
+
     Returns:
         string: the apiVersion for the matching resource
     """
@@ -1064,10 +1070,10 @@ def _get_api(kind):
 
 def _get_port_spec(port):
     """Separate the port spec out of the ServiceSpec
-    
+
     Args:
         port (dict): The port from the container (PortSpec mixed with ServiceSpec)
-    
+
     Returns:
         dict: The PortSpec, extracted from the ServiceSpec
     """
@@ -1084,7 +1090,7 @@ def _get_port_spec(port):
 
 def _convert_long_port(port):
     """Convert a long syntax Docker port (not host mode) to Kubernetes
-    
+
     Args:
         port (dict): The port spec to reconfigure
     """
@@ -1104,7 +1110,7 @@ def _convert_long_port(port):
 
 def rename_key(dicti, old_key, new_key):
     """Rename a dictionary key, if it exists
-    
+
     Args:
         dicti (dict): The dictionary to mangle
         old_key (string): The old key name
@@ -1116,10 +1122,10 @@ def rename_key(dicti, old_key, new_key):
 
 def _make_env(environment):
     """Change from Docker environment to Kubernetes env
-    
+
     Args:
         environment (dict): Docker-style environment data
-    
+
     Returns:
         list: Kubernetes-style env data
     """
@@ -1135,11 +1141,11 @@ def _make_env(environment):
 
 def _separate_data(key_names, spec_dict):
     """Remove some keys (and their values) from a dictionary
-    
+
     Args:
         key_names (list): Key names for removal
         spec_dict (dict): Dictionary to remove keys from
-    
+
     Returns:
         dict: The newly cleaned out dictionary
     """
@@ -1155,10 +1161,10 @@ def _separate_data(key_names, spec_dict):
 
 def query_port(service_name):
     """Queries a specific service for its port listing
-    
+
     Args:
         service_name (string): Name of service to query
-    
+
     Returns:
         dict: port listing
     """
