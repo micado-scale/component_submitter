@@ -909,6 +909,14 @@ class VolumeManifest(Manifest):
     def __init__(self, app_id, node, lifecycle):
         """Build the PV & PVC specs into manifests with some defaults"""
         pv_spec, pvc_spec = self._get_specs(lifecycle, node)
+
+        # If no PV spec, only build a PVC (eg. for dynamic volume provisioning)
+        if pvc_spec and not pv_spec:
+            super().__init__(app_id, node.name, pvc_spec, kind="PersistentVolumeClaim")
+            self.manifests = [self.resource]
+            return
+
+        # Otherwise, create a PV
         super().__init__(app_id, node.name, pv_spec, kind="PersistentVolume")
 
         # PVs are not namespaced, if one exists, pass it to the PVC
