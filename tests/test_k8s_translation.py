@@ -479,11 +479,18 @@ class TestK8sTranslation(unittest.TestCase):
         self.assertTrue(mount.get("configMap"))
         self.assertTrue(mount_abst.get("configMap"))
 
-    def test_volume_manifest_claim_from_interface(self):
+    def test_volume_manifest_PVC_only_from_interface(self):
         cont = self.getContainerbyName("fake-vol-abst")
         spec = {"configure": {"metadata": {"labels": {"custom": "label"}}}}
         test = VolumeManifest("myapp", cont, spec)
-        self.assertTrue(test.claim.get("metadata").get("labels").get("custom"))
+        self.assertTrue(test.resource.get("metadata").get("labels").get("custom"))
+
+    def test_volume_manifest_PVC_and_PV_from_interface(self):
+        cont = self.getContainerbyName("fake-vol-abst")
+        spec = {"create": {"hostPath": "mypath"}, "configure": {"storageClassName": "rook"}}
+        test = VolumeManifest("myapp", cont, spec)
+        self.assertTrue(test.resource.get("spec").get("hostPath"))
+        self.assertTrue(test.claim.get("spec").get("storageClassName"))
 
     def test_volume_manifest_spec_from_interface(self):
         cont = self.getContainerbyName("fake-vol-interface")

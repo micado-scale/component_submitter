@@ -21,6 +21,7 @@ TOSCA_TYPES = (
     CONTAINER_CONFIG,
     KUBERNETES_INTERFACE,
     KUBERNETES_POD,
+    KUBERNETES_RESOURCE,
     TOSCA_CONTAINER,
     MICADO_COMPUTE,
     MICADO_MONITORING,
@@ -30,6 +31,7 @@ TOSCA_TYPES = (
     "tosca.nodes.MiCADO.Container.Config",
     "Kubernetes",
     "tosca.nodes.MiCADO.Container.Pod.Kubernetes",
+    "tosca.nodes.MiCADO.Kubernetes",
     "tosca.nodes.Container.Application",
     "tosca.nodes.MiCADO.Compute",
     "tosca.policies.Monitoring.MiCADO",
@@ -83,14 +85,20 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.manifests = []
 
         for node in self.tpl.nodetemplates:
-            if "tosca.nodes.MiCADO.Container" not in node.type:
+            if "tosca.nodes.MiCADO" not in node.type:
                 continue
             node = _get_node(node)
             lifecycle = utils.get_lifecycle(node, KUBERNETES_INTERFACE)
             if not lifecycle:
                 continue
+            if node.is_derived_from(KUBERNETES_RESOURCE):
+                manifest = Manifest(
+                    self.short_id, node.name, lifecycle.get("create"), kind="custom"
+                )
+                self.manifests += [manifest.resource]
+                continue
 
-            if node.is_derived_from(CONTAINER_VOLUME):
+            elif node.is_derived_from(CONTAINER_VOLUME):
                 manifest = VolumeManifest(self.short_id, node, lifecycle)
 
             elif node.is_derived_from(CONTAINER_CONFIG):
@@ -206,7 +214,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             self.status = "Skipped Update"
             return
 
-        if filecmp.cmp(self.manifest_path, self.manifest_tmp_path):
+        if os.path.exists(self.manifest_path) and filecmp.cmp(
+            self.manifest_path, self.manifest_tmp_path
+        ):
             logger.debug("No update - removing {}".format(self.manifest_tmp_path))
             os.remove(self.manifest_tmp_path)
             logger.info("Nothing to update")
@@ -237,7 +247,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             error = True
 
         # Delete resources in the manifest
-        operation = ["kubectl", "delete", "-f", self.manifest_path]
+        operation = ["kubectl", "delete", "-f", self.manifest_path, "--timeout", "60s"]
         try:
             if self.dryrun:
                 logger.info("DRY-RUN: kubectl removes workloads...")
@@ -448,9 +458,18 @@ class Manifest:
             "app.kubernetes.io/managed-by": "micado",
         }
 
+        # Handle custom Kubernetes resources
+        if kind == "custom":
+            self.resource = spec
+            self.resource.setdefault("metadata", {}).setdefault("labels", {}).update(
+                self.labels
+            )
+            return
+
+        # Build common manifest properties
         self.kind = spec.pop("kind", kind)
+        self.namespace = spec.get("metadata", {}).get("namespace")
         self.resource = self._build_resource(spec, self.kind)
-        self.namespace = self.resource.get("metadata", {}).get("namespace")
 
     def _build_resource(self, spec, kind):
         """Build the top level spec of this resource
@@ -466,7 +485,8 @@ class Manifest:
         resource["kind"] = kind
         resource["apiVersion"] = spec.pop("apiVersion", _get_api(kind))
         resource["metadata"] = spec.pop("metadata", {})
-        resource["metadata"].setdefault("namespace", "default")
+        if self.namespace:
+            resource["metadata"].setdefault("namespace", self.namespace)
         resource["metadata"].setdefault("name", self.name)
         resource["metadata"].setdefault("labels", {}).update(self.labels)
         resource["spec"] = spec.pop("spec", spec)
@@ -744,7 +764,8 @@ class WorkloadManifest(Manifest):
         metadata = service_spec.pop("metadata", {})
         metadata.setdefault("labels", {}).update(self.labels)
         service_namespace = metadata.get("namespace")
-        metadata.setdefault("namespace", self.namespace)
+        if self.namespace:
+            metadata.setdefault("namespace", self.namespace)
 
         # Set the type and selector inside our ServiceSpec
         service_spec.setdefault("type", "ClusterIP")
@@ -909,11 +930,20 @@ class VolumeManifest(Manifest):
     def __init__(self, app_id, node, lifecycle):
         """Build the PV & PVC specs into manifests with some defaults"""
         pv_spec, pvc_spec = self._get_specs(lifecycle, node)
+
+        # If no PV spec, only build a PVC (eg. for dynamic volume provisioning)
+        if pvc_spec and not pv_spec:
+            super().__init__(app_id, node.name, pvc_spec, kind="PersistentVolumeClaim")
+            self.manifests = [self.resource]
+            return
+
+        # Otherwise, create a PV
         super().__init__(app_id, node.name, pv_spec, kind="PersistentVolume")
 
         # PVs are not namespaced, if one exists, pass it to the PVC
-        pv_namespace = self.resource["metadata"].pop("namespace", "default")
-        pvc_spec.setdefault("metadata", {}).setdefault("namespace", pv_namespace)
+        pv_namespace = self.resource["metadata"].pop("namespace", None)
+        if pv_namespace:
+            pvc_spec.setdefault("metadata", {}).setdefault("namespace", pv_namespace)
         self.claim = self._build_resource(pvc_spec, "PersistentVolumeClaim")
 
         # Set some defaults for these resources
@@ -1013,7 +1043,7 @@ def _get_node(node):
     name_errors = []
 
     if "_" in name:
-        name_errors.append("TOSCA names")
+        name_errors.append("TOSCA node names")
     if "_" in (node.get_property_value("name") or ""):
         name_errors.append("property: 'name'")
     if "_" in (node.get_property_value("container_name") or ""):
