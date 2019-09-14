@@ -247,7 +247,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             error = True
 
         # Delete resources in the manifest
-        operation = ["kubectl", "delete", "-f", self.manifest_path]
+        operation = ["kubectl", "delete", "-f", self.manifest_path, "--timeout", "60s"]
         try:
             if self.dryrun:
                 logger.info("DRY-RUN: kubectl removes workloads...")
