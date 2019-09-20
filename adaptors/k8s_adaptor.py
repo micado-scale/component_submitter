@@ -3,6 +3,8 @@ import subprocess
 import logging
 import filecmp
 import copy
+import base64
+import json
 
 import pykube
 from toscaparser.tosca_template import ToscaTemplate
@@ -22,6 +24,7 @@ TOSCA_TYPES = (
     TOSCA_CONTAINER,
     MICADO_COMPUTE,
     MICADO_MONITORING,
+    MICADO_SECURITY
 ) = (
     "tosca.nodes.MiCADO.Container.Application.Docker",
     "tosca.nodes.MiCADO.Container.Volume",
@@ -31,6 +34,29 @@ TOSCA_TYPES = (
     "tosca.nodes.Container.Application",
     "tosca.nodes.MiCADO.Compute",
     "tosca.policies.Monitoring.MiCADO",
+    'tosca.policies.Security.MiCADO.Network'
+)
+
+SECURITY_POLICIES = (
+    PASSTHROUGH_PROXY,
+    PLUG_PROXY,
+    SMTP_PROXY,
+    HTTP_PROXY,
+    HTTP_URI_FILTER_PROXY,
+    HTTP_WEBDAV_PROXY
+) = (
+    # PfService
+    'tosca.policies.Security.MiCADO.Network.Passthrough',
+    # PlugProxy
+    'tosca.policies.Security.MiCADO.Network.L7Proxy',
+    # SmtpProxy
+    'tosca.policies.Security.MiCADO.Network.SmtpProxy',
+    # HttpProxy
+    'tosca.policies.Security.MiCADO.Network.HttpProxy',
+    # HttpURIFilterProxy
+    'tosca.policies.Security.MiCADO.Network.HttpURIFilterProxy',
+    # HttpWebdavProxy
+    'tosca.policies.Security.MiCADO.Network.HttpWebdavProxy'
 )
 
 
@@ -69,6 +95,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.services = []
         self.volumes = {}
         self.output = {}
+        self.tcp_ports = []
+        self.ingress_conf = []
+        self.ingress_secrets = {}
         self.validate = validate
         logger.info("Kubernetes Adaptor is ready.")
         self.status = "Initialised"
@@ -78,6 +107,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         logger.info("Translating into Kubernetes Manifests")
         self.status = "Translating..."
         self.manifests = []
+        self.tcp_ports = []
+        self.ingress_conf = []
+        self.ingress_secrets = {}
 
         for node in self.tpl.nodetemplates:
             if "tosca.nodes.MiCADO.Container" in node.type:
@@ -87,6 +119,13 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         for policy in self.tpl.policies:
             if policy.type == MICADO_MONITORING:
                 self._translate_monitoring_policy(policy)
+
+            if policy.type.startswith(MICADO_SECURITY):
+                self._translate_security_policy(policy)
+
+        self._deploy_zorp()
+        self._manifest_secrets()
+        self._manifest_ingress()
 
         if not self.manifests:
             logger.info(
@@ -155,6 +194,207 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                     self.nodex_manifest_path
                 )
             )
+
+    def _translate_security_policy(self, policy):
+        if policy.type == PASSTHROUGH_PROXY:
+            # FIXME
+            # passthrough policy does not require ingress rules
+            pass
+        elif policy.type in SECURITY_POLICIES:
+            self._translate_level7_policy(policy)
+        else:
+            logger.warning("Unknown network security policy: {}".format(policy.type))
+
+    def _translate_level7_policy(self, policy):
+        ingress = {
+            'policy_type': policy.type.split('.')[-1]
+        }
+        ingress.update({key: value.value for key, value in policy.get_properties().items()})
+        self._extract_ports(ingress)
+        self._translate_tls_secrets(ingress, policy)
+        self.ingress_conf.append(ingress)
+
+    def _extract_ports(self, ingress):
+        try:
+            self.tcp_ports.extend(ingress['target_ports'])
+        except KeyError:
+            pass
+
+    def _translate_tls_secrets(self, ingress, policy):
+        if ingress.get('encryption', False):
+            if 'encryption_key' not in ingress or 'encryption_cert' not in ingress:
+                error = "Encryption key and/or cert missing for policy {}".format(policy.type)
+                logger.error(error)
+                raise TranslateError(error)
+            index = 'krumpli' + str(len(self.ingress_secrets))
+            self.ingress_secrets[index] = {
+                'tls.key': ingress['encryption_key'],
+                'tls.crt': ingress['encryption_cert']
+            }
+            ingress['encryption_key'] = index
+            ingress['encryption_cert'] = index
+        else:
+            try:
+                del(ingress['encryption_key'])
+                del(ingress['encryption_cert'])
+            except KeyError:
+                pass
+
+    def _deploy_zorp(self):
+        self._manifest_zorp_service_account()
+        self._manifest_zorp_cluster_role()
+        self._manifest_zorp_role_binding()
+        self._manifest_zorp_daemon_set()
+
+    def _manifest_zorp_service_account(self):
+        self.manifests.append({
+            'apiVersion': 'v1',
+            'kind': 'ServiceAccount',
+            'metadata': {
+                'name': 'zorp-ingress-service-account',
+                'namespace': 'micado-worker',
+                'labels': {
+                    'app.kubernetes.io/name': 'zorp-ingress-service-account',
+                    'app.kubernetes.io/managed-by': 'micado',
+                    'app.kubernetes.io/version': '1.0'
+                }
+            }
+        })
+
+    def _manifest_zorp_cluster_role(self):
+        self.manifests.append({
+            'apiVersion': 'rbac.authorization.k8s.io/v1',
+            'kind': 'ClusterRole',
+            'metadata': {
+                'name': 'zorp-ingress-cluster-role',
+                'labels': {
+                    'app.kubernetes.io/name': 'zorp-ingress-cluster-role',
+                    'app.kubernetes.io/managed-by': 'micado',
+                    'app.kubernetes.io/version': '1.0'
+                }
+            },
+            'rules': [
+                {
+                    'apiGroups': [''],
+                    'resources': ['configmaps', 'endpoints', 'nodes', 'pods', 'secrets', 'services', 'namespaces', 'events', 'serviceaccounts'],
+                    'verbs': ['get', 'list', 'watch']
+                },
+                {
+                    'apiGroups': ['extensions'],
+                    'resources': ['ingresses', 'ingresses/status'],
+                    'verbs': ['get', 'list', 'watch']
+                }
+            ]
+        })
+
+    def _manifest_zorp_role_binding(self):
+        self.manifests.append({
+            'apiVersion': 'rbac.authorization.k8s.io/v1',
+            'kind': 'ClusterRoleBinding',
+            'metadata': {
+                'name': 'zorp-ingress-cluster-role-binding',
+                'namespace': 'micado-worker',
+                'labels': {
+                    'app.kubernetes.io/name': 'zorp-ingress-cluster-role-binding',
+                    'app.kubernetes.io/managed-by': 'micado',
+                    'app.kubernetes.io/version': '1.0'
+                }
+            },
+            'roleRef': {
+                'apiGroup': 'rbac.authorization.k8s.io',
+                'kind': 'ClusterRole',
+                'name': 'zorp-ingress-cluster-role'
+            },
+            'subjects': [{
+                'kind': 'ServiceAccount',
+                'name': 'zorp-ingress-service-account',
+                'namespace': 'micado-worker'
+            }]
+        })
+
+    def _manifest_zorp_daemon_set(self):
+        self.manifests.append({
+            'apiVersion': 'apps/v1',
+            'kind': 'DaemonSet',
+            'metadata': {
+                'name': 'zorp-ingress',
+                'namespace': 'micado-worker',
+                'labels': {
+                    'run': 'zorp-ingress',
+                    'app.kubernetes.io/name': 'zorp-ingress',
+                    'app.kubernetes.io/managed-by': 'micado',
+                    'app.kubernetes.io/version': '1.0'
+                }
+            },
+            'spec': {
+                'selector': {
+                    'matchLabels': {'run': 'zorp-ingress'}
+                },
+                'template': {
+                    'metadata': {
+                        'labels': {'run': 'zorp-ingress'}
+                    },
+                    'spec': {
+                        'serviceAccountName': 'zorp-ingress-service-account',
+                        'containers': [{
+                            'name': 'zorp-ingress',
+                            'image': 'balasys/zorp-ingress:1.0',
+                            'args': [
+                                '--namespace=micado-worker',
+                                '--ingress.class=zorp',
+                                '--behaviour=tosca',
+                                '--ignore-namespaces=micado-system,kube-system'
+                            ],
+                            'resources': {'requests': {'cpu': '500m', 'memory': '50Mi'}},
+                            'livenessProbe': {'httpGet': {'path': '/healthz', 'port': 1042}},
+                            'ports': self._list_ports()
+                        }]
+                    }
+                }
+            }
+        })
+
+    def _list_ports(self):
+        return [{
+            'name': 'port-' + str(port),
+            'containerPort': port,
+            'hostPort': port
+        } for port in self.tcp_ports]
+
+    def _manifest_secrets(self):
+        for name, secret in self.ingress_secrets.items():
+            self.manifests.append(self._k8s_secret(name, secret))
+
+    def _k8s_secret(self, name, secret):
+        return {
+            'apiVersion': 'v1',
+            'kind': 'Secret',
+            'metadata': {
+                'name': name,
+                'namespace': 'micado-worker'
+            },
+            'type': 'Opaque',
+            'data': {key: base64.b64encode(value.encode('UTF-8')).decode('ASCII') for key, value in secret.items()}
+        }
+
+    def _manifest_ingress(self):
+        self.manifests.append({
+            'apiVersion': 'networking.k8s.io/v1beta1',
+            'kind': 'Ingress',
+            'metadata': {
+                'name': 'zorp-ingress',
+                'namespace': 'micado-worker',
+                'annotations': {
+                    'kubernetes.io/ingress.class': 'zorp',
+                    'zorp.ingress.kubernetes.io/conf': json.dumps(self.ingress_conf)
+                }
+            },
+            'spec': {
+                'rules': [
+                    {'http': None}
+                ]
+            }
+        })
 
     def execute(self, update=False):
         """ Execute """
