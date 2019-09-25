@@ -206,8 +206,21 @@ class OccopusAdaptor(abco.Adaptor):
         self.max_instances = 1
         logger.info("Updating the component config {}".format(self.ID))
         self.translate(True)
-
-        if not self._differentiate(self.node_path,self.node_path_tmp):
+        if not self.node_def and os.path.exists(self.node_path):
+            logger.debug("No nodes in ADT, removing running nodes")
+            self.undeploy()
+            self.cleanup()
+            self.status = "Updated - removed all nodes"
+        elif not self.node_def:
+            logger.debug("No nodes found to be orchestrated with Occopus")
+            self.status = "Updated - no Occopus nodes"
+        elif not os.path.exists(self.node_path):
+            logger.debug("No running infrastructure, starting from new")
+            os.rename(self.node_path_tmp, self.node_path)
+            os.rename(self.infra_def_path_output_tmp, self.infra_def_path_output)
+            self.execute()
+            self.status = "updated"
+        elif not self._differentiate(self.node_path,self.node_path_tmp):
             logger.debug("Node tmp file different, replacing old config and executing")
             os.rename(self.node_path_tmp, self.node_path)
             os.rename(self.infra_def_path_output_tmp, self.infra_def_path_output)
