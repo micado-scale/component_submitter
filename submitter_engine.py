@@ -172,8 +172,8 @@ class SubmitterEngine(object):
             self._translate(dict_object_adaptors)
         except MultiError:
             raise
-        except AdaptorCritical:
-            logger.info("******* Critical error during deployment, starting to roll back *********")
+        except AdaptorCritical as error:
+            logger.error("******* Critical error during deployment, starting to roll back *********", error)
             if self.translated_adaptors:
                 logger.info("Starting clean-up on translated files")
                 self._cleanup(app_id, self.translated_adaptors)

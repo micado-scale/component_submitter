@@ -48,7 +48,7 @@ class SecurityPolicyManagerAdaptor(abco.Adaptor):
             (does nothing as no files were created but need to implement the abstract function anyways)
     """
 
-    def __init__(self, adaptor_id, config, template=None):
+    def __init__(self, adaptor_id, config, dryrun, validate=False, template=None):
         """ Constructor method of the Adaptor as described above """
         super().__init__()
         if template and not isinstance(template, ToscaTemplate):

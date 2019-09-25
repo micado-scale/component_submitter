@@ -1,10 +1,10 @@
 import os
 import subprocess
 import logging
-import shutil
 import filecmp
-import time
 import copy
+import base64
+import json
 
 import pykube
 from toscaparser.tosca_template import ToscaTemplate
@@ -25,6 +25,7 @@ TOSCA_TYPES = (
     TOSCA_CONTAINER,
     MICADO_COMPUTE,
     MICADO_MONITORING,
+    MICADO_SECURITY
 ) = (
     "tosca.nodes.MiCADO.Container.Application.Docker",
     "tosca.nodes.MiCADO.Container.Volume",
@@ -35,6 +36,29 @@ TOSCA_TYPES = (
     "tosca.nodes.Container.Application",
     "tosca.nodes.MiCADO.Compute",
     "tosca.policies.Monitoring.MiCADO",
+    'tosca.policies.Security.MiCADO.Network'
+)
+
+SECURITY_POLICIES = (
+    PASSTHROUGH_PROXY,
+    PLUG_PROXY,
+    SMTP_PROXY,
+    HTTP_PROXY,
+    HTTP_URI_FILTER_PROXY,
+    HTTP_WEBDAV_PROXY
+) = (
+    # PfService
+    'tosca.policies.Security.MiCADO.Network.Passthrough',
+    # PlugProxy
+    'tosca.policies.Security.MiCADO.Network.L7Proxy',
+    # SmtpProxy
+    'tosca.policies.Security.MiCADO.Network.SmtpProxy',
+    # HttpProxy
+    'tosca.policies.Security.MiCADO.Network.HttpProxy',
+    # HttpURIFilterProxy
+    'tosca.policies.Security.MiCADO.Network.HttpURIFilterProxy',
+    # HttpWebdavProxy
+    'tosca.policies.Security.MiCADO.Network.HttpWebdavProxy'
 )
 
 
@@ -43,7 +67,6 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     """ The Kubernetes Adaptor class
     Carry out a translation from a TOSCA ADT to a Kubernetes Manifest,
     and the subsequent execution, update and undeployment of the translation.
-    
     """
 
     def __init__(self, adaptor_id, config, dryrun, validate=False, template=None):
@@ -74,6 +97,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.services = []
         self.volumes = {}
         self.output = {}
+        self.tcp_ports = []
+        self.ingress_conf = []
+        self.ingress_secrets = {}
         self.validate = validate
         logger.info("Kubernetes Adaptor is ready.")
         self.status = "Initialised"
@@ -83,63 +109,25 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         logger.info("Translating into Kubernetes Manifests")
         self.status = "Translating..."
         self.manifests = []
+        self.tcp_ports = []
+        self.ingress_conf = []
+        self.ingress_secrets = {}
 
         for node in self.tpl.nodetemplates:
-            if "tosca.nodes.MiCADO" not in node.type:
-                continue
-            node = _get_node(node)
-            lifecycle = utils.get_lifecycle(node, KUBERNETES_INTERFACE)
-            if not lifecycle:
-                continue
-            if node.is_derived_from(KUBERNETES_RESOURCE):
-                manifest = Manifest(
-                    self.short_id, node.name, lifecycle.get("create"), kind="custom"
-                )
-                self.manifests += [manifest.resource]
-                continue
-
-            elif node.is_derived_from(CONTAINER_VOLUME):
-                manifest = VolumeManifest(self.short_id, node, lifecycle)
-
-            elif node.is_derived_from(CONTAINER_CONFIG):
-                manifest = ConfigMapManifest(self.short_id, node, lifecycle)
-
-            else:
-                manifest = WorkloadManifest(
-                    self.short_id, node, lifecycle, self.tpl.repositories
-                )
-            self.manifests += manifest.manifests
+            if node.type.startswith("tosca.nodes.MiCADO"):
+                self._translate_node_templates(node)
 
         # Look for a monitoring policy and attach default metric exporters to the application
         for policy in self.tpl.policies:
-            if policy.type != MICADO_MONITORING:
-                continue
-            if policy.get_property_value("enable_container_metrics"):
-                try:
-                    cadvisor = utils.get_yaml_data(self.cadvisor_manifest_path)
-                    cadvisor["metadata"]["labels"][
-                        "app.kubernetes.io/instance"
-                    ] = self.short_id
-                    self.manifests.append(cadvisor)
-                except FileNotFoundError:
-                    logger.warning(
-                        "Could not find cAdvisor manifest at {}".format(
-                            self.cadvisor_manifest_path
-                        )
-                    )
-            if policy.get_property_value("enable_node_metrics"):
-                try:
-                    nodex = utils.get_yaml_data(self.nodex_manifest_path)
-                    nodex["metadata"]["labels"][
-                        "app.kubernetes.io/instance"
-                    ] = self.short_id
-                    self.manifests.append(nodex)
-                except FileNotFoundError:
-                    logger.warning(
-                        "Could not find NodeExporter manifest at {}".format(
-                            self.nodex_manifest_path
-                        )
-                    )
+            if policy.type == MICADO_MONITORING:
+                self._translate_monitoring_policy(policy)
+
+            if policy.type.startswith(MICADO_SECURITY):
+                self._translate_security_policy(policy)
+
+        self._deploy_zorp()
+        self._manifest_secrets()
+        self._manifest_ingress()
 
         if not self.manifests:
             logger.info(
@@ -155,6 +143,266 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         logger.info("Translation complete")
         self.status = "Translated"
+
+    def _translate_node_templates(self, node):
+        node = _get_node(node)
+
+        lifecycle = utils.get_lifecycle(node, KUBERNETES_INTERFACE)
+        if not lifecycle:
+            return
+
+        if node.is_derived_from(KUBERNETES_RESOURCE):
+            manifest = Manifest(
+                self.short_id, node.name, lifecycle.get("create"), kind="custom"
+            )
+            self.manifests += [manifest.resource]
+            return
+        elif node.is_derived_from(CONTAINER_VOLUME):
+            manifest = VolumeManifest(self.short_id, node, lifecycle)
+        elif node.is_derived_from(CONTAINER_CONFIG):
+            manifest = ConfigMapManifest(self.short_id, node, lifecycle)
+        else:
+            manifest = WorkloadManifest(
+                self.short_id, node, lifecycle, self.tpl.repositories
+            )
+
+        self.manifests += manifest.manifests
+
+    def _translate_monitoring_policy(self, policy):
+        if policy.get_property_value("enable_container_metrics"):
+            self._translate_container_monitoring_policy()
+
+        if policy.get_property_value("enable_node_metrics"):
+            self._translate_node_monitoring_policy()
+
+    def _translate_container_monitoring_policy(self):
+        try:
+            cadvisor = utils.get_yaml_data(self.cadvisor_manifest_path)
+            cadvisor["metadata"]["labels"][
+                "app.kubernetes.io/instance"
+            ] = self.short_id
+            self.manifests.append(cadvisor)
+        except FileNotFoundError:
+            logger.warning(
+                "Could not find cAdvisor manifest at {}".format(
+                    self.cadvisor_manifest_path
+                )
+            )
+
+    def _translate_node_monitoring_policy(self):
+        try:
+            nodex = utils.get_yaml_data(self.nodex_manifest_path)
+            nodex["metadata"]["labels"][
+                "app.kubernetes.io/instance"
+            ] = self.short_id
+            self.manifests.append(nodex)
+        except FileNotFoundError:
+            logger.warning(
+                "Could not find NodeExporter manifest at {}".format(
+                    self.nodex_manifest_path
+                )
+            )
+
+    def _translate_security_policy(self, policy):
+        if policy.type == PASSTHROUGH_PROXY:
+            # FIXME
+            # passthrough policy does not require ingress rules
+            pass
+        elif policy.type in SECURITY_POLICIES:
+            self._translate_level7_policy(policy)
+        else:
+            logger.warning("Unknown network security policy: {}".format(policy.type))
+
+    def _translate_level7_policy(self, policy):
+        ingress = {
+            'policy_type': policy.type.split('.')[-1]
+        }
+        ingress.update({key: value.value for key, value in policy.get_properties().items()})
+        self._extract_ports(ingress)
+        self._translate_tls_secrets(ingress, policy)
+        self.ingress_conf.append(ingress)
+
+    def _extract_ports(self, ingress):
+        try:
+            self.tcp_ports.extend(ingress['target_ports'])
+        except KeyError:
+            pass
+
+    def _translate_tls_secrets(self, ingress, policy):
+        if ingress.get('encryption', False):
+            if 'encryption_key' not in ingress or 'encryption_cert' not in ingress:
+                error = "Encryption key and/or cert missing for policy {}".format(policy.type)
+                logger.error(error)
+                raise TranslateError(error)
+            index = 'krumpli' + str(len(self.ingress_secrets))
+            self.ingress_secrets[index] = {
+                'tls.key': ingress['encryption_key'],
+                'tls.crt': ingress['encryption_cert']
+            }
+            ingress['encryption_key'] = index
+            ingress['encryption_cert'] = index
+        else:
+            try:
+                del(ingress['encryption_key'])
+                del(ingress['encryption_cert'])
+            except KeyError:
+                pass
+
+    def _deploy_zorp(self):
+        self._manifest_zorp_service_account()
+        self._manifest_zorp_cluster_role()
+        self._manifest_zorp_role_binding()
+        self._manifest_zorp_daemon_set()
+
+    def _manifest_zorp_service_account(self):
+        self.manifests.append({
+            'apiVersion': 'v1',
+            'kind': 'ServiceAccount',
+            'metadata': {
+                'name': 'zorp-ingress-service-account',
+                'namespace': 'micado-worker',
+                'labels': {
+                    'app.kubernetes.io/name': 'zorp-ingress-service-account',
+                    'app.kubernetes.io/managed-by': 'micado',
+                    'app.kubernetes.io/version': '1.0'
+                }
+            }
+        })
+
+    def _manifest_zorp_cluster_role(self):
+        self.manifests.append({
+            'apiVersion': 'rbac.authorization.k8s.io/v1',
+            'kind': 'ClusterRole',
+            'metadata': {
+                'name': 'zorp-ingress-cluster-role',
+                'labels': {
+                    'app.kubernetes.io/name': 'zorp-ingress-cluster-role',
+                    'app.kubernetes.io/managed-by': 'micado',
+                    'app.kubernetes.io/version': '1.0'
+                }
+            },
+            'rules': [
+                {
+                    'apiGroups': [''],
+                    'resources': ['configmaps', 'endpoints', 'nodes', 'pods', 'secrets', 'services', 'namespaces', 'events', 'serviceaccounts'],
+                    'verbs': ['get', 'list', 'watch']
+                },
+                {
+                    'apiGroups': ['extensions'],
+                    'resources': ['ingresses', 'ingresses/status'],
+                    'verbs': ['get', 'list', 'watch']
+                }
+            ]
+        })
+
+    def _manifest_zorp_role_binding(self):
+        self.manifests.append({
+            'apiVersion': 'rbac.authorization.k8s.io/v1',
+            'kind': 'ClusterRoleBinding',
+            'metadata': {
+                'name': 'zorp-ingress-cluster-role-binding',
+                'namespace': 'micado-worker',
+                'labels': {
+                    'app.kubernetes.io/name': 'zorp-ingress-cluster-role-binding',
+                    'app.kubernetes.io/managed-by': 'micado',
+                    'app.kubernetes.io/version': '1.0'
+                }
+            },
+            'roleRef': {
+                'apiGroup': 'rbac.authorization.k8s.io',
+                'kind': 'ClusterRole',
+                'name': 'zorp-ingress-cluster-role'
+            },
+            'subjects': [{
+                'kind': 'ServiceAccount',
+                'name': 'zorp-ingress-service-account',
+                'namespace': 'micado-worker'
+            }]
+        })
+
+    def _manifest_zorp_daemon_set(self):
+        self.manifests.append({
+            'apiVersion': 'apps/v1',
+            'kind': 'DaemonSet',
+            'metadata': {
+                'name': 'zorp-ingress',
+                'namespace': 'micado-worker',
+                'labels': {
+                    'run': 'zorp-ingress',
+                    'app.kubernetes.io/name': 'zorp-ingress',
+                    'app.kubernetes.io/managed-by': 'micado',
+                    'app.kubernetes.io/version': '1.0'
+                }
+            },
+            'spec': {
+                'selector': {
+                    'matchLabels': {'run': 'zorp-ingress'}
+                },
+                'template': {
+                    'metadata': {
+                        'labels': {'run': 'zorp-ingress'}
+                    },
+                    'spec': {
+                        'serviceAccountName': 'zorp-ingress-service-account',
+                        'containers': [{
+                            'name': 'zorp-ingress',
+                            'image': 'balasys/zorp-ingress:1.0',
+                            'args': [
+                                '--namespace=micado-worker',
+                                '--ingress.class=zorp',
+                                '--behaviour=tosca',
+                                '--ignore-namespaces=micado-system,kube-system'
+                            ],
+                            'resources': {'requests': {'cpu': '500m', 'memory': '50Mi'}},
+                            'livenessProbe': {'httpGet': {'path': '/healthz', 'port': 1042}},
+                            'ports': self._list_ports()
+                        }]
+                    }
+                }
+            }
+        })
+
+    def _list_ports(self):
+        return [{
+            'name': 'port-' + str(port),
+            'containerPort': port,
+            'hostPort': port
+        } for port in self.tcp_ports]
+
+    def _manifest_secrets(self):
+        for name, secret in self.ingress_secrets.items():
+            self.manifests.append(self._k8s_secret(name, secret))
+
+    def _k8s_secret(self, name, secret):
+        return {
+            'apiVersion': 'v1',
+            'kind': 'Secret',
+            'metadata': {
+                'name': name,
+                'namespace': 'micado-worker'
+            },
+            'type': 'Opaque',
+            'data': {key: base64.b64encode(value.encode('UTF-8')).decode('ASCII') for key, value in secret.items()}
+        }
+
+    def _manifest_ingress(self):
+        self.manifests.append({
+            'apiVersion': 'networking.k8s.io/v1beta1',
+            'kind': 'Ingress',
+            'metadata': {
+                'name': 'zorp-ingress',
+                'namespace': 'micado-worker',
+                'annotations': {
+                    'kubernetes.io/ingress.class': 'zorp',
+                    'zorp.ingress.kubernetes.io/conf': json.dumps(self.ingress_conf)
+                }
+            },
+            'spec': {
+                'rules': [
+                    {'http': None}
+                ]
+            }
+        })
 
     def execute(self, update=False):
         """ Execute """
@@ -306,7 +554,7 @@ class Container:
     """Store ContainerSpec data
 
         Builds a basic ContainerSpec object using node properties
-        
+
         Args:
             node (toscaparser.nodetemplate.NodeTemplate): The node being built
             repositories (toscaparser.repositories.Repository): The top level repo information
@@ -374,10 +622,10 @@ class Container:
 
     def _get_image(self):
         """Return the Docker image & the version tag
-        
+
         Raises:
             AdaptorCritical: Force a rollback when no container image is given
-        
+
         Returns:
             tuple: the full path to the Docker image, and the version tag
         """
@@ -438,7 +686,7 @@ class Container:
 
 class Manifest:
     """Store the data generic to all Kubernetes manifests
-        
+
     Args:
         app_id (string): The ID of the created deployment
         name (string): The name of this component
@@ -473,11 +721,11 @@ class Manifest:
 
     def _build_resource(self, spec, kind):
         """Build the top level spec of this resource
-        
+
         Args:
             spec (dict): The user provided spec fields
             kind (string): The kind of Kubernetes resource
-        
+
         Returns:
             dict: A dictionary with the top level manifest fields completed
         """
@@ -494,14 +742,13 @@ class Manifest:
 
 
 class WorkloadManifest(Manifest):
-    """ Stores workload spec data for a manifest    
-        
+    """ Stores workload spec data for a manifest
+
     Args:
         app_id (string): ID of this deployment
         node (toscaparser.nodetemplate.NodeTemplate): TOSCA node object
         lifecycle (dict): User spec inputs from TOSCA interfaces
         repositories (toscaparser.repositories.Repository): Top level TOSCA repository data
-    
     """
 
     # All possible fields of a Kubernetes PodSpec
@@ -653,10 +900,10 @@ class WorkloadManifest(Manifest):
 
     def _handle_ports(self, container):
         """Handle docker ports & get individual ServiceSpec dicts for kube ports
-        
+
         Args:
-            container (Container object): The container to extract ports from 
-        
+            container (Container object): The container to extract ports from
+
         Returns:
             list: A list of ServiceSpec dicts, one for each port
         """
@@ -693,7 +940,7 @@ class WorkloadManifest(Manifest):
 
     def _build_volumes(self, container):
         """Add volumes / volumeMounts to PodSpec / ContainerSpec
-        
+
         Args:
             container (Container Object): The container to find volumes for
         """
@@ -756,7 +1003,7 @@ class WorkloadManifest(Manifest):
 
     def _build_services(self, service_spec):
         """Join like services together into ServiceManifests
-        
+
         Args:
             service_spec (dict): A dictionary representation of a Kubernetes ServiceSpec
         """
@@ -806,10 +1053,9 @@ class WorkloadManifest(Manifest):
         """Carry out basic validation of a port
 
         Checks to see a port & name exist, ClusterIP and NodePort are in range
-        
+
         Args:
             port (dict): Port data from TOSCA properties
-        
         """
         # Make sure we have a port
         port_spec = port.get("ports", {})
@@ -856,7 +1102,7 @@ class WorkloadManifest(Manifest):
 
     def _get_hosts(self):
         """Finds hosts and builds node affinity for the spec
-        
+
         Returns:
             dict: NodeAffinity descriptor for the PodSpec
         """
@@ -892,7 +1138,7 @@ class WorkloadManifest(Manifest):
 
 class ServiceManifest(Manifest):
     """Store ServiceSpec data for a Service manifest
-    
+
     Args:
         app_id (string): The ID of this deployment
         name (string): The node name
@@ -920,7 +1166,7 @@ class ServiceManifest(Manifest):
 
 class VolumeManifest(Manifest):
     """Store the data for a PersistentVolume & Claim
-    
+
     Args:
         app_id (string): ID for this deployment
         node (toscaparser.nodetemplate.NodeTemplate): The node object from toscaparser
@@ -956,11 +1202,11 @@ class VolumeManifest(Manifest):
         """Get PV or PVC inputs from TOSCA interfaces
 
         Work with the TOSCA get_property function
-        
+
         Args:
             lifecycle (dict): inputs from TOSCA interfaces
             node (toscaparser.nodetemplate.NodeTemplate): Node object from toscaparser
-        
+
         Returns:
             tuple: two dicts, PV & PVC specs
         """
@@ -971,7 +1217,7 @@ class VolumeManifest(Manifest):
                 if not isinstance(element, dict):
                     continue
                 for key, val in element.items():
-                    if not isinstance(val, dict) or not "get_property" in val:
+                    if not isinstance(val, dict) or "get_property" not in val:
                         continue
                     element[key] = node.get_property_value(val.get("get_property")[-1])
                 # Clean out empty fields
@@ -996,7 +1242,7 @@ class VolumeManifest(Manifest):
         if not spec.get("accessModes"):
             spec.setdefault("accessModes", []).append("ReadWriteMany")
 
-        ## Select the appropriate PV
+        # Select the appropriate PV
         spec.setdefault("selector", {}).setdefault("matchLabels", {}).update(
             self.labels
         )
@@ -1004,7 +1250,7 @@ class VolumeManifest(Manifest):
 
 class ConfigMapManifest(Manifest):
     """Store the required data for a Kubernetes ConfigMap
-    
+
     Args:
         app_id (string): ID of this deployment
         node (toscaparser.nodetemplate.NodeTemplate): The node object from toscaparser
@@ -1035,7 +1281,7 @@ class ConfigMapManifest(Manifest):
 
 def _get_node(node):
     """Check the node name for errors (underscores)
-    
+
     Returns:
         toscaparser.nodetemplate.NodeTemplate: a deepcopy of a valid node object
     """
@@ -1063,10 +1309,10 @@ def _get_node(node):
 
 def _get_api(kind):
     """Determine the apiVersion for different kinds of resources
-    
+
     Args:
         kind (string): The name of the resource
-    
+
     Returns:
         string: the apiVersion for the matching resource
     """
@@ -1094,10 +1340,10 @@ def _get_api(kind):
 
 def _get_port_spec(port):
     """Separate the port spec out of the ServiceSpec
-    
+
     Args:
         port (dict): The port from the container (PortSpec mixed with ServiceSpec)
-    
+
     Returns:
         dict: The PortSpec, extracted from the ServiceSpec
     """
@@ -1114,7 +1360,7 @@ def _get_port_spec(port):
 
 def _convert_long_port(port):
     """Convert a long syntax Docker port (not host mode) to Kubernetes
-    
+
     Args:
         port (dict): The port spec to reconfigure
     """
@@ -1134,7 +1380,7 @@ def _convert_long_port(port):
 
 def rename_key(dicti, old_key, new_key):
     """Rename a dictionary key, if it exists
-    
+
     Args:
         dicti (dict): The dictionary to mangle
         old_key (string): The old key name
@@ -1146,10 +1392,10 @@ def rename_key(dicti, old_key, new_key):
 
 def _make_env(environment):
     """Change from Docker environment to Kubernetes env
-    
+
     Args:
         environment (dict): Docker-style environment data
-    
+
     Returns:
         list: Kubernetes-style env data
     """
@@ -1165,11 +1411,11 @@ def _make_env(environment):
 
 def _separate_data(key_names, spec_dict):
     """Remove some keys (and their values) from a dictionary
-    
+
     Args:
         key_names (list): Key names for removal
         spec_dict (dict): Dictionary to remove keys from
-    
+
     Returns:
         dict: The newly cleaned out dictionary
     """
@@ -1185,10 +1431,10 @@ def _separate_data(key_names, spec_dict):
 
 def query_port(service_name):
     """Queries a specific service for its port listing
-    
+
     Args:
         service_name (string): Name of service to query
-    
+
     Returns:
         dict: port listing
     """
