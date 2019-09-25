@@ -154,8 +154,10 @@ class OccopusAdaptor(abco.Adaptor):
                         logger.error("{0}. Error caught in call to occopus API".format(str(e)))
                 else:
                     logger.error("Occopus import was unsuccessful!")
+                    raise AdaptorCritical("Occopus import was unsuccessful!")
             else:
-                logger.error("Occopus is not created!")
+                logger.error("Not connected to Occopus container!")
+                raise AdaptorCritical("Occopus container connection was unsuccessful!")
         logger.info("Occopus executed")
         self.status = "executed"
 
@@ -206,9 +208,22 @@ class OccopusAdaptor(abco.Adaptor):
         self.max_instances = 1
         logger.info("Updating the component config {}".format(self.ID))
         self.translate(True)
-
-        if not self._differentiate(self.node_path,self.node_path_tmp):
-            logger.debug("Node tmp file different, replacing old config and executing")
+        if not self.node_def and os.path.exists(self.node_path):
+            logger.debug("No nodes in ADT, removing running nodes")
+            self.undeploy()
+            self.cleanup()
+            self.status = "Updated - removed all nodes"
+        elif not self.node_def:
+            logger.debug("No nodes found to be orchestrated with Occopus")
+            self.status = "Updated - no Occopus nodes"
+        elif not os.path.exists(self.node_path):
+            logger.debug("No running infrastructure, starting from new")
+            os.rename(self.node_path_tmp, self.node_path)
+            os.rename(self.infra_def_path_output_tmp, self.infra_def_path_output)
+            self.execute()
+            self.status = "updated"
+        elif not self._differentiate(self.node_path,self.node_path_tmp):
+            logger.debug("Node def file different, replacing old config and executing")
             os.rename(self.node_path_tmp, self.node_path)
             os.rename(self.infra_def_path_output_tmp, self.infra_def_path_output)
             # Detach from the infra and rebuild
@@ -218,7 +233,6 @@ class OccopusAdaptor(abco.Adaptor):
                 raise AdaptorCritical("Cannot detach infra from Occopus API!")
             self.execute()
             self.status = "updated"
-            logger.debug("Node definition changed")
         elif not self._differentiate(self.infra_def_path_output, self.infra_def_path_output_tmp):
             logger.debug("Infra tmp file different, replacing old config and executing")
             os.rename(self.infra_def_path_output_tmp, self.infra_def_path_output)

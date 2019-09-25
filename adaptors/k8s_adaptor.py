@@ -455,14 +455,17 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.manifests = []
         self.translate(True)
 
-        if not self.manifests:
+        if not self.manifests and os.path.exists(self.manifest_path):
+            self.undeploy(False)
+            self.cleanup()
+            logger.info("Updated (removed all Kubernetes workloads)")
+            self.status = "Updated (removed all Kubernetes workloads)"
+        elif not self.manifests:
             logger.info(
                 "No nodes to orchestrate with Kubernetes. Do you need this adaptor?"
             )
             self.status = "Skipped Update"
-            return
-
-        if os.path.exists(self.manifest_path) and filecmp.cmp(
+        elif os.path.exists(self.manifest_path) and filecmp.cmp(
             self.manifest_path, self.manifest_tmp_path
         ):
             logger.debug("No update - removing {}".format(self.manifest_tmp_path))
@@ -470,29 +473,30 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             logger.info("Nothing to update")
             self.status = "Updated (nothing to update)"
         else:
-            logger.debug("Updating - removing {}".format(self.manifest_path))
+            logger.debug("Updating Kubernetes workloads")
             os.rename(self.manifest_tmp_path, self.manifest_path)
             self.execute(True)
             logger.info("Update complete")
             self.status = "Updated"
 
-    def undeploy(self):
+    def undeploy(self, kill_nodes=True):
         """ Undeploy """
         logger.info("Undeploying Kubernetes workloads")
         self.status = "Undeploying..."
         error = False
 
-        # Delete nodes from the cluster
-        operation = ["kubectl", "delete", "no", "-l", "micado.eu/node_type"]
-        try:
-            if self.dryrun:
-                logger.info("DRY-RUN: kubectl removes all MiCADO nodes...")
-            else:
-                logger.debug("Undeploy {}".format(operation))
-                subprocess.run(operation, stderr=subprocess.PIPE, check=True)
-        except subprocess.CalledProcessError:
-            logger.debug("Got error deleting nodes")
-            error = True
+        if kill_nodes:
+            # Delete nodes from the cluster
+            operation = ["kubectl", "delete", "no", "-l", "micado.eu/node_type"]
+            try:
+                if self.dryrun:
+                    logger.info("DRY-RUN: kubectl removes all MiCADO nodes...")
+                else:
+                    logger.debug("Undeploy {}".format(operation))
+                    subprocess.run(operation, stderr=subprocess.PIPE, check=True)
+            except subprocess.CalledProcessError:
+                logger.debug("Got error deleting nodes")
+                error = True
 
         # Delete resources in the manifest
         operation = ["kubectl", "delete", "-f", self.manifest_path, "--timeout", "60s"]
