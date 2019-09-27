@@ -50,6 +50,8 @@ class PkAdaptor(abco.Adaptor):
                     relations.setdefault(node.name, []).append(target.name)            
 
         for policy in self.tpl.policies:
+            if not policy.type.startswith("tosca.policies.Scaling"):
+                continue
             for target in policy.targets_list:
                 if "Compute" in target.type:
                     node_data = {"name": target.name}
