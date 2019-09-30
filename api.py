@@ -171,8 +171,9 @@ def launch():
 
     try:
         template, dict_object_adaptors = submitter._validate(path_to_file, dryrun, False, id_app, parsed_params)
-    except Exception as e:
-        response["message"]= "The application is not valid: {}".format(e)
+    except Exception as error:
+        logger.error(error)
+        response["message"]= "The application is not valid: {}".format(error)
         response["status_code"]= 422
         return jsonify(response)
     thread = ExecSubmitterThread(q=queue_exception, target=submitter.launch, args=(template, dict_object_adaptors, id_app, dryrun), daemon=True)
@@ -316,8 +317,9 @@ def update(id_app):
         dryrun = submitter.app_list[id_app]["dry_run"]
         template, dict_object_adaptors = submitter._validate(path_to_file, dryrun, True, id_app, parsed_params)
 
-    except Exception as e:
-        response["message"]= "The application is not valid: {}".format(e)
+    except Exception as error:
+        logger.error(error)
+        response["message"]= "The application is not valid: {}".format(error)
         response["status_code"]= 422
         return jsonify(response)
     try:

@@ -1,5 +1,6 @@
 import filecmp
 import os
+import copy
 import logging
 import docker
 import ruamel.yaml as yaml
@@ -12,6 +13,7 @@ import jinja2
 from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
 from toscaparser.tosca_template import ToscaTemplate
+from toscaparser.functions import GetProperty
 
 logger = logging.getLogger("adaptor."+__name__)
 
@@ -69,9 +71,12 @@ class OccopusAdaptor(abco.Adaptor):
 
         for node in self.template.nodetemplates:
 
-            self.node_name = node.name.replace('_','-')
+            if '_' in node.name:                
+                raise AdaptorCritical("Underscores in node {} not allowed".format(node.name))
+            self.node_name = node.name
             self.node_data = {}
-
+            
+            node = copy.deepcopy(node)
             cloud_type = self._node_data_get_interface(node, "resource")
             if not cloud_type:
                 continue
@@ -88,7 +93,7 @@ class OccopusAdaptor(abco.Adaptor):
                 logger.info("Nova resource detected")
                 self._node_data_get_nova_host_properties(node, "resource")
 
-            self._get_policies()
+            self._get_policies(node)
             self._get_infra_def(tmp)
 
             node_type = self.node_prefix + self.node_name
@@ -149,8 +154,10 @@ class OccopusAdaptor(abco.Adaptor):
                         logger.error("{0}. Error caught in call to occopus API".format(str(e)))
                 else:
                     logger.error("Occopus import was unsuccessful!")
+                    raise AdaptorCritical("Occopus import was unsuccessful!")
             else:
-                logger.error("Occopus is not created!")
+                logger.error("Not connected to Occopus container!")
+                raise AdaptorCritical("Occopus container connection was unsuccessful!")
         logger.info("Occopus executed")
         self.status = "executed"
 
@@ -178,6 +185,17 @@ class OccopusAdaptor(abco.Adaptor):
             os.remove(self.infra_def_path_output)
         except OSError as e:
             logger.warning(e)
+        # Flush the occopus-redis db
+        try:
+            redis = self.client.containers.list(filters={'label':'io.kubernetes.container.name=occopus-redis'})[0]
+            if redis.exec_run("redis-cli FLUSHALL").exit_code != 0:
+                raise AdaptorCritical
+        except AdaptorCritical:
+            logger.warning("FLUSH in occopus-redis container failed")
+        except IndexError:
+            logger.warning("Could not find occopus-redis container for FLUSH")
+        except Exception:
+            logger.warning("Could not connect to Docker for FLUSH")
 
     def update(self):
         """
@@ -190,16 +208,31 @@ class OccopusAdaptor(abco.Adaptor):
         self.max_instances = 1
         logger.info("Updating the component config {}".format(self.ID))
         self.translate(True)
-
-        if not self._differentiate(self.node_path,self.node_path_tmp):
-            logger.debug("Node tmp file different, replacing old config and executing")
+        if not self.node_def and os.path.exists(self.node_path):
+            logger.debug("No nodes in ADT, removing running nodes")
+            self.undeploy()
+            self.cleanup()
+            self.status = "Updated - removed all nodes"
+        elif not self.node_def:
+            logger.debug("No nodes found to be orchestrated with Occopus")
+            self.status = "Updated - no Occopus nodes"
+        elif not os.path.exists(self.node_path):
+            logger.debug("No running infrastructure, starting from new")
             os.rename(self.node_path_tmp, self.node_path)
             os.rename(self.infra_def_path_output_tmp, self.infra_def_path_output)
-            # Undeploy the infra and rebuild
-            self.undeploy()
             self.execute()
             self.status = "updated"
-            logger.debug("Node definition changed")
+        elif not self._differentiate(self.node_path,self.node_path_tmp):
+            logger.debug("Node def file different, replacing old config and executing")
+            os.rename(self.node_path_tmp, self.node_path)
+            os.rename(self.infra_def_path_output_tmp, self.infra_def_path_output)
+            # Detach from the infra and rebuild
+            detach = requests.post("http://{0}/infrastructures/{1}/detach"
+                                        .format(self.occopus_address, self.worker_infra_name))
+            if detach.status_code != 200:
+                raise AdaptorCritical("Cannot detach infra from Occopus API!")
+            self.execute()
+            self.status = "updated"
         elif not self._differentiate(self.infra_def_path_output, self.infra_def_path_output_tmp):
             logger.debug("Infra tmp file different, replacing old config and executing")
             os.rename(self.infra_def_path_output_tmp, self.infra_def_path_output)
@@ -220,18 +253,24 @@ class OccopusAdaptor(abco.Adaptor):
         """
         Get cloud relevant information from tosca
         """
-        interfaces = node.interfaces
-        try:
-            occo_inf = [inf for inf in interfaces if inf.type == "Occopus"][0]
-        except (IndexError, AttributeError):
+        interfaces = utils.get_lifecycle(node, "Occopus")
+        if not interfaces:
             logger.debug("No interface for Occopus in {}".format(node.name))
-        else:
-            cloud_inputs = occo_inf.inputs
-            self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
-            self.node_data.setdefault(key, {}).setdefault("endpoint", cloud_inputs["endpoint_cloud"])
+            return None
+        cloud_inputs = interfaces.get("create")
 
-            return cloud_inputs["interface_cloud"]
-        return None
+        # Resolve get_property in interfaces
+        for field, value in cloud_inputs.items():
+            if isinstance(value, GetProperty):
+                cloud_inputs[field] = value.result()
+                continue
+            elif not isinstance(value, dict) or not "get_property" in value:
+                continue
+            cloud_inputs[field] = node.get_property_value(value.get("get_property")[-1])
+        self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
+        self.node_data.setdefault(key, {}).setdefault("endpoint", cloud_inputs["endpoint_cloud"])
+
+        return cloud_inputs["interface_cloud"]
 
 
     def _node_data_get_context_section(self,properties):
@@ -391,6 +430,7 @@ class OccopusAdaptor(abco.Adaptor):
         Get cloud-config from MiCADO cloud-init template
         """
         yaml.default_flow_style = False
+        default_cloud_config = {}
         try:
             with open(self.cloudinit_path, 'r') as f:
                 template = jinja2.Template(f.read())
@@ -431,6 +471,7 @@ class OccopusAdaptor(abco.Adaptor):
             path = self.infra_def_path_input
         if self.validate is False or tmp:
             try:
+                infra_def = {}
                 with open(path, 'r') as f:
                     infra_def = yaml.round_trip_load(f, preserve_quotes=True)
                 infra_def.setdefault('nodes', [])
@@ -463,13 +504,18 @@ class OccopusAdaptor(abco.Adaptor):
         """ Get host properties """
         return node.get_properties()
 
-    def _get_policies(self):
+    def _get_policies(self, node):
         """ Get the TOSCA policies """
         self.min_instances = 1
         self.max_instances = 1
+        if "scalable" in node.entity_tpl.get("capabilities", {}):
+            scalable = node.get_capabilities()["scalable"]
+            self.min_instances = scalable.get_property_value("min_instances")
+            self.max_instances = scalable.get_property_value("max_instances")
+            return
         for policy in self.template.policies:
             for target in policy.targets_list:
-                if self.node_name == target.name.replace('_', '-'):
+                if node.name == target.name:
                     logger.debug("policy target match for compute node")
                     properties = policy.get_properties()
                     self.min_instances = properties["min_instances"].value

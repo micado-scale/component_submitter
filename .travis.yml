@@ -3,11 +3,14 @@ python:
   - "3.6"
 cache: pip
 install:
-  - pip install tosca-parser
-  - pip install flask
-  - pip install ruamel.yaml
-  - pip install docker
+  - pip install tosca-parser==1.4.0
+  - pip install flask==1.1.1
+  - pip install ruamel.yaml==0.16.2
+  - pip install requests==2.22.0
+  - pip install docker==4.0.2
+  - pip install pykube-ng==0.28
 script:
   - python -m unittest tests.test_validator.TestValidation
   - python -m unittest tests.test_submitter_config.TestSubmitterConfig
   - python -m unittest tests.test_micado_parser.TestMiCADOParser
+  - python -m unittest tests.test_k8s_translation.TestK8sTranslation

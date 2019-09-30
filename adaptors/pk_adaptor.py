@@ -50,6 +50,8 @@ class PkAdaptor(abco.Adaptor):
                     relations.setdefault(node.name, []).append(target.name)            
 
         for policy in self.tpl.policies:
+            if not policy.type.startswith("tosca.policies.Scaling"):
+                continue
             for target in policy.targets_list:
                 if "Compute" in target.type:
                     node_data = {"name": target.name}
@@ -61,7 +63,7 @@ class PkAdaptor(abco.Adaptor):
                     service = {"name": target.name, "hosts": relations.get(target.name, [])}
                     service.update(self._pk_scaling_properties(policy))
                     self.pk_data[SCALING][SERVICES].append(service)
-            logger.info("Policy of {0} is translated".format(target.name))
+                logger.info("Policy of {0} is translated".format(target.name))
 
         if tmp:
             self._yaml_write(self.tmp_path)

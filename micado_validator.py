@@ -178,6 +178,8 @@ def _has_property(requirements, prop, rel_type):
     """ Check if a requirement has the correct properties and type """
     for requirement_dict in requirements:
         for requirement in requirement_dict.values():
+            if isinstance(requirement, str):
+                return True
             relation = requirement.get("relationship")
             if isinstance(relation, dict) and rel_type in relation.get("type"):
                 if prop in str(requirement_dict):
