@@ -975,8 +975,10 @@ class WorkloadManifest(Manifest):
             else:
                 continue
 
-            # Add the volume to the PodSpec
-            self.pod["spec"].setdefault("volumes", []).append(volume_spec)
+            # Add the volume to the PodSpec if it doesn't exist
+            vol_list = self.pod["spec"].setdefault("volumes", [])
+            if volume_spec.get("name") not in [x.get("name") for x in vol_list]:
+                vol_list.append(volume_spec)
 
             # Get the path to mount this volume at inside the container
             for requirement in requirements:
