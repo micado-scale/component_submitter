@@ -27,26 +27,26 @@ step:
   translate:
     - SecurityPolicyManagerAdaptor
     - KubernetesAdaptor
-    - OccopusAdaptor
+    - TerraformAdaptor
     - PkAdaptor
   execute:
     - SecurityPolicyManagerAdaptor
-    - OccopusAdaptor
+    - TerraformAdaptor
     - KubernetesAdaptor
     - PkAdaptor
   update:
     - SecurityPolicyManagerAdaptor
-    - OccopusAdaptor
+    - TerraformAdaptor
     - KubernetesAdaptor
     - PkAdaptor
   undeploy:
     - PkAdaptor
     - KubernetesAdaptor
-    - OccopusAdaptor
+    - TerraformAdaptor
     - SecurityPolicyManagerAdaptor
   cleanup:
     - KubernetesAdaptor
-    - OccopusAdaptor
+    - TerraformAdaptor
     - PkAdaptor
     - SecurityPolicyManagerAdaptor
 
@@ -58,9 +58,9 @@ adaptor_config:
     endoint: "endpoint"
     volume: "./files/output_configs/"
 
-  OccopusAdaptor:
+  TerraformAdaptor:
     types:
-      - "tosca.nodes.MiCADO.Occopus.*"
+      - "tosca.nodes.MiCADO.Terraform.*"
     endoint: "endpoint"
     volume: "./files/output_configs/"
 
