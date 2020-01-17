@@ -234,7 +234,12 @@ class TerraformAdaptor(abco.Adaptor):
         self.max_instances = 1
         logger.info("Updating the infrastructure {}".format(self.ID))
         self.translate(True)
-        if not self.tera_data:
+        if not self.tera_data and os.path.exists(self.terra_final):
+            logger.debug("No nodes in ADT, removing running nodes")
+            self.undeploy()
+            self.cleanup()
+            self.status = "Updated - removed all nodes"
+        elif not self.tera_data:
             logger.debug("No nodes found to be orchestrated with Terraform")
             self.status = "Skipped"
         elif not self._differentiate(self.terra_final,self.terra_final_tmp):
