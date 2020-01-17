@@ -108,6 +108,7 @@ class TerraformAdaptor(abco.Adaptor):
             self._get_policies(node)
             self.tera_data.setdefault("name", self.node_name)
 
+        if self.tera_data:
             if tmp:
                 logger.info("Creating temp files")
                 if cloud_type == "ec2":
@@ -143,8 +144,11 @@ class TerraformAdaptor(abco.Adaptor):
         """
         logger.info("Starting Terraform execution {}".format(self.ID))
         self.status = "executing"
-
-        if self.dryrun:
+        if not self._config_file_exists():
+            logger.info("No config generated during translation, nothing to execute")
+            self.status = "Skipped"
+            return
+        elif self.dryrun:
             logger.info("DRY-RUN: Terraform execution in dry-run mode...")
             self.status = "DRY-RUN Deployment"
             return
@@ -179,8 +183,12 @@ class TerraformAdaptor(abco.Adaptor):
         """
         self.status = "undeploying"
         logger.info("Undeploying {} infrastructure".format(self.ID))
-        if self.dryrun:
-                logger.info("DRY-RUN: deleting infrastructure...")
+        if not self._config_file_exists():
+            logger.info("No config generated during translation, nothing to undeploy")
+            self.status = "Skipped"
+            return
+        elif self.dryrun:
+            logger.info("DRY-RUN: deleting infrastructure...")
         else:
 
             self.terraform.exec_run("terraform destroy -lock=false -auto-approve", workdir='{}'.format(self.terra_path))
@@ -199,6 +207,10 @@ class TerraformAdaptor(abco.Adaptor):
         Remove the generated files under "files/output_configs/"
         """
         logger.info("Cleanup config for ID {}".format(self.ID))
+        if not self._config_file_exists():
+            logger.info("No config generated during translation, nothing to cleanup")
+            self.status = "Skipped"
+            return
         try:
             os.remove(self.terra_final)
             os.remove(self.temp_terra_init)
@@ -222,8 +234,10 @@ class TerraformAdaptor(abco.Adaptor):
         self.max_instances = 1
         logger.info("Updating the infrastructure {}".format(self.ID))
         self.translate(True)
-
-        if not self._differentiate(self.terra_final,self.terra_final_tmp):
+        if not self.tera_data:
+            logger.debug("No nodes found to be orchestrated with Terraform")
+            self.status = "Skipped"
+        elif not self._differentiate(self.terra_final,self.terra_final_tmp):
             logger.debug("Infrastructure file changed, replacing old config and executing")
             os.rename(self.terra_final_tmp,self.terra_final)
             os.rename(self.temp_terra_init_tmp,self.temp_terra_init)
@@ -576,4 +590,8 @@ class TerraformAdaptor(abco.Adaptor):
             with open(self.terra_acc, "w+") as q1:
                 for line in q:
                     q1.write(line)
+
+    def _config_file_exists(self):
+        """ Check if config file was generated during translation """
+        return os.path.exists(self.terra_final)
        
