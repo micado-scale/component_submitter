@@ -99,7 +99,7 @@ class OccopusAdaptor(abco.Adaptor):
             node_type = self.node_prefix + self.node_name
             self.node_def.setdefault(node_type, [])
             self.node_def[node_type].append(self.node_data)
-
+        if self.node_def:
             if tmp:
                 utils.dump_order_yaml(self.node_def, self.node_path_tmp)
             elif self.validate is False:
@@ -114,10 +114,14 @@ class OccopusAdaptor(abco.Adaptor):
         """
         logger.info("Starting Occopus execution {}".format(self.ID))
         self.status = "executing"
+        if not self._config_files_exists():
+            logger.info("No config generated during translation, nothing to execute")
+            self.status = "Skipped"
+            return
         if self.dryrun:
-                logger.info("DRY-RUN: Occopus execution in dry-run mode...")
-                self.status = "DRY-RUN Deployment"
-                return
+            logger.info("DRY-RUN: Occopus execution in dry-run mode...")
+            self.status = "DRY-RUN Deployment"
+            return
         else:
             if self.created:
                 run = False
@@ -167,8 +171,13 @@ class OccopusAdaptor(abco.Adaptor):
         """
         self.status = "undeploying"
         logger.info("Undeploy {} infrastructure".format(self.ID))
-        if self.dryrun:
-                logger.info("DRY-RUN: deleting infrastructure...")
+        if not self._config_files_exists():
+            logger.info("No config generated during translation, nothing to undeploy")
+            self.status = "Skipped"
+            return
+        elif self.dryrun:
+            logger.info("DRY-RUN: deleting infrastructure...")
+            self.status = "DRY-RUN Delete"
         else:
             requests.delete("http://{0}/infrastructures/{1}".format(self.occopus_address, self.worker_infra_name))
             # self.occopus.exec_run("occopus-destroy --auth_data_path {0} -i {1}"
@@ -180,6 +189,10 @@ class OccopusAdaptor(abco.Adaptor):
         Remove the generated files under "files/output_configs/"
         """
         logger.info("Cleanup config for ID {}".format(self.ID))
+        if not self._config_files_exists():
+            logger.info("No config generated during translation, nothing to cleanup")
+            self.status = "Skipped"
+            return
         try:
             os.remove(self.node_path)
             os.remove(self.infra_def_path_output)
@@ -524,3 +537,8 @@ class OccopusAdaptor(abco.Adaptor):
     def _differentiate(self, path, tmp_path):
         """ Compare two files """
         return filecmp.cmp(path, tmp_path)
+
+    def _config_files_exists(self):
+        """ Check if config files were generated during translation """
+        paths_exist = [os.path.exists(self.node_path), os.path.exists(self.infra_def_path_output)]
+        return all(paths_exist)
