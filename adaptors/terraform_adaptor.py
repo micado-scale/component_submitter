@@ -539,12 +539,7 @@ class TerraformAdaptor(abco.Adaptor):
         """ Write Terraform template files for aws"""
 
         # Get the credentials info
-        with open(self.auth_data_file, "r") as stream:
-            temp = yaml.safe_load(stream)
-        resources = temp.get("resource", {})
-        for resource in resources:
-            if resource.get("type") == "ec2":
-                tmp = resource.get("auth_data")
+        credential = self._get_credential_info("aws")
 
         # Add the provider info
         self.tera_data.pop("type")
@@ -555,8 +550,8 @@ class TerraformAdaptor(abco.Adaptor):
         elif not aws_region:
             aws_provider = {
                 "region": region,
-                "access_key": tmp["accesskey"],
-                "secret_key": tmp["secretkey"],
+                "access_key": credential["accesskey"],
+                "secret_key": credential["secretkey"],
             }
             self.tf_json.add_provider("aws", aws_provider)
 
@@ -699,4 +694,14 @@ class TerraformAdaptor(abco.Adaptor):
             logger.debug("File deleted: {}".format(self.temp_terra_init_tmp))
         except OSError:
             pass
+
+    def _get_credential_info(self, provider):
+        """ Return credential info from file """
+        with open(self.auth_data_file, "r") as stream:
+            temp = yaml.safe_load(stream)
+        resources = temp.get("resource", {})
+        for resource in resources:
+            if resource.get("type") == provider:
+                return resource.get("auth_data")
+
 
