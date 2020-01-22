@@ -1,6 +1,7 @@
 import random
 import string
 import ruamel.yaml as yaml
+import json
 from six.moves import urllib
 import codecs
 import logging
@@ -10,6 +11,12 @@ class NoAliasRTDumper(yaml.RoundTripDumper):
     """ Turn off aliases, preserve order """
     def ignore_aliases(self, data):
         return True
+
+def dump_json(data, path):
+    """ Dump the dictionary to a yaml file """    
+
+    with open(path, 'w') as file:
+        json.dump(data, file)
 
 def dump_order_yaml(data, path):
     """ Dump the dictionary to a yaml file """    
