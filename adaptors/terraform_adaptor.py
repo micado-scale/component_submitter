@@ -598,12 +598,7 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _write_tera_nova(self):
         """ Write Terraform template files for openstack"""
-        with open(self.auth_data_file, "r") as stream:
-            temp = yaml.safe_load(stream)
-        resources = temp.get("resource", {})
-        for resource in resources:
-            if resource.get("type") == "nova":
-                tmp = resource.get("auth_data")
+        credential = self._get_credential_info("nova")
 
         f = open(self.terra_final_tmp, "w+")
         f.write('variable "x" {\n')
@@ -613,8 +608,8 @@ class TerraformAdaptor(abco.Adaptor):
         f.write('provider "openstack" {\n')
         f.write('  auth_url = "%s"\n' % (self.tera_data["auth_url"]))
         f.write('  tenant_id = "%s"\n' % (self.tera_data["tenant_id"]))
-        f.write('  user_name = "%s"\n' % (tmp["username"]))
-        f.write('  password = "%s"\n' % (tmp["password"]))
+        f.write('  user_name = "%s"\n' % (credential["username"]))
+        f.write('  password = "%s"\n' % (credential["password"]))
         f.write("}\n")
         f.write("\n")
         f.write(
@@ -638,18 +633,13 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _write_tera_azure(self):
         """ Write Terraform template files for Azure"""
-        with open(self.auth_data_file, "r") as stream:
-            temp = yaml.safe_load(stream)
-        resources = temp.get("resource", {})
-        for resource in resources:
-            if resource.get("type") == "azure":
-                tmp = resource.get("auth_data")
+        credential = self._get_credential_info("azure")
 
         f = open(self.terra_var_tmp, "w+")
         f.write('vm_name = "%s"\n' % (self.tera_data["name"]))
         f.write('subscription_id = "%s"\n' % (self.tera_data["subscription_id"]))
-        f.write('client_id = "%s"\n' % (tmp["client_id"]))
-        f.write('client_secret = "%s"\n' % (tmp["client_secret"]))
+        f.write('client_id = "%s"\n' % (credential["client_id"]))
+        f.write('client_secret = "%s"\n' % (credential["client_secret"]))
         f.write('tenant_id = "%s"\n' % (self.tera_data["tenant_id"]))
         f.write('rg_name = "%s"\n' % (self.tera_data["rg_name"]))
         f.write('vn_name = "%s"\n' % (self.tera_data["vn_name"]))
