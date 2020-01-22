@@ -111,13 +111,17 @@ class TerraformAdaptor(abco.Adaptor):
             self.tera_data = {}
 
             node = copy.deepcopy(node)
-            cloud_type = self._node_data_get_interface(node, "resource")
+            cloud_type = self._node_data_get_interface(node)
             if not cloud_type:
                 continue
-            elif cloud_type == "ec2":
+
+            self.tera_data.setdefault("name", self.node_name)
+            self._get_policies(node)
+
+            if cloud_type == "ec2":
                 logger.info("EC2 resource detected")
-                self._node_data_get_ec2_host_properties(node, "resource")
-                self.tera_data.setdefault("type", "aws")
+                properties = self._node_data_get_ec2_host_properties(node)
+                self._add_terraform_aws(properties)
             elif cloud_type == "nova":
                 logger.info("Nova resource detected")
                 self._node_data_get_nova_host_properties(node, "resource")
@@ -130,41 +134,40 @@ class TerraformAdaptor(abco.Adaptor):
                 logger.info("GCE resource detected")
                 self._node_data_get_gce_host_properties(node, "resource")
                 self.tera_data.setdefault("type", "gce")
+        
 
-            self._get_policies(node)
-            self.tera_data.setdefault("name", self.node_name)
+        if not self.tera_data:
+            logger.info("No nodes to orchestrate with Terraform. Skipping...")
+            self.status = "Skipped"
+
+        if tmp:
+            logger.info("Creating temp files")
             if cloud_type == "ec2":
-                self._write_tera_aws()
-
-        if self.tera_data:
-            if tmp:
-                logger.info("Creating temp files")
-                if cloud_type == "ec2":
-                    with open(self.terra_final_tmp, "w") as file:
-                        json.dump(self.tf_json, file)
-                elif cloud_type == "nova":
-                    self._write_tera_nova()
-                elif cloud_type == "azure":
-                    self._write_tera_azure()
-                elif cloud_type == "gce":
-                    self._write_tera_gce()
-            elif not self.validate:
-                if cloud_type == "ec2":
-                    with open(self.terra_final_tmp, "w") as file:
-                        json.dump(self.tf_json, file)
-                elif cloud_type == "nova":
-                    self._write_tera_nova()
-                elif cloud_type == "azure":
-                    self._write_tera_azure()
-                elif cloud_type == "gce":
-                    self._write_tera_gce()
-                logger.info("First run")
-                os.rename(self.terra_final_tmp, self.terra_final)
-                os.rename(self.temp_terra_init_tmp, self.temp_terra_init)
-                if cloud_type == "azure":
-                    os.rename(self.terra_var_tmp, self.terra_var)
-                if cloud_type == "gce":
-                    os.rename(self.terra_var_tmp, self.terra_var)
+                with open(self.terra_final_tmp, "w") as file:
+                    json.dump(self.tf_json, file)
+            elif cloud_type == "nova":
+                self._write_tera_nova()
+            elif cloud_type == "azure":
+                self._write_tera_azure()
+            elif cloud_type == "gce":
+                self._write_tera_gce()
+        elif not self.validate:
+            if cloud_type == "ec2":
+                with open(self.terra_final_tmp, "w") as file:
+                    json.dump(self.tf_json, file)
+            elif cloud_type == "nova":
+                self._write_tera_nova()
+            elif cloud_type == "azure":
+                self._write_tera_azure()
+            elif cloud_type == "gce":
+                self._write_tera_gce()
+            logger.info("First run")
+            os.rename(self.terra_final_tmp, self.terra_final)
+            os.rename(self.temp_terra_init_tmp, self.temp_terra_init)
+            if cloud_type == "azure":
+                os.rename(self.terra_var_tmp, self.terra_var)
+            if cloud_type == "gce":
+                os.rename(self.terra_var_tmp, self.terra_var)
 
         self.status = "Translated"
 
@@ -332,19 +335,26 @@ class TerraformAdaptor(abco.Adaptor):
             logger.info("There are no changes in the Terraform files")
             self._remove_tmp_files
 
-    def _node_data_get_interface(self, node, key):
+    def _node_data_get_interface(self, node):
         """
         Get cloud relevant information from tosca
         """
-        interfaces = node.interfaces
-        try:
-            terra_inf = [inf for inf in interfaces if inf.type == "Terraform"][0]
-        except (IndexError, AttributeError):
+        interfaces = utils.get_lifecycle(node, "Terraform")
+        if not interfaces:
             logger.debug("No interface for Terraform in {}".format(node.name))
-        else:
-            cloud_inputs = terra_inf.inputs
-            return cloud_inputs["provider"]
-        return None
+            return None
+        cloud_inputs = interfaces.get("create")
+
+        # Resolve get_property in interfaces
+        for field, value in cloud_inputs.items():
+            if isinstance(value, GetProperty):
+                cloud_inputs[field] = value.result()
+                continue
+            elif not isinstance(value, dict) or not "get_property" in value:
+                continue
+            cloud_inputs[field] = node.get_property_value(value.get("get_property")[-1])
+
+        return cloud_inputs["provider"]
 
     def _node_data_get_context_section(self, properties):
         """
@@ -386,23 +396,25 @@ class TerraformAdaptor(abco.Adaptor):
 
         utils.dump_order_yaml(node_init, self.temp_terra_init_tmp)
 
-    def _node_data_get_ec2_host_properties(self, node, key):
+    def _node_data_get_ec2_host_properties(self, node):
         """
         Get EC2 properties and create node definition
         """
+        aws_properties = {}
         properties = self._get_host_properties(node)
-
-        self.tera_data.setdefault("region", properties["region_name"].value)
-        self.tera_data.setdefault("ami", properties["image_id"].value)
-        self.tera_data.setdefault("instance_type", properties["instance_type"].value)
-        if properties.get("key_name") is not None:
-            self.tera_data.setdefault("key_name", properties["key_name"].value)
-
         self._node_data_get_context_section(properties)
-        if properties.get("security_group_ids") is not None:
-            security_groups = list()
+
+        aws_properties["region"] = properties["region_name"].value
+        aws_properties["ami"] = properties["image_id"].value
+        aws_properties["instance_type"] = properties["instance_type"].value
+        if properties.get("key_name"):
+            aws_properties["key_name"] = properties["key_name"].value        
+        if properties.get("security_group_ids"):
             security_groups = properties["security_group_ids"].value
-            self.tera_data.setdefault("vpc_security_group_ids", security_groups[0])
+            aws_properties["vpc_security_group_ids"] = security_groups
+
+        return aws_properties
+
 
     def _node_data_get_azure_host_properties(self, node, key):
         """
@@ -535,14 +547,13 @@ class TerraformAdaptor(abco.Adaptor):
         """ Compare two files """
         return filecmp.cmp(path, tmp_path)
 
-    def _write_tera_aws(self):
-        """ Write Terraform template files for aws"""
+    def _add_terraform_aws(self, properties):
+        """ Add Terraform template for AWS to JSON"""
 
         # Get the credentials info
         credential = self._get_credential_info("aws")
 
         # Add the provider info
-        self.tera_data.pop("type")
         region = self.tera_data.pop("region")
         aws_region = self.tf_json.provider.get("aws", {}).get("region")
         if aws_region and aws_region != region:
@@ -561,7 +572,7 @@ class TerraformAdaptor(abco.Adaptor):
         count_var_properties = {"default": "1"}
         self.tf_json.add_variable(count_var_name, count_var_properties)
 
-        # Set the variable for command line
+        # Set the variable for the execute command
         self.tf_json.add_variable_to_command(count_var_name, self.min_instances)
 
         # Add the resource
