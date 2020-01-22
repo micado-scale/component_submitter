@@ -77,6 +77,7 @@ class TerraformAdaptor(abco.Adaptor):
         self.created = False
         self.client = None
         self.terraform = None
+        self.clouds = set()
         if not self.dryrun:
             self._init_docker()
 
@@ -117,6 +118,7 @@ class TerraformAdaptor(abco.Adaptor):
 
             self.tera_data.setdefault("name", self.node_name)
             self._get_policies(node)
+            self.clouds.add(cloud_type)
 
             if cloud_type == "ec2":
                 logger.info("EC2 resource detected")
@@ -125,15 +127,12 @@ class TerraformAdaptor(abco.Adaptor):
             elif cloud_type == "nova":
                 logger.info("Nova resource detected")
                 self._node_data_get_nova_host_properties(node, "resource")
-                self.tera_data.setdefault("type", "nova")
             elif cloud_type == "azure":
                 logger.info("Azure resource detected")
                 self._node_data_get_azure_host_properties(node, "resource")
-                self.tera_data.setdefault("type", "azure")
             elif cloud_type == "gce":
                 logger.info("GCE resource detected")
                 self._node_data_get_gce_host_properties(node, "resource")
-                self.tera_data.setdefault("type", "gce")
         
 
         if not self.tera_data:
@@ -260,14 +259,18 @@ class TerraformAdaptor(abco.Adaptor):
         try:
             os.remove(self.terra_final)
             os.remove(self.temp_terra_init)
-            if self.tera_data["type"] == "azure":
-                os.remove(self.terra_var)
-            if self.tera_data["type"] == "gce":
-                os.remove(self.terra_var)
-                os.remove(self.terra_acc)
-
         except OSError as e:
             logger.warning(e)
+
+        # Deletion of files used only in GCE and Azure
+        try:
+            os.remove(self.terra_var)
+        except OSError:
+            pass
+        try:
+            os.remove(self.terra_acc)
+        except OSError:
+            pass
 
     def update(self):
         """
@@ -306,7 +309,7 @@ class TerraformAdaptor(abco.Adaptor):
             self.execute()
             self.status = "Updated"
             logger.debug("Initialisation changed")
-        elif self.tera_data["type"] == "azure" and not self._differentiate(
+        elif "azure" in self.clouds and not self._differentiate(
             self.terra_var, self.terra_var_tmp
         ):
             logger.debug(
@@ -318,7 +321,7 @@ class TerraformAdaptor(abco.Adaptor):
             self.execute()
             self.status = "Updated"
             logger.debug("Infrastructure changed")
-        elif self.tera_data["type"] == "gce" and not self._differentiate(
+        elif "gce" in self.clouds and not self._differentiate(
             self.terra_var, self.terra_var_tmp
         ):
             logger.debug(
