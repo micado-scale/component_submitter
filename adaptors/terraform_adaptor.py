@@ -147,8 +147,7 @@ class TerraformAdaptor(abco.Adaptor):
         if tmp:
             logger.info("Creating temp files")
             if cloud_type == "ec2":
-                with open(self.terra_final_tmp, "w") as file:
-                    json.dump(self.tf_json, file)
+                utils.dump_json(self.tf_json, self.terra_final_tmp)
             elif cloud_type == "nova":
                 self._write_tera_nova()
             elif cloud_type == "azure":
@@ -157,8 +156,7 @@ class TerraformAdaptor(abco.Adaptor):
                 self._write_tera_gce()
         elif not self.validate:
             if cloud_type == "ec2":
-                with open(self.terra_final_tmp, "w") as file:
-                    json.dump(self.tf_json, file)
+                utils.dump_json(self.tf_json, self.terra_final_tmp)
             elif cloud_type == "nova":
                 self._write_tera_nova()
             elif cloud_type == "azure":
