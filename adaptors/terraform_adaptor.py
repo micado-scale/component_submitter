@@ -39,15 +39,18 @@ class TerraformDict(dict):
         self["variable"][name] = properties
         self.variable = self["variable"]
 
-    def add_resource(self, resource):
-        self.setdefault("resource", [])
-        self["resource"].append(resource)
+    def add_resource(self, name, resource):
+        self.setdefault("resource", {})
+        self["resource"].setdefault(name, [])
+        if resource not in self["resource"][name]:
+            self["resource"][name].append(resource)
         self.resource = self["resource"]
 
-    def add_data(self, data):
-        self.setdefault("data", [])
-        if data not in self["data"]:
-            self["data"].append(data)
+    def add_data(self, name, data):
+        self.setdefault("data", {})
+        self["data"].setdefault(name, [])
+        if data not in self["data"][name]:
+            self["data"][name].append(data)
         self.data = self["data"]
 
     def add_variable_to_command(self, name, value):
@@ -584,16 +587,14 @@ class TerraformAdaptor(abco.Adaptor):
         self.tf_json.add_variable_to_command(count_var_name, self.min_instances)
 
         # Add the resource
-        resource = {
-            "aws_instance": {
-                instance_name: {
-                    **properties,
-                    "user_data": '${file("${path.module}/terrainit.yaml")}',
-                    "count": "${var.%s}" % count_var_name,
-                }
+        aws_instance = {
+            instance_name: {
+                **properties,
+                "user_data": '${file("${path.module}/terrainit.yaml")}',
+                "count": "${var.%s}" % count_var_name,
             }
         }
-        self.tf_json.add_resource(resource)
+        self.tf_json.add_resource("aws_instance", aws_instance)
 
     def _write_tera_nova(self):
         """ Write Terraform template files for openstack"""
