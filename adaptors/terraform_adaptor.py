@@ -53,7 +53,8 @@ class TerraformDict(dict):
             self["data"][name].append(data)
         self.data = self["data"]
 
-    def add_variable_to_command(self, name, value):
+    def add_count_variable(self, name, value):
+        self.add_variable(name)
         self.command_variables += "--var {}={} ".format(name, value)
 
 
@@ -580,11 +581,7 @@ class TerraformAdaptor(abco.Adaptor):
         # Add the count variable
         instance_name = self.node_name
         count_var_name = "{}-count".format(instance_name)
-        count_var_properties = {"default": "1"}
-        self.tf_json.add_variable(count_var_name, count_var_properties)
-
-        # Set the variable for the execute command
-        self.tf_json.add_variable_to_command(count_var_name, self.min_instances)
+        self.tf_json.add_count_variable(count_var_name, self.min_instances)
 
         # Add the resource
         aws_instance = {
@@ -631,38 +628,152 @@ class TerraformAdaptor(abco.Adaptor):
         f.write("}\n")
         f.close()
 
-    def _write_tera_azure(self):
+    def _write_tera_azure(self, properties):
         """ Write Terraform template files for Azure"""
+
+        def get_provider():
+            provider = {
+                "subscription_id": properties["subscription_id"],
+                "client_id": credential["client_id"],
+                "client_secret": credential["client_secret"],
+                "tenant_id": properties["tenant_id"],
+            }
+            return provider
+
+        def get_resource_group():
+            resource_group = {
+                resource_group_name: {
+                    "name": resource_group_name
+                }
+            }
+            return resource_group
+
+        def get_virtual_network():
+            virtual_network = {
+                virtual_network_name: {
+                    "name": virtual_network_name,
+                    "resource_group_name": "${data.azurerm_resource_group.%s.name}"
+                    % resource_group_name,
+                }
+            }
+            return virtual_network
+
+        def get_subnet():
+            subnet = {
+                subnet_name: {
+                    "name": subnet_name,
+                    "resource_group_name": "${data.azurerm_resource_group.%s.name}"
+                    % resource_group_name,
+                    "virtual_network_name": "${data.azurerm_virtual_network.%s.name}"
+                    % virtual_network_name,
+                }
+            }
+            return subnet
+
+        def get_network_security_group():
+            network_security_group = {
+                network_security_group_name: {
+                    "name": network_security_group_name,
+                    "resource_group_name": "${data.azurerm_resource_group.%s.name}"
+                    % resource_group_name,
+                }
+            }
+            return network_security_group
+
+        def get_network_interface():
+            network_interface = {
+                network_interface_name: {
+                    "name": "%s${count.index}" % network_interface_name,
+                    "location": "${data.azurerm_resource_group.%s.location}"
+                    % resource_group_name,
+                    "resource_group_name": "${data.azurerm_resource_group.%s.name}"
+                    % resource_group_name,
+                    "network_security_group_id": "${data.azurerm_network_security_group.%s.id}"
+                    % network_security_group_name,
+                    "count": "${var.%s}" % count_var_name,
+                    "ip_configuration": {
+                        "name": "%s${count.index}" % nic_config_name,
+                        "subnet_id": "${data.azurerm_subnet.%s.id}" % subnet_name,
+                        "private_ip_address_allocation": "Dynamic",
+                    },
+                }
+            }
+            return network_interface
+
+        def get_virtual_machine():
+            virtual_machine = {
+                instance_name: {
+                    "name": "%s${count.index}" % instance_name,
+                    "location": "${data.azurerm_resource_group.%s.location}"
+                    % resource_group_name,
+                    "resource_group_name": "${data.azurerm_resource_group.%s.name}"
+                    % resource_group_name,
+                    "network_interface_ids": ["${element(azurerm_network_interface.%s.*.id, count.index}"]
+                    % network_interface_name,
+                    "vm_size": virtual_machine_size,
+                    "count": "${var.%s}" % count_var_name,
+                    "delete_os_disk_on_termination": "true",
+                    "delete_data_disks_on_termination": "true",
+                    "storage_os_disk": {
+                        "name": "%s${count.index}" % virtual_machine_disk_name,
+                        "caching": "ReadWrite",
+                        "create_option": "FromImage",
+                        "managed_disk_type": "Standard_LRS",
+                    },
+                    "storage_image_reference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": virtual_machine_image,
+                        "version": "latest",
+                    },
+                    "os_profile": {
+                        "computer_name": "micado-worker",
+                        "admin_username": "ubuntu",
+                        "custom_data": '${file("${path.module}/terrainit.yaml")}',
+                    },
+                    "os_profile_linux_config": {
+                        "disable_password_authentication": "true",
+                        "ssh_keys": {
+                            "path": "/home/ubuntu/.ssh/authorized_keys",
+                            "key_data": ssh_key_data,
+                        },
+                    },
+                }
+            }
+            return virtual_machine
+
+
+        instance_name = self.node_name
+
+        count_var_name = "{}-count".format(instance_name)
+        self.tf_json.add_count_variable(count_var_name, self.min_instances)
+
         credential = self._get_credential_info("azure")
+        self.tf_json.add_provider("azurerm", get_provider())
 
-        f = open(self.terra_var_tmp, "w+")
-        f.write('vm_name = "%s"\n' % (self.terra_data["name"]))
-        f.write('subscription_id = "%s"\n' % (self.terra_data["subscription_id"]))
-        f.write('client_id = "%s"\n' % (credential["client_id"]))
-        f.write('client_secret = "%s"\n' % (credential["client_secret"]))
-        f.write('tenant_id = "%s"\n' % (self.terra_data["tenant_id"]))
-        f.write('rg_name = "%s"\n' % (self.terra_data["rg_name"]))
-        f.write('vn_name = "%s"\n' % (self.terra_data["vn_name"]))
-        f.write('sn_name = "%s"\n' % (self.terra_data["sn_name"]))
-        f.write('nsg = "%s"\n' % (self.terra_data["nsg"]))
-        f.write('vm_size = "%s"\n' % (self.terra_data["vm_size"]))
-        f.write('image = "%s"\n' % (self.terra_data["image"]))
-        if self.terra_data.get("key_data") is not None:
-            f.write('key_data = "%s"\n' % (self.terra_data["key_data"]))
-            linux = True
-        if self.terra_data.get("pip") is not None:
-            f.write('pip = "%s"\n' % (self.terra_data["public_ip"]))
+        resource_group_name = properties["rg_name"]
+        self.tf_json.add_data("azurerm_resource_group", get_resource_group())
 
-        if linux:
-            with open(self.terra_azure_lin) as p:
-                with open(self.terra_final_tmp, "w+") as p1:
-                    for line in p:
-                        p1.write(line)
-        else:
-            with open(self.terra_azure_win) as p:
-                with open(self.terra_final_tmp, "w+") as p1:
-                    for line in p:
-                        p1.write(line)
+        virtual_network_name = properties["vn_name"]
+        self.tf_json.add_data("azurerm_virtual_network", get_virtual_network())
+
+        subnet_name = properties["sn_name"]
+        self.tf_json.add_data("azurerm_subnet", get_subnet())
+
+        network_security_group_name = properties["nsg"]
+        self.tf_json.add_data(
+            "azurerm_network_security_group", get_network_security_group()
+        )
+
+        nic_config_name = "{}-nic-config".format(instance_name)
+        network_interface_name = "{}-nic".format(instance_name)
+        self.tf_json.add_resource("azurerm_network_interface", get_network_interface())
+
+        virtual_machine_size = properties["vm_size"]
+        virtual_machine_disk_name = "{}-disk".format(instance_name)
+        virtual_machine_image = properties["image"]
+        ssh_key_data = properties.get("key_data", "")
+        self.tf_json.add_resource("azurerm_virtual_machine", get_virtual_machine())
 
     def _write_tera_gce(self):
         """ Write Terraform template files for GCE"""
