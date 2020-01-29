@@ -431,23 +431,10 @@ class TerraformAdaptor(abco.Adaptor):
         """
         Get Azure properties and create node definition
         """
-        def get_property_value(name):
+        azure_properties = self._get_properties_values(node)
+        self._node_data_get_context_section(azure_properties)
 
-
-        azure_properties = {}
-        properties = self._get_properties_values(node)
-        self._node_data_get_context_section(properties)
-
-        azure_properties["subscription_id"] = properties["subscription_id"]
-        azure_properties["tenant_id"] = properties["tenant_id"]
-        azure_properties["rg_name"] = properties["rg_name"]
-        azure_properties["vn_name"] = properties["vn_name"]
-        azure_properties["sn_name"] = properties["sn_name"]
-        azure_properties["nsg"] = properties["nw_sec_group"]
-        azure_properties["vm_size"] = properties["vm_size"]
-        azure_properties["image"] = properties["image"]
-        azure_properties["key_data"] = properties["key_data"] or None
-        azure_properties["pip"] = properties["public_ip"] or None
+        return azure_properties
 
     def _node_data_get_gce_host_properties(self, node, key):
         """
@@ -551,7 +538,7 @@ class TerraformAdaptor(abco.Adaptor):
             for target in policy.targets_list:
                 if self.node_name == target.name:
                     logger.debug("policy target match for compute node")
-                    properties = get_properties_values(policy)
+                    properties = self._get_properties_values(policy)
                     self.min_instances = properties["min_instances"]
                     self.max_instances = properties["max_instances"]
 
@@ -632,34 +619,27 @@ class TerraformAdaptor(abco.Adaptor):
         """ Write Terraform template files for Azure"""
 
         def get_provider():
-            provider = {
+            return {
                 "subscription_id": properties["subscription_id"],
                 "client_id": credential["client_id"],
                 "client_secret": credential["client_secret"],
                 "tenant_id": properties["tenant_id"],
             }
-            return provider
 
         def get_resource_group():
-            resource_group = {
-                resource_group_name: {
-                    "name": resource_group_name
-                }
-            }
-            return resource_group
+            return {resource_group_name: {"name": resource_group_name}}
 
         def get_virtual_network():
-            virtual_network = {
+            return {
                 virtual_network_name: {
                     "name": virtual_network_name,
                     "resource_group_name": "${data.azurerm_resource_group.%s.name}"
                     % resource_group_name,
                 }
             }
-            return virtual_network
 
         def get_subnet():
-            subnet = {
+            return {
                 subnet_name: {
                     "name": subnet_name,
                     "resource_group_name": "${data.azurerm_resource_group.%s.name}"
@@ -668,20 +648,18 @@ class TerraformAdaptor(abco.Adaptor):
                     % virtual_network_name,
                 }
             }
-            return subnet
 
         def get_network_security_group():
-            network_security_group = {
+            return {
                 network_security_group_name: {
                     "name": network_security_group_name,
                     "resource_group_name": "${data.azurerm_resource_group.%s.name}"
                     % resource_group_name,
                 }
             }
-            return network_security_group
 
         def get_network_interface():
-            network_interface = {
+            return {
                 network_interface_name: {
                     "name": "%s${count.index}" % network_interface_name,
                     "location": "${data.azurerm_resource_group.%s.location}"
@@ -698,18 +676,19 @@ class TerraformAdaptor(abco.Adaptor):
                     },
                 }
             }
-            return network_interface
 
         def get_virtual_machine():
-            virtual_machine = {
+            return {
                 instance_name: {
                     "name": "%s${count.index}" % instance_name,
                     "location": "${data.azurerm_resource_group.%s.location}"
                     % resource_group_name,
                     "resource_group_name": "${data.azurerm_resource_group.%s.name}"
                     % resource_group_name,
-                    "network_interface_ids": ["${element(azurerm_network_interface.%s.*.id, count.index}"]
-                    % network_interface_name,
+                    "network_interface_ids": [
+                        "${element(azurerm_network_interface.%s.*.id, count.index)}"
+                        % network_interface_name
+                    ],
                     "vm_size": virtual_machine_size,
                     "count": "${var.%s}" % count_var_name,
                     "delete_os_disk_on_termination": "true",
@@ -740,8 +719,8 @@ class TerraformAdaptor(abco.Adaptor):
                     },
                 }
             }
-            return virtual_machine
 
+        # Begin building the JSON
 
         instance_name = self.node_name
 
@@ -760,7 +739,7 @@ class TerraformAdaptor(abco.Adaptor):
         subnet_name = properties["sn_name"]
         self.tf_json.add_data("azurerm_subnet", get_subnet())
 
-        network_security_group_name = properties["nsg"]
+        network_security_group_name = properties["nw_sec_group"]
         self.tf_json.add_data(
             "azurerm_network_security_group", get_network_security_group()
         )
@@ -773,6 +752,7 @@ class TerraformAdaptor(abco.Adaptor):
         virtual_machine_disk_name = "{}-disk".format(instance_name)
         virtual_machine_image = properties["image"]
         ssh_key_data = properties.get("key_data", "")
+        
         self.tf_json.add_resource("azurerm_virtual_machine", get_virtual_machine())
 
     def _write_tera_gce(self):
