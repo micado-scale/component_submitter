@@ -144,7 +144,8 @@ class TerraformAdaptor(abco.Adaptor):
                 self._node_data_get_nova_host_properties(node, "resource")
             elif cloud_type == "azure":
                 logger.info("Azure resource detected")
-                self._node_data_get_azure_host_properties(node, "resource")
+                properties = self._node_data_get_azure_host_properties(node)
+                self._add_terraform_azure(properties)
             elif cloud_type == "gce":
                 logger.info("GCE resource detected")
                 self._node_data_get_gce_host_properties(node, "resource")
@@ -161,7 +162,7 @@ class TerraformAdaptor(abco.Adaptor):
             elif cloud_type == "nova":
                 self._write_tera_nova()
             elif cloud_type == "azure":
-                self._write_tera_azure()
+                utils.dump_json(self.tf_json, self.terra_final_tmp)
             elif cloud_type == "gce":
                 self._write_tera_gce()
         elif not self.validate:
@@ -170,14 +171,12 @@ class TerraformAdaptor(abco.Adaptor):
             elif cloud_type == "nova":
                 self._write_tera_nova()
             elif cloud_type == "azure":
-                self._write_tera_azure()
+                utils.dump_json(self.tf_json, self.terra_final_tmp)
             elif cloud_type == "gce":
                 self._write_tera_gce()
             logger.info("First run")
             os.rename(self.terra_final_tmp, self.terra_final)
             os.rename(self.temp_terra_init_tmp, self.temp_terra_init)
-            if cloud_type == "azure":
-                os.rename(self.terra_var_tmp, self.terra_var)
             if cloud_type == "gce":
                 os.rename(self.terra_var_tmp, self.terra_var)
 
@@ -374,7 +373,7 @@ class TerraformAdaptor(abco.Adaptor):
         Create the cloud-init config file
         """
         if properties.get("context") is not None:
-            context = properties.get("context").value
+            context = properties.get("context")
             if context.get("cloud_config") is None:
                 if context["append"]:
                     # Missing cloud-config and append set to yes
@@ -414,73 +413,74 @@ class TerraformAdaptor(abco.Adaptor):
         Get EC2 properties and create node definition
         """
         aws_properties = {}
-        properties = self._get_host_properties(node)
+        properties = self._get_properties_values(node)
         self._node_data_get_context_section(properties)
 
-        aws_properties["region"] = properties["region_name"].value
-        aws_properties["ami"] = properties["image_id"].value
-        aws_properties["instance_type"] = properties["instance_type"].value
+        aws_properties["region"] = properties["region_name"]
+        aws_properties["ami"] = properties["image_id"]
+        aws_properties["instance_type"] = properties["instance_type"]
         if properties.get("key_name"):
-            aws_properties["key_name"] = properties["key_name"].value
+            aws_properties["key_name"] = properties["key_name"]
         if properties.get("security_group_ids"):
-            security_groups = properties["security_group_ids"].value
+            security_groups = properties["security_group_ids"]
             aws_properties["vpc_security_group_ids"] = security_groups
 
         return aws_properties
 
-    def _node_data_get_azure_host_properties(self, node, key):
+    def _node_data_get_azure_host_properties(self, node):
         """
         Get Azure properties and create node definition
         """
-        properties = self._get_host_properties(node)
-        self.terra_data.setdefault(
-            "subscription_id", properties["subscription_id"].value
-        )
-        self.terra_data.setdefault("tenant_id", properties["tenant_id"].value)
-        self.terra_data.setdefault("rg_name", properties["rg_name"].value)
-        self.terra_data.setdefault("vn_name", properties["vn_name"].value)
-        self.terra_data.setdefault("sn_name", properties["sn_name"].value)
-        self.terra_data.setdefault("nsg", properties["nw_sec_group"].value)
-        self.terra_data.setdefault("vm_size", properties["vm_size"].value)
-        self.terra_data.setdefault("image", properties["image"].value)
+        def get_property_value(name):
+
+
+        azure_properties = {}
+        properties = self._get_properties_values(node)
         self._node_data_get_context_section(properties)
-        if properties.get("key_data") is not None:
-            self.terra_data.setdefault("key_data", properties["key_data"].value)
-        if properties.get("public_ip") is not None:
-            self.terra_data.setdefault("pip", properties["public_ip"].value)
+
+        azure_properties["subscription_id"] = properties["subscription_id"]
+        azure_properties["tenant_id"] = properties["tenant_id"]
+        azure_properties["rg_name"] = properties["rg_name"]
+        azure_properties["vn_name"] = properties["vn_name"]
+        azure_properties["sn_name"] = properties["sn_name"]
+        azure_properties["nsg"] = properties["nw_sec_group"]
+        azure_properties["vm_size"] = properties["vm_size"]
+        azure_properties["image"] = properties["image"]
+        azure_properties["key_data"] = properties["key_data"] or None
+        azure_properties["pip"] = properties["public_ip"] or None
 
     def _node_data_get_gce_host_properties(self, node, key):
         """
         Get GCE properties and create node definition
         """
-        properties = self._get_host_properties(node)
-        self.terra_data.setdefault("region", properties["region"].value)
-        self.terra_data.setdefault("project", properties["project"].value)
-        self.terra_data.setdefault("machine_type", properties["machine_type"].value)
-        self.terra_data.setdefault("zone", properties["zone"].value)
-        self.terra_data.setdefault("image", properties["image"].value)
-        self.terra_data.setdefault("network", properties["network"].value)
+        properties = self._get_properties_values(node)
+        self.terra_data.setdefault("region", properties["region"])
+        self.terra_data.setdefault("project", properties["project"])
+        self.terra_data.setdefault("machine_type", properties["machine_type"])
+        self.terra_data.setdefault("zone", properties["zone"])
+        self.terra_data.setdefault("image", properties["image"])
+        self.terra_data.setdefault("network", properties["network"])
         self._node_data_get_context_section(properties)
         if properties.get("ssh-keys") is not None:
-            self.terra_data.setdefault("ssh-keys", properties["ssh-keys"].value)
+            self.terra_data.setdefault("ssh-keys", properties["ssh-keys"])
 
     def _node_data_get_nova_host_properties(self, node, key):
         """
         Get NOVA properties and create node definition
         """
-        properties = self._get_host_properties(node)
+        properties = self._get_properties_values(node)
 
-        self.terra_data.setdefault("image_id", properties["image_id"].value)
-        self.terra_data.setdefault("flavor_id", properties["flavor_id"].value)
-        self.terra_data.setdefault("auth_url", properties["auth_url"].value)
-        self.terra_data.setdefault("tenant_id", properties["project_id"].value)
-        self.terra_data.setdefault("network_name", properties["network_name"].value)
-        self.terra_data.setdefault("network_id", properties["network_id"].value)
-        self.terra_data.setdefault("key_pair", properties["key_name"].value)
+        self.terra_data.setdefault("image_id", properties["image_id"])
+        self.terra_data.setdefault("flavor_id", properties["flavor_id"])
+        self.terra_data.setdefault("auth_url", properties["auth_url"])
+        self.terra_data.setdefault("tenant_id", properties["project_id"])
+        self.terra_data.setdefault("network_name", properties["network_name"])
+        self.terra_data.setdefault("network_id", properties["network_id"])
+        self.terra_data.setdefault("key_pair", properties["key_name"])
         self._node_data_get_context_section(properties)
         if properties.get("security_groups") is not None:
             security_groups = list()
-            security_groups = properties["security_groups"].value
+            security_groups = properties["security_groups"]
             self.terra_data.setdefault("security_groups", security_groups[0])
 
     def _get_cloud_init(self, tosca_cloud_config, append, override):
@@ -534,9 +534,9 @@ class TerraformAdaptor(abco.Adaptor):
                 logger.error("{0}. Try {1} of 5.".format(str(e), i))
                 time.sleep(5)
 
-    def _get_host_properties(self, node):
+    def _get_properties_values(self, node):
         """ Get host properties """
-        return node.get_properties()
+        return {x: y.value for x, y in node.get_properties().items()}
 
     def _get_policies(self, node):
         """ Get the TOSCA policies """
@@ -551,9 +551,9 @@ class TerraformAdaptor(abco.Adaptor):
             for target in policy.targets_list:
                 if self.node_name == target.name:
                     logger.debug("policy target match for compute node")
-                    properties = policy.get_properties()
-                    self.min_instances = properties["min_instances"].value
-                    self.max_instances = properties["max_instances"].value
+                    properties = get_properties_values(policy)
+                    self.min_instances = properties["min_instances"]
+                    self.max_instances = properties["max_instances"]
 
     def _differentiate(self, path, tmp_path):
         """ Compare two files """
@@ -628,7 +628,7 @@ class TerraformAdaptor(abco.Adaptor):
         f.write("}\n")
         f.close()
 
-    def _write_tera_azure(self, properties):
+    def _add_terraform_azure(self, properties):
         """ Write Terraform template files for Azure"""
 
         def get_provider():
