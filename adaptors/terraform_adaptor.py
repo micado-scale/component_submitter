@@ -54,7 +54,7 @@ class TerraformDict(dict):
         self.data = self["data"]
 
     def add_count_variable(self, name, value):
-        self.add_variable(name)
+        self.add_variable(name, {"default": value})
         self.command_variables += "--var {}={} ".format(name, value)
 
 
@@ -68,7 +68,7 @@ class TerraformAdaptor(abco.Adaptor):
             raise AdaptorCritical("Template is not a valid TOSCAParser object")
         self.status = "init"
         self.dryrun = dryrun
-        self.config = config
+        self.volume = config["volume"]
         self.validate = validate
         self.node_name = ""
         self.min_instances = 1
@@ -76,36 +76,30 @@ class TerraformAdaptor(abco.Adaptor):
         self.ID = adaptor_id
         self.template = template
 
-        self.infra_def_path_input = "./system/infrastructure_descriptor.yaml"
         self.cloudinit_path = "./system/cloud_init_worker_tf.yaml"
 
-        self.terra_final = "{}{}.tf.json".format(self.config["volume"], self.ID)
-        self.terra_final_tmp = "{}{}.tf.json.tmp".format(self.config["volume"], self.ID)
-        self.temp_terra_init = "{}terrainit.yaml".format(self.config["volume"])
-        self.temp_terra_init_tmp = "{}terrainittmp.yaml".format(self.config["volume"])
-        self.terra_var = "{}terraform.tfvars".format(self.config["volume"])
-        self.terra_acc = "{}accounts.json".format(self.config["volume"])
-        self.terra_var_tmp = "{}terraform.tfvars.tmp".format(self.config["volume"])
+        self.terra_final = "{}{}.tf.json".format(self.volume, self.ID)
+        self.terra_final_tmp = "{}{}.tf.json.tmp".format(self.volume, self.ID)
+        self.terra_var = "{}terraform.tfvars".format(self.volume)
+        self.terra_acc = "{}accounts.json".format(self.volume)
+        self.terra_var_tmp = "{}terraform.tfvars.tmp".format(self.volume)
 
         self.terra_data = {}
+        # TODO delete terra_data
+
         self.tf_json = TerraformDict()
 
         self.created = False
         self.terraform = None
         self.clouds = set()
+        self.cloud_inits = []
         if not self.dryrun:
             self._init_docker()
 
         self.auth_data_file = "/var/lib/submitter/system/auth_data.yaml"
         self.auth_gce = "/var/lib/submitter/system/accounts.json"
         self.master_cert = "/var/lib/submitter/system/master.pem"
-        self.terra_azure_lin = "/var/lib/submitter/system/azure_lvm.tf"
-        self.terra_azure_win = "/var/lib/submitter/system/azure_wvm.tf"
         self.terra_gce = "/var/lib/submitter/system/gce_lvm.tf"
-        self.terra_infra = "/var/lib/micado/terraform/submitter/{}.tf.json".format(
-            self.ID
-        )
-        self.terra_init = "/var/lib/micado/terraform/submitter/terrainit.yaml"
         self.terra_path = "/var/lib/micado/terraform/submitter/"
         logger.info("Terraform adaptor initialised")
 
@@ -135,16 +129,20 @@ class TerraformAdaptor(abco.Adaptor):
             self._get_policies(node)
             self.clouds.add(cloud_type)
 
+            properties = self._get_properties_values(node)
+            context = properties.get("context")
+            cloud_init = self._node_data_get_context_section(context)
+            self.cloud_inits.append(cloud_init)
+
             if cloud_type == "ec2":
                 logger.info("EC2 resource detected")
-                properties = self._node_data_get_ec2_host_properties(node)
-                self._add_terraform_aws(properties)
+                aws_properties = self._node_data_get_ec2_host_properties(node)
+                self._add_terraform_aws(aws_properties)
             elif cloud_type == "nova":
                 logger.info("Nova resource detected")
                 self._node_data_get_nova_host_properties(node, "resource")
             elif cloud_type == "azure":
                 logger.info("Azure resource detected")
-                properties = self._node_data_get_azure_host_properties(node)
                 self._add_terraform_azure(properties)
             elif cloud_type == "gce":
                 logger.info("GCE resource detected")
@@ -174,10 +172,11 @@ class TerraformAdaptor(abco.Adaptor):
                 utils.dump_json(self.tf_json, self.terra_final_tmp)
             elif cloud_type == "gce":
                 self._write_tera_gce()
-            logger.info("First run")
+
             os.rename(self.terra_final_tmp, self.terra_final)
-            os.rename(self.temp_terra_init_tmp, self.temp_terra_init)
+            self._rename_cloud_inits()
             if cloud_type == "gce":
+                # TODO delete this
                 os.rename(self.terra_var_tmp, self.terra_var)
 
         self.status = "Translated"
@@ -212,8 +211,6 @@ class TerraformAdaptor(abco.Adaptor):
                     ),
                     workdir="{}".format(self.terra_path),
                 )
-
-                #               exit_code, out = self.terraform.exec_run("terraform apply -var 'x={0}' -auto-approve {1}".format(self.min_instances, self.terra_path))
 
                 if exit_code == 1:
                     raise AdaptorCritical(out)
@@ -267,11 +264,13 @@ class TerraformAdaptor(abco.Adaptor):
             return
         try:
             os.remove(self.terra_final)
-            os.remove(self.temp_terra_init)
         except OSError as e:
             logger.warning(e)
+        
+        self._remove_cloud_inits()
 
-        # Deletion of files used only in GCE and Azure
+        # Deletion of files used only in GCE
+        #TODO delete this?
         try:
             os.remove(self.terra_var)
         except OSError:
@@ -292,52 +291,41 @@ class TerraformAdaptor(abco.Adaptor):
         self.max_instances = 1
         logger.info("Updating the infrastructure {}".format(self.ID))
         self.translate(True)
+
         if not self.tf_json.provider and os.path.exists(self.terra_final):
-            logger.debug("No nodes in ADT, removing running nodes")
+            logger.debug("All Terraform nodes removed from ADT. Undeploying...")
             self._remove_tmp_files
             self.undeploy()
             self.cleanup()
-            self.status = "Updated - removed all nodes"
+            self.status = "Updated - undeployed"
+
         elif not self.tf_json.provider:
-            logger.debug("No nodes found to be orchestrated with Terraform")
+            logger.debug("No Terraform nodes added to ADT")
             self._remove_tmp_files
             self.status = "Skipped"
-        elif not self._differentiate(self.terra_final, self.terra_final_tmp):
-            logger.debug(
-                "Infrastructure file changed, replacing old config and executing"
-            )
+
+        elif self._differentiate(self.terra_final, self.terra_final_tmp):
+            logger.debug("Terraform file changed, replacing and executing...")
             os.rename(self.terra_final_tmp, self.terra_final)
-            os.rename(self.temp_terra_init_tmp, self.temp_terra_init)
+            self._rename_cloud_inits
             self.execute()
-            self.status = "Updated"
-            logger.debug("Infrastructure changed")
-        elif not self._differentiate(self.temp_terra_init, self.temp_terra_init_tmp):
-            logger.debug("Cloud-init file changed, replacing old config and executing")
+            self.status = "Updated Terraform file"
+
+        elif self._differentiate_cloud_inits():
+            logger.debug("Cloud-init file(s) changed, replacing old executing")
             os.rename(self.terra_final_tmp, self.terra_final)
-            os.rename(self.temp_terra_init_tmp, self.temp_terra_init)
+            self._rename_cloud_inits
             self.execute()
-            self.status = "Updated"
-            logger.debug("Initialisation changed")
-        elif "azure" in self.clouds and not self._differentiate(
+            self.status = "Updated cloud_init files"
+
+        elif "gce" in self.clouds and self._differentiate(
             self.terra_var, self.terra_var_tmp
         ):
+            # TODO delete this and self.clouds
             logger.debug(
                 "Infrastructure file changed, replacing old config and executing"
             )
             os.rename(self.terra_final_tmp, self.terra_final)
-            os.rename(self.temp_terra_init_tmp, self.temp_terra_init)
-            os.rename(self.terra_var_tmp, self.terra_var)
-            self.execute()
-            self.status = "Updated"
-            logger.debug("Infrastructure changed")
-        elif "gce" in self.clouds and not self._differentiate(
-            self.terra_var, self.terra_var_tmp
-        ):
-            logger.debug(
-                "Infrastructure file changed, replacing old config and executing"
-            )
-            os.rename(self.terra_final_tmp, self.terra_final)
-            os.rename(self.temp_terra_init_tmp, self.temp_terra_init)
             os.rename(self.terra_var_tmp, self.terra_var)
             self.execute()
             self.status = "Updated"
@@ -368,54 +356,50 @@ class TerraformAdaptor(abco.Adaptor):
 
         return cloud_inputs["provider"]
 
-    def _node_data_get_context_section(self, properties):
+    def _node_data_get_context_section(self, context):
         """
         Create the cloud-init config file
         """
-        if properties.get("context") is not None:
-            context = properties.get("context")
-            if context.get("cloud_config") is None:
-                if context["append"]:
-                    # Missing cloud-config and append set to yes
-                    logger.info(
-                        "You set append properties but you do not have cloud_config. Please check it again!"
-                    )
-                    raise AdaptorCritical(
-                        "You set append properties but you don't have cloud_config. Please check it again!"
-                    )
-                else:
-                    # Append false and cloud-config is not exist - get default cloud-init
-                    logger.info("Get default cloud-config")
-                    node_init = self._get_cloud_init(
-                        context["cloud_config"], False, False
-                    )
-            else:
-                if context["append"]:
-                    # Append Tosca context to the default config
-                    logger.info("Append the TOSCA cloud-config with the default config")
-                    node_init = self._get_cloud_init(
-                        context["cloud_config"], True, False
-                    )
-                else:
-                    # Use the TOSCA context
-                    logger.info("The adaptor will use the TOSCA cloud-config")
-                    node_init = self._get_cloud_init(
-                        context["cloud_config"], False, True
-                    )
-        else:
-            logger.info("The adaptor will use no cloud-config")
+        if not context:
+            logger.info("The adaptor will use a default cloud-config")
             node_init = self._get_cloud_init(None, False, False)
+        
+        elif context.get("append"):
+            if not context.get("cloud_config"):
+                logger.info(
+                    "You set append properties but you do not have cloud_config. Please check it again!"
+                )
+                raise AdaptorCritical(
+                    "You set append properties but you don't have cloud_config. Please check it again!"
+                )
+            else:
+                logger.info("Append the TOSCA cloud-config to the default config")
+                node_init = self._get_cloud_init(
+                    context["cloud_config"], True, False
+                )
 
-        utils.dump_order_yaml(node_init, self.temp_terra_init_tmp)
+        else:
+            if not context.get("cloud_config"):
+                logger.info("The adaptor will use a default cloud-config")
+                node_init = self._get_cloud_init(None, False, False)
+            else:
+                logger.info("The adaptor will use the TOSCA cloud-config")
+                node_init = self._get_cloud_init(
+                    context["cloud_config"], False, True
+                )
 
-    def _node_data_get_ec2_host_properties(self, node):
+        cloud_init_file_name = "{}-cloud-init.yaml".format(self.node_name)
+        cloud_init_path = "{}{}".format(self.volume, cloud_init_file_name)
+        cloud_init_path_tmp = "{}.tmp".format(cloud_init_path)
+
+        utils.dump_order_yaml(node_init, cloud_init_path_tmp)
+        return cloud_init_path
+
+    def _node_data_get_ec2_host_properties(self, properties):
         """
         Get EC2 properties and create node definition
         """
         aws_properties = {}
-        properties = self._get_properties_values(node)
-        self._node_data_get_context_section(properties)
-
         aws_properties["region"] = properties["region_name"]
         aws_properties["ami"] = properties["image_id"]
         aws_properties["instance_type"] = properties["instance_type"]
@@ -431,10 +415,7 @@ class TerraformAdaptor(abco.Adaptor):
         """
         Get Azure properties and create node definition
         """
-        azure_properties = self._get_properties_values(node)
-        self._node_data_get_context_section(azure_properties)
-
-        return azure_properties
+        pass
 
     def _node_data_get_gce_host_properties(self, node, key):
         """
@@ -544,7 +525,16 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _differentiate(self, path, tmp_path):
         """ Compare two files """
-        return filecmp.cmp(path, tmp_path)
+        return not filecmp.cmp(path, tmp_path)
+
+    def _differentiate_cloud_inits(self):
+        """ Compare cloud inits """
+        for cloud_init in self.cloud_inits:
+            cloud_init_tmp = "{}.tmp".format(cloud_init)
+            if os.path.exists(cloud_init) and self._differentiate(
+                cloud_init, cloud_init_tmp
+            ):
+                return True
 
     def _add_terraform_aws(self, properties):
         """ Add Terraform template for AWS to JSON"""
@@ -708,7 +698,8 @@ class TerraformAdaptor(abco.Adaptor):
                     "os_profile": {
                         "computer_name": "micado-worker",
                         "admin_username": "ubuntu",
-                        "custom_data": '${file("${path.module}/terrainit.yaml")}',
+                        "custom_data": '${file("${path.module}/%s")}'
+                        % cloud_init_file_name,
                     },
                     "os_profile_linux_config": {
                         "disable_password_authentication": "true",
@@ -751,8 +742,9 @@ class TerraformAdaptor(abco.Adaptor):
         virtual_machine_size = properties["vm_size"]
         virtual_machine_disk_name = "{}-disk".format(instance_name)
         virtual_machine_image = properties["image"]
+        cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
         ssh_key_data = properties.get("key_data", "")
-        
+
         self.tf_json.add_resource("azurerm_virtual_machine", get_virtual_machine())
 
     def _write_tera_gce(self):
@@ -789,11 +781,29 @@ class TerraformAdaptor(abco.Adaptor):
             logger.debug("File deleted: {}".format(self.terra_final_tmp))
         except OSError:
             pass
-        try:
-            os.remove(self.temp_terra_init_tmp)
-            logger.debug("File deleted: {}".format(self.temp_terra_init_tmp))
-        except OSError:
-            pass
+
+        for cloud_init in self.cloud_inits:
+            cloud_init_tmp = cloud_init + ".tmp"        
+            try:
+                os.remove(cloud_init_tmp)
+                logger.debug("File deleted: {}".format(cloud_init_tmp))
+            except OSError:
+                pass
+
+    def _remove_cloud_inits(self):
+        """ Remove cloud_init files on undeploy """
+        for file in os.listdir(self.volume):
+            if "cloud-init.yaml" in file:
+                try:
+                    os.remove(file)
+                except OSError:
+                    pass
+
+    def _rename_cloud_inits(self):
+        """ Rename temporary cloud_init files """
+        for cloud_init in self.cloud_inits:
+            cloud_init_tmp = cloud_init + ".tmp"
+            os.rename(cloud_init_tmp, cloud_init)
 
     def _get_credential_info(self, provider):
         """ Return credential info from file """
