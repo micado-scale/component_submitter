@@ -18,6 +18,13 @@ from toscaparser.functions import GetProperty
 
 logger = logging.getLogger("adaptor." + __name__)
 
+# Use this to log to the Terraform container
+LOG_SUFFIX = (
+    " | while IFS= read -r line;"
+    ' do printf "%s %s\n" "$(date "+[%Y-%m-%d %H:%M:%S]")" "$line";'
+    " done | tee /proc/1/fd/1"
+)
+
 
 class TerraformDict(dict):
     def __init__(self):
@@ -53,7 +60,7 @@ class TerraformDict(dict):
 
     def add_count_variable(self, name, value):
         self.add_variable(name, {"default": value})
-    
+
     def update_counts(self, old_counts):
         new_counts = {}
         for count_var, default in self.variable.items():
@@ -187,28 +194,29 @@ class TerraformAdaptor(abco.Adaptor):
             logger.info("DRY-RUN: Terraform execution in dry-run mode...")
             self.status = "DRY-RUN Deployment"
             return
-        else:
-            if self.created:
-                logger.debug("Terraform initialization starting...")
-                result = self.terraform.exec_run(
-                    "terraform init", workdir="{}".format(self.terra_path)
-                )
-                logger.debug("Terraform initialization has been successful")
-                logger.debug(result)
+        elif not self.created:
+            logger.error("Could not attach to Terraform container!")
+            raise AdaptorCritical("Could not attach to Terraform container!")
 
-                logger.debug("Terraform build starting...")
-                exit_code, out = self.terraform.exec_run(
-                    "terraform apply -auto-approve",
-                    workdir="{}".format(self.terra_path),
-                )
+        # Terraform init
+        logger.debug("Terraform initialization starting...")
+        command = ["sh", "-c", "terraform init" + LOG_SUFFIX]
+        exit_code, out = self.terraform.exec_run(
+            command, workdir="{}".format(self.terra_path)
+        )
+        if exit_code == 1:
+            raise AdaptorCritical(out)
+        logger.debug("Terraform initialization has been successful")
 
-                if exit_code == 1:
-                    raise AdaptorCritical(out)
-                logger.debug("Terraform build has been successful")
-
-            else:
-                logger.error("Terraform deployment was unsuccessfull!")
-                raise AdaptorCritical("Terraform deployment was unsuccessful!")
+        # Terraform apply
+        logger.debug("Terraform build starting...")
+        command = ["sh", "-c", "terraform apply -auto-approve" + LOG_SUFFIX]
+        exit_code, out = self.terraform.exec_run(
+            command, workdir="{}".format(self.terra_path)
+        )
+        if exit_code == 1:
+            raise AdaptorCritical(out)
+        logger.debug("Terraform build has been successful")
         logger.info("Terraform executed")
         self.status = "executed"
 
@@ -224,24 +232,23 @@ class TerraformAdaptor(abco.Adaptor):
             return
         elif self.dryrun:
             logger.info("DRY-RUN: deleting infrastructure...")
-        else:
+        elif not self.created:
+            logger.error("Could not attach to Terraform container!")
+            raise AdaptorCritical("Could not attach to Terraform container!")
 
-            self.terraform.exec_run(
-                "terraform destroy -lock=false -auto-approve",
-                workdir="{}".format(self.terra_path),
-            )
-        self.status = "undeployed"
-
-    def destroy_selected(self, vm_name):
-        """
-        Destroy a specific virtual machine
-        """
-        self.status = "updating"
-        logger.info("Updating the infrastructure {}".format(self.ID))
-        self.terraform.exec_run(
-            "terraform destroy -target={0} -lock=false -auto-approve",
-            workdir="{}".format(self.terra_path),
+        logger.debug("Terraform destroy starting...")
+        command = [
+            "sh",
+            "-c",
+            "terraform destroy -lock=false -auto-approve" + LOG_SUFFIX,
+        ]
+        exit_code, out = self.terraform.exec_run(
+            command, workdir="{}".format(self.terra_path),
         )
+        if exit_code == 1:
+            raise AdaptorCritical(out)
+        logger.debug("Terraform destroy successful...")
+        self.status = "undeployed"
 
     def cleanup(self):
         """
@@ -252,15 +259,12 @@ class TerraformAdaptor(abco.Adaptor):
             logger.info("No config generated during translation, nothing to cleanup")
             self.status = "Skipped"
             return
+
+        self._remove_cloud_inits()
         try:
             os.remove(self.tf_file)
         except OSError as e:
             logger.warning(e)
-
-        self._remove_cloud_inits()
-
-        # Deletion of files used only in GCE
-        # TODO delete this?
         try:
             os.remove(self.vars_file)
         except OSError:
@@ -754,13 +758,11 @@ class TerraformAdaptor(abco.Adaptor):
         """ Remove tmp files generated by the update step """
         try:
             os.remove(self.tf_file_tmp)
-            logger.debug("File deleted: {}".format(self.tf_file_tmp))
         except OSError:
             pass
 
         try:
             os.remove(self.vars_file_tmp)
-            logger.debug("File deleted: {}".format(self.vars_file_tmp))
         except OSError:
             pass
 
@@ -768,7 +770,6 @@ class TerraformAdaptor(abco.Adaptor):
             cloud_init_tmp = cloud_init + ".tmp"
             try:
                 os.remove(cloud_init_tmp)
-                logger.debug("File deleted: {}".format(cloud_init_tmp))
             except OSError:
                 pass
 
