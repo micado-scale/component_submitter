@@ -24,7 +24,7 @@ def dump_json(data, path):
     """ Dump the dictionary to a json file """    
 
     with open(path, 'w') as file:
-        json.dump(data, file)
+        json.dump(data, file, indent=4)
 
 def dump_order_yaml(data, path):
     """ Dump the dictionary to a yaml file """    
