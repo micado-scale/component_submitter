@@ -12,8 +12,16 @@ class NoAliasRTDumper(yaml.RoundTripDumper):
     def ignore_aliases(self, data):
         return True
 
+def load_json(path):
+    """ Load the dictionary from a json file """    
+
+    with open(path, 'r') as file:
+        data = json.load(file)
+        
+    return data
+
 def dump_json(data, path):
-    """ Dump the dictionary to a yaml file """    
+    """ Dump the dictionary to a json file """    
 
     with open(path, 'w') as file:
         json.dump(data, file)
