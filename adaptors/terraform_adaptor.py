@@ -545,6 +545,7 @@ class TerraformAdaptor(abco.Adaptor):
             instance_name: {
                 **properties,
                 "user_data": '${file("${path.module}/terrainit.yaml")}',
+                "instance_initiated_shutdown_behavior": "terminate",
                 "count": "${var.%s}" % count_var_name,
             }
         }
