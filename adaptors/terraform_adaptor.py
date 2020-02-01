@@ -568,6 +568,8 @@ class TerraformAdaptor(abco.Adaptor):
                 "count": "${var.%s}" % count_var_name,
             }
         }
+        # Add the name tag if no tags present
+        aws_instance[instance_name].setdefault("tags", {"Name": instance_name})
         self.tf_json.add_resource("aws_instance", aws_instance)
 
     def _write_tera_nova(self):
