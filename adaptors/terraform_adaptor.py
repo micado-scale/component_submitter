@@ -199,29 +199,24 @@ class TerraformAdaptor(abco.Adaptor):
             logger.info("DRY-RUN: Terraform execution in dry-run mode...")
             self.status = "DRY-RUN Deployment"
             return
-        elif not self.created:
-            logger.error("Could not attach to Terraform container!")
-            raise AdaptorCritical("Could not attach to Terraform container!")
 
         # Terraform init
         logger.debug("Terraform initialization starting...")
         command = ["sh", "-c", "terraform init" + LOG_SUFFIX]
-        exit_code, out = self.terraform.exec_run(
-            command, workdir="{}".format(self.terra_path)
-        )
-        if exit_code == 1:
-            raise AdaptorCritical(out)
-        logger.debug("Terraform initialization has been successful")
+        exec_output = self._terraform_exec(command)
+        if "successfully initialized" in exec_output:
+            logger.debug("Terraform initialization has been successful")
+        else:
+            raise AdaptorCritical("Terraform init failed: {}".format(exec_output))
 
         # Terraform apply
-        logger.debug("Terraform build starting...")
+        logger.debug("Terraform apply starting...")
         command = ["sh", "-c", "terraform apply -auto-approve" + LOG_SUFFIX]
-        exit_code, out = self.terraform.exec_run(
-            command, workdir="{}".format(self.terra_path)
-        )
-        if exit_code == 1:
-            raise AdaptorCritical(out)
-        logger.debug("Terraform build has been successful")
+        exec_output = self._terraform_exec(command)
+        if "Apply complete" in exec_output:
+            logger.debug("Terraform apply has been successful")
+        else:
+            raise AdaptorCritical("Terraform apply failed: {}".format(exec_output))
         logger.info("Terraform executed")
         self.status = "executed"
 
@@ -237,9 +232,6 @@ class TerraformAdaptor(abco.Adaptor):
             return
         elif self.dryrun:
             logger.info("DRY-RUN: deleting infrastructure...")
-        elif not self.created:
-            logger.error("Could not attach to Terraform container!")
-            raise AdaptorCritical("Could not attach to Terraform container!")
 
         logger.debug("Terraform destroy starting...")
         command = [
@@ -247,13 +239,12 @@ class TerraformAdaptor(abco.Adaptor):
             "-c",
             "terraform destroy -lock=false -auto-approve" + LOG_SUFFIX,
         ]
-        exit_code, out = self.terraform.exec_run(
-            command, workdir="{}".format(self.terra_path),
-        )
-        if exit_code == 1:
-            raise AdaptorCritical(out)
-        logger.debug("Terraform destroy successful...")
-        self.status = "undeployed"
+        exec_output = self._terraform_exec(command)
+        if "Destroy complete" in exec_output:
+            logger.debug("Terraform destroy successful...")
+            self.status = "undeployed"
+        else:
+            raise AdaptorCritical("Undeploy failed: {}".format(exec_output))
 
     def cleanup(self):
         """
@@ -818,4 +809,18 @@ class TerraformAdaptor(abco.Adaptor):
         for resource in resources:
             if resource.get("type") == provider:
                 return resource.get("auth_data")
+
+    def _terraform_exec(self, command):
+        """ Execute the command in the terraform container """
+        if not self.created:
+            logger.error("Could not attach to Terraform container!")
+            raise AdaptorCritical("Could not attach to Terraform container!")
+
+        exit_code, out = self.terraform.exec_run(
+            command, workdir="{}".format(self.terra_path),
+        )
+        if exit_code > 0:
+            logger.error("Terraform exec failed {}".format(out))
+            raise AdaptorCritical("Terraform exec failed {}".format(out))
+        return str(out)
 
