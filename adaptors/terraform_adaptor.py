@@ -34,15 +34,19 @@ class TerraformDict(dict):
         self.data = []
         self.provider = {}
         self.variable = {}
-        self.command_variables = ""
+        self.tfvars = {}
 
     def add_provider(self, name, properties):
         self.setdefault("provider", {})
-        self["provider"][name] = properties
+        if name not in self["provider"]:
+            self["provider"][name] = properties
         self.provider = self["provider"]
 
-    def add_variable(self, name, properties={}):
-        self.variable[name] = properties
+    def add_variable(self, name, properties):
+        self.setdefault("variable", {})
+        if name not in self["variable"]:
+            self["variable"][name] = properties
+        self.variable = self["variable"]
 
     def add_resource(self, name, resource):
         self.setdefault("resource", {})
@@ -59,20 +63,21 @@ class TerraformDict(dict):
         self.data = self["data"]
 
     def add_count_variable(self, name, value):
-        self.add_variable(name, {"default": value})
+        self.add_variable(name, {})
+        self.tfvars[name] = value
 
     def update_counts(self, old_counts):
         new_counts = {}
-        for count_var, default in self.variable.items():
+        for count_var, default in self.tfvars.items():
             if count_var in old_counts:
                 new_counts[count_var] = old_counts[count_var]
             else:
                 new_counts[count_var] = default
-        self.variable = new_counts
+        self.tfvars = new_counts
 
     def dump_json(self, path_to_tf, path_to_vars):
         utils.dump_json(self, path_to_tf)
-        utils.dump_json(self.variable, path_to_vars)
+        utils.dump_json(self.tfvars, path_to_vars)
 
 
 class TerraformAdaptor(abco.Adaptor):
@@ -90,13 +95,13 @@ class TerraformAdaptor(abco.Adaptor):
         self.node_name = ""
         self.min_instances = 1
         self.max_instances = 1
-        self.ID = adaptor_id
+        self.app_name = adaptor_id
         self.template = template
 
         self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
 
-        self.tf_file = "{}{}.tf.json".format(self.volume, self.ID)
-        self.tf_file_tmp = "{}{}.tf.json.tmp".format(self.volume, self.ID)
+        self.tf_file = "{}{}.tf.json".format(self.volume, self.app_name)
+        self.tf_file_tmp = "{}{}.tf.json.tmp".format(self.volume, self.app_name)
         self.vars_file = "{}terraform.tfvars.json".format(self.volume)
         self.vars_file_tmp = "{}terraform.tfvars.json.tmp".format(self.volume)
         self.account_file = "{}accounts.json".format(self.volume)
@@ -150,17 +155,17 @@ class TerraformAdaptor(abco.Adaptor):
             self.cloud_inits.append(cloud_init)
 
             if cloud_type == "ec2":
-                logger.info("EC2 resource detected")
-                aws_properties = self._node_data_get_ec2_host_properties(node)
+                logger.debug("EC2 resource detected")
+                aws_properties = self._node_data_get_ec2_host_properties(properties)
                 self._add_terraform_aws(aws_properties)
             elif cloud_type == "nova":
-                logger.info("Nova resource detected")
+                logger.debug("Nova resource detected")
                 self._node_data_get_nova_host_properties(node, "resource")
             elif cloud_type == "azure":
-                logger.info("Azure resource detected")
+                logger.debug("Azure resource detected")
                 self._add_terraform_azure(properties)
             elif cloud_type == "gce":
-                logger.info("GCE resource detected")
+                logger.debug("GCE resource detected")
                 self._node_data_get_gce_host_properties(node, "resource")
 
         if not self.tf_json.provider:
@@ -169,7 +174,7 @@ class TerraformAdaptor(abco.Adaptor):
             return
 
         if update:
-            logger.info("Creating temp files")
+            logger.debug("Creating temp files")
             old_count_vars = utils.load_json(self.vars_file)
             self.tf_json.update_counts(old_count_vars)
             self.tf_json.dump_json(self.tf_file_tmp, self.vars_file_tmp)
@@ -184,7 +189,7 @@ class TerraformAdaptor(abco.Adaptor):
         """
         Initialize terraform execution environment and execute
         """
-        logger.info("Starting Terraform execution {}".format(self.ID))
+        logger.info("Starting Terraform execution {}".format(self.app_name))
         self.status = "executing"
         if not self._config_file_exists():
             logger.info("No config generated during translation, nothing to execute")
@@ -225,7 +230,7 @@ class TerraformAdaptor(abco.Adaptor):
         Undeploy Terraform infrastructure
         """
         self.status = "undeploying"
-        logger.info("Undeploying {} infrastructure".format(self.ID))
+        logger.info("Undeploying {} infrastructure".format(self.app_name))
         if not self._config_file_exists():
             logger.info("No config generated during translation, nothing to undeploy")
             self.status = "Skipped"
@@ -254,7 +259,7 @@ class TerraformAdaptor(abco.Adaptor):
         """
         Remove the generated files under "files/output_configs/"
         """
-        logger.info("Cleanup config for ID {}".format(self.ID))
+        logger.info("Cleanup config for ID {}".format(self.app_name))
         if not self._config_file_exists():
             logger.info("No config generated during translation, nothing to cleanup")
             self.status = "Skipped"
@@ -283,7 +288,7 @@ class TerraformAdaptor(abco.Adaptor):
         self.status = "updating"
         self.min_instances = 1
         self.max_instances = 1
-        logger.info("Updating the infrastructure {}".format(self.ID))
+        logger.info("Updating the infrastructure {}".format(self.app_name))
         self.translate(update=True)
 
         if not self.tf_json.provider and os.path.exists(self.tf_file):
@@ -317,7 +322,7 @@ class TerraformAdaptor(abco.Adaptor):
         else:
             self.status = "Updated (nothing to update)"
             logger.info("There are no changes in the Terraform files")
-            self._remove_tmp_files
+            self._remove_tmp_files()
 
     def _node_data_get_interface(self, node):
         """
@@ -520,23 +525,26 @@ class TerraformAdaptor(abco.Adaptor):
         """ Add Terraform template for AWS to JSON"""
 
         # Get the credentials info
-        credential = self._get_credential_info("aws")
+        credential = self._get_credential_info("ec2")
 
-        # Add the provider info
+        # Check regions match
         region = properties.pop("region")
         aws_region = self.tf_json.provider.get("aws", {}).get("region")
         if aws_region and aws_region != region:
             raise AdaptorCritical("Multiple different AWS regions is unsupported")
-        elif not aws_region:
-            aws_provider = {
-                "region": region,
-                "access_key": credential["accesskey"],
-                "secret_key": credential["secretkey"],
-            }
-            self.tf_json.add_provider("aws", aws_provider)
+
+        # Add the provider
+        aws_provider = {
+            "region": region,
+            "access_key": credential["accesskey"],
+            "secret_key": credential["secretkey"],
+        }
+        self.tf_json.add_provider("aws", aws_provider)
+
+        instance_name = self.node_name
+        cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
 
         # Add the count variable
-        instance_name = self.node_name
         count_var_name = "{}-count".format(instance_name)
         self.tf_json.add_count_variable(count_var_name, self.min_instances)
 
@@ -544,7 +552,7 @@ class TerraformAdaptor(abco.Adaptor):
         aws_instance = {
             instance_name: {
                 **properties,
-                "user_data": '${file("${path.module}/terrainit.yaml")}',
+                "user_data": '${file("${path.module}/%s.yaml")}' % cloud_init_file_name,
                 "instance_initiated_shutdown_behavior": "terminate",
                 "count": "${var.%s}" % count_var_name,
             }
@@ -779,7 +787,7 @@ class TerraformAdaptor(abco.Adaptor):
         for file in os.listdir(self.volume):
             if "cloud-init.yaml" in file:
                 try:
-                    os.remove(file)
+                    os.remove(self.volume + file)
                 except OSError:
                     pass
 
