@@ -185,7 +185,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         self.status = "Translated"
 
-    def execute(self):
+    def execute(self, update=False):
         """
         Initialize terraform execution environment and execute
         """
@@ -199,11 +199,13 @@ class TerraformAdaptor(abco.Adaptor):
             logger.info("DRY-RUN: Terraform execution in dry-run mode...")
             self.status = "DRY-RUN Deployment"
             return
+            
+        lock_timeout = 300 if update else 0
 
         # Terraform init
         logger.debug("Terraform initialization starting...")
         command = ["sh", "-c", "terraform init" + LOG_SUFFIX]
-        exec_output = self._terraform_exec(command)
+        exec_output = self._terraform_exec(command, lock_timeout)
         if "successfully initialized" in exec_output:
             logger.debug("Terraform initialization has been successful")
         else:
@@ -212,7 +214,7 @@ class TerraformAdaptor(abco.Adaptor):
         # Terraform apply
         logger.debug("Terraform apply starting...")
         command = ["sh", "-c", "terraform apply -auto-approve" + LOG_SUFFIX]
-        exec_output = self._terraform_exec(command)
+        exec_output = self._terraform_exec(command, lock_timeout)
         if "Apply complete" in exec_output:
             logger.debug("Terraform apply has been successful")
         else:
@@ -233,13 +235,13 @@ class TerraformAdaptor(abco.Adaptor):
         elif self.dryrun:
             logger.info("DRY-RUN: deleting infrastructure...")
 
-        logger.debug("Terraform destroy starting...")
+        logger.debug("Acquiring lock for terraform destroy...")
         command = [
             "sh",
             "-c",
-            "terraform destroy -lock=false -auto-approve" + LOG_SUFFIX,
+            "terraform destroy -auto-approve" + LOG_SUFFIX,
         ]
-        exec_output = self._terraform_exec(command)
+        exec_output = self._terraform_exec(command, lock_timeout=600)
         if "Destroy complete" in exec_output:
             logger.debug("Terraform destroy successful...")
             self.status = "undeployed"
@@ -310,7 +312,7 @@ class TerraformAdaptor(abco.Adaptor):
             os.rename(self.tf_file_tmp, self.tf_file)
             os.rename(self.vars_file_tmp, self.vars_file)
             self._rename_cloud_inits
-            self.execute()
+            self.execute(True)
             self.status = "Updated Terraform file"
 
         elif self._differentiate_cloud_inits():
@@ -318,7 +320,7 @@ class TerraformAdaptor(abco.Adaptor):
             os.rename(self.tf_file_tmp, self.tf_file)
             os.rename(self.vars_file_tmp, self.vars_file)
             self._rename_cloud_inits
-            self.execute()
+            self.execute(True)
             self.status = "Updated cloud_init files"
 
         else:
@@ -554,7 +556,7 @@ class TerraformAdaptor(abco.Adaptor):
         aws_instance = {
             instance_name: {
                 **properties,
-                "user_data": '${file("${path.module}/%s.yaml")}' % cloud_init_file_name,
+                "user_data": '${file("${path.module}/%s")}' % cloud_init_file_name,
                 "instance_initiated_shutdown_behavior": "terminate",
                 "count": "${var.%s}" % count_var_name,
             }
@@ -810,17 +812,22 @@ class TerraformAdaptor(abco.Adaptor):
             if resource.get("type") == provider:
                 return resource.get("auth_data")
 
-    def _terraform_exec(self, command):
+    def _terraform_exec(self, command, lock_timeout=0):
         """ Execute the command in the terraform container """
         if not self.created:
             logger.error("Could not attach to Terraform container!")
             raise AdaptorCritical("Could not attach to Terraform container!")
-
-        exit_code, out = self.terraform.exec_run(
-            command, workdir="{}".format(self.terra_path),
-        )
-        if exit_code > 0:
-            logger.error("Terraform exec failed {}".format(out))
-            raise AdaptorCritical("Terraform exec failed {}".format(out))
+        while True:
+            exit_code, out = self.terraform.exec_run(
+                command, workdir="{}".format(self.terra_path),
+            )
+            if exit_code > 0:
+                logger.error("Terraform exec failed {}".format(out))
+                raise AdaptorCritical("Terraform exec failed {}".format(out))
+            elif lock_timeout > 0 and "Error locking state" in str(out):
+                logger.debug("Waiting for lock, {}s until timeout".format(lock_timeout))
+                lock_timeout -= 5
+                time.sleep(5)
+            else:
+                break
         return str(out)
-
