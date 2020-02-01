@@ -279,6 +279,17 @@ class TerraformAdaptor(abco.Adaptor):
         except OSError:
             pass
 
+        # Cleanup generated tfstate files
+        try:
+            os.remove(self.volume + "terraform.tfstate")
+        except OSError:
+            pass
+
+        try:
+            os.remove(self.volume + "terraform.tfstate.backup")
+        except OSError:
+            pass
+
     def update(self):
         """
         Check that if it's any change in the node definition or in the cloud-init file.
