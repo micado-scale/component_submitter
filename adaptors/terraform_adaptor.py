@@ -98,13 +98,19 @@ class TerraformAdaptor(abco.Adaptor):
         self.app_name = adaptor_id
         self.template = template
 
-        self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
+        self.terra_path = "/var/lib/micado/terraform/submitter/"
 
         self.tf_file = "{}{}.tf.json".format(self.volume, self.app_name)
         self.tf_file_tmp = "{}{}.tf.json.tmp".format(self.volume, self.app_name)
         self.vars_file = "{}terraform.tfvars.json".format(self.volume)
         self.vars_file_tmp = "{}terraform.tfvars.json.tmp".format(self.volume)
         self.account_file = "{}accounts.json".format(self.volume)
+
+        self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
+        self.auth_data_file = "/var/lib/submitter/system/auth_data.yaml"
+        self.auth_gce = "/var/lib/submitter/system/gce_auth.json"
+        self.master_cert = "/var/lib/submitter/system/master.pem"
+        self.terra_gce = "/var/lib/submitter/system/gce_lvm.tf"
 
         self.terra_data = {}
         # TODO delete terra_data
@@ -117,11 +123,6 @@ class TerraformAdaptor(abco.Adaptor):
         if not self.dryrun:
             self._init_docker()
 
-        self.auth_data_file = "/var/lib/submitter/system/auth_data.yaml"
-        self.auth_gce = "/var/lib/submitter/system/accounts.json"
-        self.master_cert = "/var/lib/submitter/system/master.pem"
-        self.terra_gce = "/var/lib/submitter/system/gce_lvm.tf"
-        self.terra_path = "/var/lib/micado/terraform/submitter/"
         logger.info("Terraform adaptor initialised")
 
     def translate(self, update=False):
@@ -605,10 +606,10 @@ class TerraformAdaptor(abco.Adaptor):
 
         def get_provider():
             return {
-                "subscription_id": properties["subscription_id"],
+                "subscription_id": credential["subscription_id"],
                 "client_id": credential["client_id"],
                 "client_secret": credential["client_secret"],
-                "tenant_id": properties["tenant_id"],
+                "tenant_id": credential["tenant_id"],
             }
 
         def get_resource_group():
@@ -716,16 +717,16 @@ class TerraformAdaptor(abco.Adaptor):
         credential = self._get_credential_info("azure")
         self.tf_json.add_provider("azurerm", get_provider())
 
-        resource_group_name = properties["rg_name"]
+        resource_group_name = properties["resource_group"]
         self.tf_json.add_data("azurerm_resource_group", get_resource_group())
 
-        virtual_network_name = properties["vn_name"]
+        virtual_network_name = properties["virtual_network"]
         self.tf_json.add_data("azurerm_virtual_network", get_virtual_network())
 
-        subnet_name = properties["sn_name"]
+        subnet_name = properties["subnet"]
         self.tf_json.add_data("azurerm_subnet", get_subnet())
 
-        network_security_group_name = properties["nw_sec_group"]
+        network_security_group_name = properties["network_security_group"]
         self.tf_json.add_data(
             "azurerm_network_security_group", get_network_security_group()
         )
