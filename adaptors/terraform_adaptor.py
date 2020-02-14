@@ -110,10 +110,6 @@ class TerraformAdaptor(abco.Adaptor):
         self.auth_data_file = "/var/lib/submitter/system/auth_data.yaml"
         self.auth_gce = "/var/lib/submitter/system/gce_auth.json"
         self.master_cert = "/var/lib/submitter/system/master.pem"
-        self.terra_gce = "/var/lib/submitter/system/gce_lvm.tf"
-
-        self.terra_data = {}
-        # TODO delete terra_data
 
         self.tf_json = TerraformDict()
 
@@ -140,9 +136,8 @@ class TerraformAdaptor(abco.Adaptor):
                 raise AdaptorCritical(
                     "Underscores in node {} not allowed".format(node.name)
                 )
+            
             self.node_name = node.name
-            self.terra_data = {}
-
             node = copy.deepcopy(node)
             cloud_type = self._node_data_get_interface(node)
             if not cloud_type:
@@ -161,13 +156,13 @@ class TerraformAdaptor(abco.Adaptor):
                 self._add_terraform_aws(aws_properties)
             elif cloud_type == "nova":
                 logger.debug("Nova resource detected")
-                self._node_data_get_nova_host_properties(node, "resource")
+                self._add_terraform_nova(properties)
             elif cloud_type == "azure":
                 logger.debug("Azure resource detected")
                 self._add_terraform_azure(properties)
             elif cloud_type == "gce":
                 logger.debug("GCE resource detected")
-                self._node_data_get_gce_host_properties(node, "resource")
+                self._add_terraform_gce(properties)
 
         if not self.tf_json.provider:
             logger.info("No nodes to orchestrate with Terraform. Skipping...")
@@ -200,7 +195,6 @@ class TerraformAdaptor(abco.Adaptor):
             logger.info("DRY-RUN: Terraform execution in dry-run mode...")
             self.status = "DRY-RUN Deployment"
             return
-            
         lock_timeout = 300 if update else 0
 
         # Terraform init
@@ -401,46 +395,6 @@ class TerraformAdaptor(abco.Adaptor):
 
         return aws_properties
 
-    def _node_data_get_azure_host_properties(self, node):
-        """
-        Get Azure properties and create node definition
-        """
-        pass
-
-    def _node_data_get_gce_host_properties(self, node, key):
-        """
-        Get GCE properties and create node definition
-        """
-        properties = self._get_properties_values(node)
-        self.terra_data.setdefault("region", properties["region"])
-        self.terra_data.setdefault("project", properties["project"])
-        self.terra_data.setdefault("machine_type", properties["machine_type"])
-        self.terra_data.setdefault("zone", properties["zone"])
-        self.terra_data.setdefault("image", properties["image"])
-        self.terra_data.setdefault("network", properties["network"])
-        self._node_data_get_context_section(properties)
-        if properties.get("ssh-keys") is not None:
-            self.terra_data.setdefault("ssh-keys", properties["ssh-keys"])
-
-    def _node_data_get_nova_host_properties(self, node, key):
-        """
-        Get NOVA properties and create node definition
-        """
-        properties = self._get_properties_values(node)
-
-        self.terra_data.setdefault("image_id", properties["image_id"])
-        self.terra_data.setdefault("flavor_id", properties["flavor_id"])
-        self.terra_data.setdefault("auth_url", properties["auth_url"])
-        self.terra_data.setdefault("tenant_id", properties["project_id"])
-        self.terra_data.setdefault("network_name", properties["network_name"])
-        self.terra_data.setdefault("network_id", properties["network_id"])
-        self.terra_data.setdefault("key_pair", properties["key_name"])
-        self._node_data_get_context_section(properties)
-        if properties.get("security_groups") is not None:
-            security_groups = list()
-            security_groups = properties["security_groups"]
-            self.terra_data.setdefault("security_groups", security_groups[0])
-
     def _get_cloud_init(self, tosca_cloud_config, append, override):
         """
         Get cloud-config from MiCADO cloud-init template
@@ -566,43 +520,56 @@ class TerraformAdaptor(abco.Adaptor):
         aws_instance[instance_name].setdefault("tags", {"Name": instance_name})
         self.tf_json.add_resource("aws_instance", aws_instance)
 
-    def _write_tera_nova(self):
-        """ Write Terraform template files for openstack"""
-        credential = self._get_credential_info("nova")
+    def _add_terraform_nova(self, properties):
+        """ Write Terraform template files for openstack in JSON"""
 
-        f = open(self.tf_file_tmp, "w+")
-        f.write('variable "x" {\n')
-        f.write('  default = "1"\n')
-        f.write("}\n")
-        f.write("\n")
-        f.write('provider "openstack" {\n')
-        f.write('  auth_url = "%s"\n' % (self.terra_data["auth_url"]))
-        f.write('  tenant_id = "%s"\n' % (self.terra_data["tenant_id"]))
-        f.write('  user_name = "%s"\n' % (credential["username"]))
-        f.write('  password = "%s"\n' % (credential["password"]))
-        f.write("}\n")
-        f.write("\n")
-        f.write(
-            'resource "openstack_compute_instance_v2" "%s" {\n'
-            % (self.terra_data["name"])
-        )
-        f.write('  name = "%s ${count.index}"\n' % (self.terra_data["name"]))
-        f.write('  image_id = "%s"\n' % (self.terra_data["image_id"]))
-        f.write('  flavor_id = "%s"\n' % (self.terra_data["flavor_id"]))
-        f.write('  key_pair = "%s"\n' % (self.terra_data["key_pair"]))
-        f.write('  security_groups = ["%s"]\n' % (self.terra_data["security_groups"]))
-        f.write('  user_data = "${file("${path.module}/terrainit.yaml")}"\n')
-        f.write("  count = var.x\n")
-        f.write("\n")
-        f.write("  network {\n")
-        f.write('    name = "%s"\n' % (self.terra_data["network_name"]))
-        f.write('    uuid = "%s"\n' % (self.terra_data["network_id"]))
-        f.write("  }\n")
-        f.write("}\n")
-        f.close()
+        def get_provider():
+            return {
+                "auth_url": auth_url,
+                "tenant_id": tenant_id,
+                "user_name": credential["username"],
+                "password": credential["password"],
+            }
+
+        def get_virtual_machine():
+            return {
+                instance_name: {
+                    "name": "%s${count.index}" % instance_name,
+                    "image_id": image_id,
+                    "flavor_id": flavor_id,
+                    "key_pair": key_pair,
+                    "security_groups": ["%s" % security_groups],
+                    "user_data": '${file("${path.module}/%s")}' % cloud_init_file_name,
+                    "count": "${var.%s}" % count_var_name,
+
+                    "network": {
+                        "name": network_name,
+                        "uuid": network_id,
+                    },
+                }
+            }
+
+        instance_name = self.node_name
+
+        count_var_name = "{}-count".format(instance_name)
+        self.tf_json.add_count_variable(count_var_name, self.min_instances)
+
+        credential = self._get_credential_info("nova")
+        auth_url = properties["auth_url"]
+        tenant_id = properties["project_id"]
+        self.tf_json.add_provider("openstack", get_provider())
+
+        image_id = properties["image_id"]
+        flavor_id = properties["flavor_id"]
+        network_name = properties["network_name"]
+        network_id = properties["network_id"]
+        key_pair = properties["key_name"]
+        security_groups = properties["security_groups"]
+        cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
+        self.tf_json.add_resource("openstack_compute_instance_v2", get_virtual_machine())
 
     def _add_terraform_azure(self, properties):
-        """ Write Terraform template files for Azure"""
+        """ Write Terraform template files for Azure in JSON"""
 
         def get_provider():
             return {
@@ -743,28 +710,67 @@ class TerraformAdaptor(abco.Adaptor):
 
         self.tf_json.add_resource("azurerm_virtual_machine", get_virtual_machine())
 
-    def _write_tera_gce(self):
-        """ Write Terraform template files for GCE"""
-        f = open(self.vars_file_tmp, "w+")
-        f.write('vm_name = "%s"\n' % (self.terra_data["name"]))
-        f.write('region = "%s"\n' % (self.terra_data["region"]))
-        f.write('project = "%s"\n' % (self.terra_data["project"]))
-        f.write('machine_type = "%s"\n' % (self.terra_data["machine_type"]))
-        f.write('zone = "%s"\n' % (self.terra_data["zone"]))
-        f.write('image = "%s"\n' % (self.terra_data["image"]))
-        f.write('network = "%s"\n' % (self.terra_data["network"]))
-        if self.terra_data.get("ssh-keys") is not None:
-            f.write('ssh-keys = "%s"\n' % (self.terra_data["ssh-keys"]))
+    def _add_terraform_gce(self, properties):
+        """ Write Terraform template files for GCE in JSON"""
 
-        with open(self.terra_gce) as p:
-            with open(self.tf_file_tmp, "w+") as p1:
-                for line in p:
-                    p1.write(line)
+        def get_provider():
+            return {
+                "credentials": '${file("accounts.json")}',
+                "project": project,
+                "region": region,
+            }
+
+        def get_virtual_machine():
+            return {
+                instance_name: {
+                    "name": "%s${count.index}" % instance_name,
+                    "machine_type": machine_type,
+                    "zone": zone,
+                    "count": "${var.%s}" % count_var_name,
+
+                    "boot_disk": {
+                        "initialize_params": {
+                            "image": image,
+                        },
+                    },
+
+                    "network_interface": {
+                        "network": network,
+                        "access_config": {
+
+                        },
+                    },
+
+                    "metadata": {
+                        "ssh-keys": "ubuntu:%s" % ssh_keys,
+                        "user-data": '${file("${path.module}/%s")}'
+                        % cloud_init_file_name,
+                    },
+                }
+            }
+
+        instance_name = self.node_name
+
+        count_var_name = "{}-count".format(instance_name)
+        self.tf_json.add_count_variable(count_var_name, self.min_instances)
 
         with open(self.auth_gce) as q:
             with open(self.account_file, "w+") as q1:
                 for line in q:
                     q1.write(line)
+
+        project = properties["project"]
+        region = properties["region"]
+        self.tf_json.add_provider("google", get_provider())
+
+        image = properties["image"]
+        network = properties["network"]
+        machine_type = properties["machine_type"]
+        zone = properties["zone"]
+        ssh_keys = properties["ssh-keys"]
+        cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
+        self.tf_json.add_resource("google_compute_instance", get_virtual_machine())
+
 
     def _config_file_exists(self):
         """ Check if config file was generated during translation """
