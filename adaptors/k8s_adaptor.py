@@ -406,18 +406,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     def execute(self, update=False):
         """ Execute """
         logger.info("Executing Kubernetes Manifests...")
-        self.status = "Executing..."
+        self.status = "executing..."
 
-        if not self.manifests:
-            logger.info(
-                "No nodes to orchestrate with Kubernetes. Do you need this adaptor?"
-            )
-            self.status = "Skipped Execution"
-            return
-
-        if self.dryrun:
-            logger.info("DRY-RUN: kubectl creates workloads...")
-            self.status = "DRY-RUN Deployment"
+        if self._skip_check():
             return
 
         if update:
@@ -454,7 +445,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.manifests = []
         self.translate(True)
 
-        if not self.manifests and os.path.exists(self.manifest_path):
+        if not self.manifests and self._config_file_exists():
             self.undeploy(False)
             self.cleanup()
             logger.info("Updated (removed all Kubernetes workloads)")
@@ -484,27 +475,24 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.status = "Undeploying..."
         error = False
 
+        if self._skip_check():
+            return
+
         if kill_nodes:
             # Delete nodes from the cluster
             operation = ["kubectl", "delete", "no", "-l", "micado.eu/node_type"]
             try:
-                if self.dryrun:
-                    logger.info("DRY-RUN: kubectl removes all MiCADO nodes...")
-                else:
-                    logger.debug("Undeploy {}".format(operation))
-                    subprocess.run(operation, stderr=subprocess.PIPE, check=True)
+                logger.debug("Undeploy {}".format(operation))
+                subprocess.run(operation, stderr=subprocess.PIPE, check=True)
             except subprocess.CalledProcessError:
                 logger.debug("Got error deleting nodes")
                 error = True
 
         # Delete resources in the manifest
-        operation = ["kubectl", "delete", "-f", self.manifest_path, "--timeout", "60s"]
+        operation = ["kubectl", "delete", "-f", self.manifest_path, "--timeout", "90s"]
         try:
-            if self.dryrun:
-                logger.info("DRY-RUN: kubectl removes workloads...")
-            else:
-                logger.debug("Undeploy {}".format(operation))
-                subprocess.run(operation, stderr=subprocess.PIPE, check=True)
+            logger.debug("Undeploy {}".format(operation))
+            subprocess.run(operation, stderr=subprocess.PIPE, check=True)
         except subprocess.CalledProcessError:
             logger.debug("Had some trouble removing Kubernetes workloads...")
             error = True
@@ -517,7 +505,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     def cleanup(self):
         """ Cleanup """
         logger.info("Cleaning-up...")
-        self.status = "Cleaning-up..."
+        self.status = "cleaning-up..."
 
         try:
             os.remove(self.manifest_path)
@@ -551,6 +539,20 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                     self.output.setdefault(node.name, {})[query] = query_port(node.name)
             else:
                 logger.warning("{} is not a Docker container!".format(node.name))
+
+    def _config_file_exists(self):
+        """ Check if config file was generated during translation """
+        return os.path.exists(self.manifest_path)
+
+    def _skip_check(self):
+        if not self._config_file_exists:
+            logger.info("No config generated, skipping {} step...".format(self.status))
+            self.status = "Skipped"
+            return True
+        elif self.dryrun:
+            logger.info("DRY-RUN: Kubernetes {} in dry-run mode...".format(self.status))
+            self.status = "DRY-RUN Deployment"
+            return True
 
 
 class Container:
@@ -1140,7 +1142,6 @@ class WorkloadManifest(Manifest):
         }
         return affinity
 
-
 class ServiceManifest(Manifest):
     """Store ServiceSpec data for a Service manifest
 
@@ -1450,3 +1451,4 @@ def query_port(service_name):
     except Exception:
         return "Service {} not found".format(service_name)
     return service.obj.get("spec", {}).get("ports", {})
+
