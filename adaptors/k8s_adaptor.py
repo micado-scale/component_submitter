@@ -124,10 +124,11 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
             if policy.type.startswith(MICADO_SECURITY):
                 self._translate_security_policy(policy)
-
-        self._deploy_zorp()
-        self._manifest_secrets()
-        self._manifest_ingress()
+        
+        if self.ingress_conf:
+            self._deploy_zorp()
+            self._manifest_secrets()
+            self._manifest_ingress()
 
         if not self.manifests:
             logger.info(
@@ -205,8 +206,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
     def _translate_security_policy(self, policy):
         if policy.type == PASSTHROUGH_PROXY:
-            # FIXME
-            # passthrough policy does not require ingress rules
+            # This should now work as expected
             pass
         elif policy.type in SECURITY_POLICIES:
             self._translate_level7_policy(policy)
