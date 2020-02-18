@@ -509,13 +509,20 @@ class TerraformAdaptor(abco.Adaptor):
     def _add_terraform_azure(self, properties):
         """ Write Terraform template files for Azure in JSON"""
 
-        def get_provider():
-            return {
-                "subscription_id": credential["subscription_id"],
-                "client_id": credential["client_id"],
-                "client_secret": credential["client_secret"],
-                "tenant_id": credential["tenant_id"],
-            }
+        def get_provider(use_msi):
+            provider = {}
+            provider["subscription_id"] = credential["subscription_id"]
+            if use_msi:
+                provider["use_msi"] = "true"
+            else:
+                provider.update(
+                    {
+                        "tenant_id": credential["tenant_id"],
+                        "client_id": credential["client_id"],
+                        "client_secret": credential["client_secret"],
+                    }
+                )
+            return provider
 
         def get_resource_group():
             return {resource_group_name: {"name": resource_group_name}}
@@ -613,14 +620,22 @@ class TerraformAdaptor(abco.Adaptor):
             }
 
         # Begin building the JSON
-
         instance_name = self.node_name
+
+        credential = self._get_credential_info("azure")
+
+        # Check whether to authenticate with a Managed Service Identity
+        use_msi = any(
+            [
+                not credential.get("client_secret"),
+                credential.get("use_msi", "").lower() == "true",
+                properties.pop("use_msi", "").lower() == "true",
+            ]
+        )
+        self.tf_json.add_provider("azurerm", get_provider(use_msi))
 
         count_var_name = "{}-count".format(instance_name)
         self.tf_json.add_count_variable(count_var_name, self.min_instances)
-
-        credential = self._get_credential_info("azure")
-        self.tf_json.add_provider("azurerm", get_provider())
 
         resource_group_name = properties["resource_group"]
         self.tf_json.add_data("azurerm_resource_group", get_resource_group())
