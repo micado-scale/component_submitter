@@ -18,7 +18,7 @@ from toscaparser.functions import GetProperty
 
 logger = logging.getLogger("adaptor." + __name__)
 
-# Use this to log to the Terraform container
+# Append to Terraform commands to create output in the Terraform container
 LOG_SUFFIX = (
     " | while IFS= read -r line;"
     ' do printf "%s %s\n" "$(date "+[%Y-%m-%d %H:%M:%S]")" "$line";'
@@ -136,7 +136,7 @@ class TerraformAdaptor(abco.Adaptor):
                 raise AdaptorCritical(
                     "Underscores in node {} not allowed".format(node.name)
                 )
-            
+
             self.node_name = node.name
             node = copy.deepcopy(node)
             cloud_type = self._node_data_get_interface(node)
@@ -177,7 +177,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         elif not self.validate:
             self.tf_json.dump_json(self.tf_file, self.vars_file)
-            self._rename_cloud_inits()
+            self._rename_tmp_cloudinits()
 
         self.status = "Translated"
 
@@ -187,33 +187,18 @@ class TerraformAdaptor(abco.Adaptor):
         """
         logger.info("Starting Terraform execution {}".format(self.app_name))
         self.status = "executing"
-        if not self._config_file_exists():
-            logger.info("No config generated during translation, nothing to execute")
-            self.status = "Skipped"
+        if self._skip_check():
             return
-        elif self.dryrun:
-            logger.info("DRY-RUN: Terraform execution in dry-run mode...")
-            self.status = "DRY-RUN Deployment"
-            return
-        lock_timeout = 300 if update else 0
 
-        # Terraform init
-        logger.debug("Terraform initialization starting...")
-        command = ["sh", "-c", "terraform init" + LOG_SUFFIX]
-        exec_output = self._terraform_exec(command, lock_timeout)
-        if "successfully initialized" in exec_output:
-            logger.debug("Terraform initialization has been successful")
+        lock_timeout = 0
+        if not update:
+            logger.debug("Terraform initialization starting...")
+            self._terraform_init()
         else:
-            raise AdaptorCritical("Terraform init failed: {}".format(exec_output))
+            lock_timeout = 300
 
-        # Terraform apply
         logger.debug("Terraform apply starting...")
-        command = ["sh", "-c", "terraform apply -auto-approve" + LOG_SUFFIX]
-        exec_output = self._terraform_exec(command, lock_timeout)
-        if "Apply complete" in exec_output:
-            logger.debug("Terraform apply has been successful")
-        else:
-            raise AdaptorCritical("Terraform apply failed: {}".format(exec_output))
+        self._terraform_apply(lock_timeout)
         logger.info("Terraform executed")
         self.status = "executed"
 
@@ -223,25 +208,11 @@ class TerraformAdaptor(abco.Adaptor):
         """
         self.status = "undeploying"
         logger.info("Undeploying {} infrastructure".format(self.app_name))
-        if not self._config_file_exists():
-            logger.info("No config generated during translation, nothing to undeploy")
-            self.status = "Skipped"
+        if self._skip_check():
             return
-        elif self.dryrun:
-            logger.info("DRY-RUN: deleting infrastructure...")
 
-        logger.debug("Acquiring lock for terraform destroy...")
-        command = [
-            "sh",
-            "-c",
-            "terraform destroy -auto-approve" + LOG_SUFFIX,
-        ]
-        exec_output = self._terraform_exec(command, lock_timeout=600)
-        if "Destroy complete" in exec_output:
-            logger.debug("Terraform destroy successful...")
-            self.status = "undeployed"
-        else:
-            raise AdaptorCritical("Undeploy failed: {}".format(exec_output))
+        logger.debug("Starting terraform destroy...")
+        self._terraform_destroy()
 
     def cleanup(self):
         """
@@ -249,34 +220,23 @@ class TerraformAdaptor(abco.Adaptor):
         """
         logger.info("Cleanup config for ID {}".format(self.app_name))
         if not self._config_file_exists():
-            logger.info("No config generated during translation, nothing to cleanup")
+            logger.info("Terraform plan not found, skipping cleanup")
             self.status = "Skipped"
             return
 
         self._remove_cloud_inits()
-        try:
-            os.remove(self.tf_file)
-        except OSError as e:
-            logger.warning(e)
-        try:
-            os.remove(self.vars_file)
-        except OSError:
-            pass
-        try:
-            os.remove(self.account_file)
-        except OSError:
-            pass
-
-        # Cleanup generated tfstate files
-        try:
-            os.remove(self.volume + "terraform.tfstate")
-        except OSError:
-            pass
-
-        try:
-            os.remove(self.volume + "terraform.tfstate.backup")
-        except OSError:
-            pass
+        files_to_clean = [
+            self.tf_file,
+            self.vars_file,
+            self.account_file,
+            self.volume + "terraform.tfstate",
+            self.volume + "terraform.tfstate.backup",
+        ]
+        for file in files_to_clean:
+            try:
+                os.remove(file)
+            except OSError:
+                pass
 
     def update(self):
         """
@@ -290,12 +250,12 @@ class TerraformAdaptor(abco.Adaptor):
         logger.info("Updating the infrastructure {}".format(self.app_name))
         self.translate(update=True)
 
-        if not self.tf_json.provider and os.path.exists(self.tf_file):
+        if not self.tf_json.provider and self._config_file_exists():
             logger.debug("All Terraform nodes removed from ADT. Undeploying...")
             self._remove_tmp_files
             self.undeploy()
             self.cleanup()
-            self.status = "Updated - undeployed"
+            self.status = "Updated (undeployed)"
 
         elif not self.tf_json.provider:
             logger.debug("No Terraform nodes added to ADT")
@@ -304,24 +264,20 @@ class TerraformAdaptor(abco.Adaptor):
 
         elif self._differentiate(self.tf_file, self.tf_file_tmp):
             logger.debug("Terraform file changed, replacing and executing...")
-            os.rename(self.tf_file_tmp, self.tf_file)
-            os.rename(self.vars_file_tmp, self.vars_file)
-            self._rename_cloud_inits
+            self._rename_all_tmp_files
             self.execute(True)
             self.status = "Updated Terraform file"
 
         elif self._differentiate_cloud_inits():
             logger.debug("Cloud-init file(s) changed, replacing old executing")
-            os.rename(self.tf_file_tmp, self.tf_file)
-            os.rename(self.vars_file_tmp, self.vars_file)
-            self._rename_cloud_inits
+            self._rename_all_tmp_files
             self.execute(True)
             self.status = "Updated cloud_init files"
 
         else:
-            self.status = "Updated (nothing to update)"
             logger.info("There are no changes in the Terraform files")
             self._remove_tmp_files()
+            self.status = "Updated (nothing to update)"
 
     def _node_data_get_interface(self, node):
         """
@@ -381,7 +337,7 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _node_data_get_ec2_host_properties(self, properties):
         """
-        Get EC2 properties and create node definition
+        Return renamed EC2 property keys
         """
         aws_properties = {}
         aws_properties["region"] = properties["region_name"]
@@ -429,22 +385,6 @@ class TerraformAdaptor(abco.Adaptor):
             return default_cloud_config
         else:
             return default_cloud_config
-
-    def _init_docker(self):
-        """ Initialize docker and get Terraform container """
-        client = docker.from_env()
-        i = 0
-
-        while not self.created and i < 5:
-            try:
-                self.terraform = client.containers.list(
-                    filters={"label": "io.kubernetes.container.name=terraform"}
-                )[0]
-                self.created = True
-            except Exception as e:
-                i += 1
-                logger.error("{0}. Try {1} of 5.".format(str(e), i))
-                time.sleep(5)
 
     def _get_properties_values(self, node):
         """ Get host properties """
@@ -541,11 +481,7 @@ class TerraformAdaptor(abco.Adaptor):
                     "security_groups": ["%s" % security_groups],
                     "user_data": '${file("${path.module}/%s")}' % cloud_init_file_name,
                     "count": "${var.%s}" % count_var_name,
-
-                    "network": {
-                        "name": network_name,
-                        "uuid": network_id,
-                    },
+                    "network": {"name": network_name, "uuid": network_id,},
                 }
             }
 
@@ -566,7 +502,9 @@ class TerraformAdaptor(abco.Adaptor):
         key_pair = properties["key_name"]
         security_groups = properties["security_groups"]
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
-        self.tf_json.add_resource("openstack_compute_instance_v2", get_virtual_machine())
+        self.tf_json.add_resource(
+            "openstack_compute_instance_v2", get_virtual_machine()
+        )
 
     def _add_terraform_azure(self, properties):
         """ Write Terraform template files for Azure in JSON"""
@@ -727,20 +665,8 @@ class TerraformAdaptor(abco.Adaptor):
                     "machine_type": machine_type,
                     "zone": zone,
                     "count": "${var.%s}" % count_var_name,
-
-                    "boot_disk": {
-                        "initialize_params": {
-                            "image": image,
-                        },
-                    },
-
-                    "network_interface": {
-                        "network": network,
-                        "access_config": {
-
-                        },
-                    },
-
+                    "boot_disk": {"initialize_params": {"image": image,},},
+                    "network_interface": {"network": network, "access_config": {},},
                     "metadata": {
                         "ssh-keys": "ubuntu:%s" % ssh_keys,
                         "user-data": '${file("${path.module}/%s")}'
@@ -771,10 +697,21 @@ class TerraformAdaptor(abco.Adaptor):
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
         self.tf_json.add_resource("google_compute_instance", get_virtual_machine())
 
-
     def _config_file_exists(self):
         """ Check if config file was generated during translation """
         return os.path.exists(self.tf_file)
+
+    def _skip_check(self):
+        if not self._config_file_exists():
+            logger.info("No config generated, skipping {} step...".format(self.status))
+            self.status = "Skipped"
+            return True
+        elif self.dryrun:
+            logger.info("DRY-RUN: Terraform {} in dry-run mode...".format(self.status))
+            self.status = "DRY-RUN Deployment"
+            return True
+        else:
+            return False
 
     def _remove_tmp_files(self):
         """ Remove tmp files generated by the update step """
@@ -804,11 +741,17 @@ class TerraformAdaptor(abco.Adaptor):
                 except OSError:
                     pass
 
-    def _rename_cloud_inits(self):
+    def _rename_tmp_cloudinits(self):
         """ Rename temporary cloud_init files """
         for cloud_init in self.cloud_inits:
             cloud_init_tmp = cloud_init + ".tmp"
             os.rename(cloud_init_tmp, cloud_init)
+
+    def _rename_all_tmp_files(self):
+        """ Rename all temporary files """
+        os.rename(self.tf_file_tmp, self.tf_file)
+        os.rename(self.vars_file_tmp, self.vars_file)
+        self._rename_tmp_cloudinits
 
     def _get_credential_info(self, provider):
         """ Return credential info from file """
@@ -818,6 +761,22 @@ class TerraformAdaptor(abco.Adaptor):
         for resource in resources:
             if resource.get("type") == provider:
                 return resource.get("auth_data")
+
+    def _init_docker(self):
+        """ Initialize docker and get Terraform container """
+        client = docker.from_env()
+        i = 0
+
+        while not self.created and i < 5:
+            try:
+                self.terraform = client.containers.list(
+                    filters={"label": "io.kubernetes.container.name=terraform"}
+                )[0]
+                self.created = True
+            except Exception as e:
+                i += 1
+                logger.error("{0}. Try {1} of 5.".format(str(e), i))
+                time.sleep(5)
 
     def _terraform_exec(self, command, lock_timeout=0):
         """ Execute the command in the terraform container """
@@ -832,9 +791,41 @@ class TerraformAdaptor(abco.Adaptor):
                 logger.error("Terraform exec failed {}".format(out))
                 raise AdaptorCritical("Terraform exec failed {}".format(out))
             elif lock_timeout > 0 and "Error locking state" in str(out):
-                logger.debug("Waiting for lock, {}s until timeout".format(lock_timeout))
-                lock_timeout -= 5
                 time.sleep(5)
+                lock_timeout -= 5
+                logger.debug("Waiting for lock, {}s until timeout".format(lock_timeout))
             else:
                 break
         return str(out)
+
+    def _terraform_init(self):
+        """ Run terraform init in the container """
+        command = ["sh", "-c", "terraform init" + LOG_SUFFIX]
+        exec_output = self._terraform_exec(command)
+        if "successfully initialized" in exec_output:
+            logger.debug("Terraform initialization has been successful")
+        else:
+            raise AdaptorCritical("Terraform init failed: {}".format(exec_output))
+
+    def _terraform_apply(self, lock_timeout):
+        """ Run terraform apply in the container """
+        command = ["sh", "-c", "terraform apply -auto-approve" + LOG_SUFFIX]
+        exec_output = self._terraform_exec(command, lock_timeout)
+        if "Apply complete" in exec_output:
+            logger.debug("Terraform apply has been successful")
+        else:
+            raise AdaptorCritical("Terraform apply failed: {}".format(exec_output))
+
+    def _terraform_destroy(self):
+        """ Run terraform destroy in the container """
+        command = [
+            "sh",
+            "-c",
+            "terraform destroy -auto-approve" + LOG_SUFFIX,
+        ]
+        exec_output = self._terraform_exec(command, lock_timeout=600)
+        if "Destroy complete" in exec_output:
+            logger.debug("Terraform destroy successful...")
+            self.status = "undeployed"
+        else:
+            raise AdaptorCritical("Undeploy failed: {}".format(exec_output))
