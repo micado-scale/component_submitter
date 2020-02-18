@@ -115,7 +115,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         self.created = False
         self.terraform = None
-        self.cloud_inits = []
+        self.cloud_inits = set()
         if not self.dryrun:
             self._init_docker()
 
@@ -148,7 +148,7 @@ class TerraformAdaptor(abco.Adaptor):
             properties = self._get_properties_values(node)
             context = properties.get("context")
             cloud_init = self._node_data_get_context_section(context)
-            self.cloud_inits.append(cloud_init)
+            self.cloud_inits.add(cloud_init)
 
             if cloud_type == "ec2":
                 logger.debug("EC2 resource detected")
@@ -252,25 +252,25 @@ class TerraformAdaptor(abco.Adaptor):
 
         if not self.tf_json.provider and self._config_file_exists():
             logger.debug("All Terraform nodes removed from ADT. Undeploying...")
-            self._remove_tmp_files
+            self._remove_tmp_files()
             self.undeploy()
             self.cleanup()
             self.status = "Updated (undeployed)"
 
         elif not self.tf_json.provider:
             logger.debug("No Terraform nodes added to ADT")
-            self._remove_tmp_files
+            self._remove_tmp_files()
             self.status = "Skipped"
 
         elif self._differentiate(self.tf_file, self.tf_file_tmp):
             logger.debug("Terraform file changed, replacing and executing...")
-            self._rename_all_tmp_files
+            self._rename_all_tmp_files()
             self.execute(True)
             self.status = "Updated Terraform file"
 
         elif self._differentiate_cloud_inits():
             logger.debug("Cloud-init file(s) changed, replacing old executing")
-            self._rename_all_tmp_files
+            self._rename_all_tmp_files()
             self.execute(True)
             self.status = "Updated cloud_init files"
 
@@ -305,27 +305,27 @@ class TerraformAdaptor(abco.Adaptor):
         Create the cloud-init config file
         """
         if not context:
-            logger.info("The adaptor will use a default cloud-config")
+            logger.debug("The adaptor will use a default cloud-config")
             node_init = self._get_cloud_init(None, False, False)
 
         elif context.get("append"):
             if not context.get("cloud_config"):
-                logger.info(
+                logger.error(
                     "You set append properties but you do not have cloud_config. Please check it again!"
                 )
                 raise AdaptorCritical(
                     "You set append properties but you don't have cloud_config. Please check it again!"
                 )
             else:
-                logger.info("Append the TOSCA cloud-config to the default config")
+                logger.debug("Append the TOSCA cloud-config to the default config")
                 node_init = self._get_cloud_init(context["cloud_config"], True, False)
 
         else:
             if not context.get("cloud_config"):
-                logger.info("The adaptor will use a default cloud-config")
+                logger.debug("The adaptor will use a default cloud-config")
                 node_init = self._get_cloud_init(None, False, False)
             else:
-                logger.info("The adaptor will use the TOSCA cloud-config")
+                logger.debug("The adaptor will use the TOSCA cloud-config")
                 node_init = self._get_cloud_init(context["cloud_config"], False, True)
 
         cloud_init_file_name = "{}-cloud-init.yaml".format(self.node_name)
@@ -766,7 +766,7 @@ class TerraformAdaptor(abco.Adaptor):
         """ Rename all temporary files """
         os.rename(self.tf_file_tmp, self.tf_file)
         os.rename(self.vars_file_tmp, self.vars_file)
-        self._rename_tmp_cloudinits
+        self._rename_tmp_cloudinits()
 
     def _get_credential_info(self, provider):
         """ Return credential info from file """
