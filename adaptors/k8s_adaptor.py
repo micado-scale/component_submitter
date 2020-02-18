@@ -353,7 +353,6 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                                 '--behaviour=tosca',
                                 '--ignore-namespaces=micado-system,kube-system'
                             ],
-                            'resources': {'requests': {'cpu': '500m', 'memory': '50Mi'}},
                             'livenessProbe': {'httpGet': {'path': '/healthz', 'port': 1042}},
                             'ports': self._list_ports()
                         }]
