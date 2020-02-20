@@ -34,6 +34,7 @@ class TerraformDict(dict):
         self.data = []
         self.provider = {}
         self.variable = {}
+        self.ip_list = {}
         self.tfvars = {}
 
     def add_provider(self, name, properties):
@@ -47,6 +48,13 @@ class TerraformDict(dict):
         if name not in self["variable"]:
             self["variable"][name] = properties
         self.variable = self["variable"]
+
+    def add_output(self, name, value):
+        self.setdefault("output", {})
+        if name not in self["output"]:
+            self["output"]["name"] = {}
+            self["output"][name]["value"] = value
+        self.output = self["output"]
 
     def add_resource(self, name, resource):
         self.setdefault("resource", {})
@@ -460,6 +468,13 @@ class TerraformAdaptor(abco.Adaptor):
         aws_instance[instance_name].setdefault("tags", {"Name": instance_name})
         self.tf_json.add_resource("aws_instance", aws_instance)
 
+        # Add the IP output
+        ip_output = {
+            "private_ips": "${aws_instance.%s.*.private_ip}" % instance_name,
+            "public_ips": "${aws_instance.%s.*.public_ip}" % instance_name
+        }
+        self.tf_json.add_output(instance_name, ip_output)
+
     def _add_terraform_nova(self, properties):
         """ Write Terraform template files for openstack in JSON"""
 
@@ -619,6 +634,11 @@ class TerraformAdaptor(abco.Adaptor):
                 }
             }
 
+        def get_ip_output():
+            return {
+                "private_ips": "${azurerm_network_interface.%s.*.private_ip_address}" % network_interface_name
+            }
+
         # Begin building the JSON
         instance_name = self.node_name
 
@@ -662,6 +682,8 @@ class TerraformAdaptor(abco.Adaptor):
         ssh_key_data = properties.get("key_data", "")
 
         self.tf_json.add_resource("azurerm_virtual_machine", get_virtual_machine())
+
+        self.tf_json.add_output(instance_name, get_ip_output())
 
     def _add_terraform_gce(self, properties):
         """ Write Terraform template files for GCE in JSON"""
