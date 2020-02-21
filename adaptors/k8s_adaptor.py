@@ -1330,7 +1330,7 @@ def _get_api(kind):
         "Pod": "v1",
         "ReplicaSet": "apps/v1",
         "StatefulSet": "apps/v1",
-        "Ingress": "extensions/v1beta1",
+        "Ingress": "networking.k8s.io/v1beta1",
         "Service": "v1",
         "PersistentVolume": "v1",
         "PersistentVolumeClaim": "v1",

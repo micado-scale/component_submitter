@@ -34,6 +34,7 @@ class TerraformDict(dict):
         self.data = []
         self.provider = {}
         self.variable = {}
+        self.ip_list = {}
         self.tfvars = {}
 
     def add_provider(self, name, properties):
@@ -47,6 +48,13 @@ class TerraformDict(dict):
         if name not in self["variable"]:
             self["variable"][name] = properties
         self.variable = self["variable"]
+
+    def add_output(self, name, value):
+        self.setdefault("output", {})
+        if name not in self["output"]:
+            self["output"][name] = {}
+            self["output"][name]["value"] = value
+        self.output = self["output"]
 
     def add_resource(self, name, resource):
         self.setdefault("resource", {})
@@ -62,17 +70,20 @@ class TerraformDict(dict):
             self["data"][name].append(data)
         self.data = self["data"]
 
-    def add_count_variable(self, name, value):
+    def add_instance_variable(self, name, value):
         self.add_variable(name, {})
-        self.tfvars[name] = value
+        node_list = []
+        for i in range(value):
+            node_list.append(str(i))
+        self.tfvars[name] = node_list
 
-    def update_counts(self, old_counts):
+    def update_instance_vars(self, old_node_list):
         new_counts = {}
-        for count_var, default in self.tfvars.items():
-            if count_var in old_counts:
-                new_counts[count_var] = old_counts[count_var]
+        for node_name, new_node_list in self.tfvars.items():
+            if node_name in old_node_list:
+                new_counts[node_name] = old_node_list[node_name]
             else:
-                new_counts[count_var] = default
+                new_counts[node_name] = new_node_list
         self.tfvars = new_counts
 
     def dump_json(self, path_to_tf, path_to_vars):
@@ -171,8 +182,8 @@ class TerraformAdaptor(abco.Adaptor):
 
         if update:
             logger.debug("Creating temp files")
-            old_count_vars = utils.load_json(self.vars_file)
-            self.tf_json.update_counts(old_count_vars)
+            old_instance_vars = utils.load_json(self.vars_file)
+            self.tf_json.update_instance_vars(old_instance_vars)
             self.tf_json.dump_json(self.tf_file_tmp, self.vars_file_tmp)
 
         elif not self.validate:
@@ -444,8 +455,7 @@ class TerraformAdaptor(abco.Adaptor):
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
 
         # Add the count variable
-        count_var_name = "{}-count".format(instance_name)
-        self.tf_json.add_count_variable(count_var_name, self.min_instances)
+        self.tf_json.add_instance_variable(instance_name, self.min_instances)
 
         # Add the resource
         aws_instance = {
@@ -453,12 +463,22 @@ class TerraformAdaptor(abco.Adaptor):
                 **properties,
                 "user_data": '${file("${path.module}/%s")}' % cloud_init_file_name,
                 "instance_initiated_shutdown_behavior": "terminate",
-                "count": "${var.%s}" % count_var_name,
+                "for_each": "${toset(var.%s)}" % instance_name,
             }
         }
         # Add the name tag if no tags present
         aws_instance[instance_name].setdefault("tags", {"Name": instance_name})
+        aws_instance[instance_name]["tags"]["Name"] += "${each.key}"
         self.tf_json.add_resource("aws_instance", aws_instance)
+
+        # Add the IP output
+        ip_output = {
+            "private_ips": "${[for i in aws_instance.%s : i.private_ip]}"
+            % instance_name,
+            "public_ips": "${[for i in aws_instance.%s : i.public_ip]}"
+            % instance_name,
+        }
+        self.tf_json.add_output(instance_name, ip_output)
 
     def _add_terraform_nova(self, properties):
         """ Write Terraform template files for openstack in JSON"""
@@ -474,21 +494,19 @@ class TerraformAdaptor(abco.Adaptor):
         def get_virtual_machine():
             return {
                 instance_name: {
-                    "name": "%s${count.index}" % instance_name,
+                    "name": "%s${each.key}" % instance_name,
                     "image_id": image_id,
                     "flavor_id": flavor_id,
                     "key_pair": key_pair,
                     "security_groups": ["%s" % security_groups],
                     "user_data": '${file("${path.module}/%s")}' % cloud_init_file_name,
-                    "count": "${var.%s}" % count_var_name,
+                    "for_each": "${toset(var.%s)}" % instance_name,
                     "network": {"name": network_name, "uuid": network_id,},
                 }
             }
 
         instance_name = self.node_name
-
-        count_var_name = "{}-count".format(instance_name)
-        self.tf_json.add_count_variable(count_var_name, self.min_instances)
+        self.tf_json.add_instance_variable(instance_name, self.min_instances)
 
         credential = self._get_credential_info("nova")
         auth_url = properties["auth_url"]
@@ -559,16 +577,16 @@ class TerraformAdaptor(abco.Adaptor):
         def get_network_interface():
             return {
                 network_interface_name: {
-                    "name": "%s${count.index}" % network_interface_name,
+                    "name": "%s${each.key}" % network_interface_name,
                     "location": "${data.azurerm_resource_group.%s.location}"
                     % resource_group_name,
                     "resource_group_name": "${data.azurerm_resource_group.%s.name}"
                     % resource_group_name,
                     "network_security_group_id": "${data.azurerm_network_security_group.%s.id}"
                     % network_security_group_name,
-                    "count": "${var.%s}" % count_var_name,
+                    "for_each": "${toset(var.%s)}" % instance_name,
                     "ip_configuration": {
-                        "name": "%s${count.index}" % nic_config_name,
+                        "name": "%s${each.key}" % nic_config_name,
                         "subnet_id": "${data.azurerm_subnet.%s.id}" % subnet_name,
                         "private_ip_address_allocation": "Dynamic",
                     },
@@ -578,21 +596,21 @@ class TerraformAdaptor(abco.Adaptor):
         def get_virtual_machine():
             return {
                 instance_name: {
-                    "name": "%s${count.index}" % instance_name,
+                    "name": "%s${each.key}" % instance_name,
                     "location": "${data.azurerm_resource_group.%s.location}"
                     % resource_group_name,
                     "resource_group_name": "${data.azurerm_resource_group.%s.name}"
                     % resource_group_name,
                     "network_interface_ids": [
-                        "${element(azurerm_network_interface.%s.*.id, count.index)}"
+                        "${azurerm_network_interface.%s[each.key].id}"
                         % network_interface_name
                     ],
                     "vm_size": virtual_machine_size,
-                    "count": "${var.%s}" % count_var_name,
+                    "for_each": "${toset(var.%s)}" % instance_name,
                     "delete_os_disk_on_termination": "true",
                     "delete_data_disks_on_termination": "true",
                     "storage_os_disk": {
-                        "name": "%s${count.index}" % virtual_machine_disk_name,
+                        "name": "%s${each.key}" % virtual_machine_disk_name,
                         "caching": "ReadWrite",
                         "create_option": "FromImage",
                         "managed_disk_type": "Standard_LRS",
@@ -619,6 +637,12 @@ class TerraformAdaptor(abco.Adaptor):
                 }
             }
 
+        def get_ip_output():
+            return {
+                "private_ips": "${[for i in azurerm_network_interface.%s : i.private_ip_address]}"
+                % network_interface_name
+            }
+
         # Begin building the JSON
         instance_name = self.node_name
 
@@ -634,8 +658,7 @@ class TerraformAdaptor(abco.Adaptor):
         )
         self.tf_json.add_provider("azurerm", get_provider(use_msi))
 
-        count_var_name = "{}-count".format(instance_name)
-        self.tf_json.add_count_variable(count_var_name, self.min_instances)
+        self.tf_json.add_instance_variable(instance_name, self.min_instances)
 
         resource_group_name = properties["resource_group"]
         self.tf_json.add_data("azurerm_resource_group", get_resource_group())
@@ -663,6 +686,8 @@ class TerraformAdaptor(abco.Adaptor):
 
         self.tf_json.add_resource("azurerm_virtual_machine", get_virtual_machine())
 
+        self.tf_json.add_output(instance_name, get_ip_output())
+
     def _add_terraform_gce(self, properties):
         """ Write Terraform template files for GCE in JSON"""
 
@@ -676,10 +701,10 @@ class TerraformAdaptor(abco.Adaptor):
         def get_virtual_machine():
             return {
                 instance_name: {
-                    "name": "%s${count.index}" % instance_name,
+                    "name": "%s${each.key}" % instance_name,
                     "machine_type": machine_type,
                     "zone": zone,
-                    "count": "${var.%s}" % count_var_name,
+                    "for_each": "${toset(var.%s)}" % instance_name,
                     "boot_disk": {"initialize_params": {"image": image,},},
                     "network_interface": {"network": network, "access_config": {},},
                     "metadata": {
@@ -692,8 +717,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         instance_name = self.node_name
 
-        count_var_name = "{}-count".format(instance_name)
-        self.tf_json.add_count_variable(count_var_name, self.min_instances)
+        self.tf_json.add_instance_variable(instance_name, self.min_instances)
 
         with open(self.auth_gce) as q:
             with open(self.account_file, "w+") as q1:
