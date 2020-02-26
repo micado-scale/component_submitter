@@ -118,6 +118,7 @@ class TerraformAdaptor(abco.Adaptor):
         self.account_file = "{}accounts.json".format(self.volume)
 
         self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
+        self.azure_win_setup = "./system/winrm.ps1"
         self.auth_data_file = "/var/lib/submitter/system/auth_data.yaml"
         self.auth_gce = "/var/lib/submitter/system/gce_auth.json"
         self.master_cert = "/var/lib/submitter/system/master.pem"
@@ -351,6 +352,7 @@ class TerraformAdaptor(abco.Adaptor):
         Return renamed EC2 property keys
         """
         aws_properties = {}
+
         aws_properties["region"] = properties["region_name"]
         aws_properties["ami"] = properties["image_id"]
         aws_properties["instance_type"] = properties["instance_type"]
@@ -432,7 +434,7 @@ class TerraformAdaptor(abco.Adaptor):
                 return True
 
     def _add_terraform_aws(self, properties):
-        """ Add Terraform template for AWS to JSON"""
+        """ Add Terraform template for AWS in JSON"""
 
         # Get the credentials info
         credential = self._get_credential_info("ec2")
@@ -565,6 +567,16 @@ class TerraformAdaptor(abco.Adaptor):
                 }
             }
 
+        def get_public_ip():
+            return {
+                public_ip: {
+                    "name": public_ip,
+                    "resource_group_name": "${data.azurerm_resource_group.%s.name}"
+                    % resource_group_name,
+                }
+            }
+
+
         def get_network_security_group():
             return {
                 network_security_group_name: {
@@ -589,6 +601,27 @@ class TerraformAdaptor(abco.Adaptor):
                         "name": "%s${each.key}" % nic_config_name,
                         "subnet_id": "${data.azurerm_subnet.%s.id}" % subnet_name,
                         "private_ip_address_allocation": "Dynamic",
+                    },
+                }
+            }
+
+        def get_network_interface_w():
+            return {
+                network_interface_name: {
+                    "name": "%s${count.index}" % network_interface_name,
+                    "location": "${data.azurerm_resource_group.%s.location}"
+                    % resource_group_name,
+                    "resource_group_name": "${data.azurerm_resource_group.%s.name}"
+                    % resource_group_name,
+                    "network_security_group_id": "${data.azurerm_network_security_group.%s.id}"
+                    % network_security_group_name,
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                    "ip_configuration": {
+                        "name": "%s${count.index}" % nic_config_name,
+                        "subnet_id": "${data.azurerm_subnet.%s.id}" % subnet_name,
+                        "private_ip_address_allocation": "Dynamic",
+                        "public_ip_address_id": "${data.azurerm_public_ip.%s.id}"
+                    % public_ip,
                     },
                 }
             }
@@ -642,6 +675,72 @@ class TerraformAdaptor(abco.Adaptor):
                 "private_ips": "${[for i in azurerm_network_interface.%s : i.private_ip_address]}"
                 % network_interface_name
             }
+        def get_virtual_machine_w():
+            return {
+                instance_name: {
+                    "name": "%s${each.key}" % instance_name,
+                    "location": "${data.azurerm_resource_group.%s.location}"
+                    % resource_group_name,
+                    "resource_group_name": "${data.azurerm_resource_group.%s.name}"
+                    % resource_group_name,
+                    "network_interface_ids": [
+                        "${element(azurerm_network_interface.%s.*.id, count.index)}"
+                        % network_interface_name
+                    ],
+                    "vm_size": virtual_machine_size,
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                    "delete_os_disk_on_termination": "true",
+                    "delete_data_disks_on_termination": "true",
+                    "storage_os_disk": {
+                        "name": "%s${each.key}" % virtual_machine_disk_name,
+                        "caching": "ReadWrite",
+                        "create_option": "FromImage",
+                        "managed_disk_type": "Standard_LRS",
+                    },
+                    "storage_image_reference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": virtual_machine_image,
+                        "version": "latest",
+                    },
+                    "os_profile": {
+                        "computer_name": "micado-worker",
+                        "admin_username": "azureuser",
+                        "admin_password":"Xyzabc123@",
+                        "custom_data": '${file("${path.module}/%s")}'
+                        % setup_file_name,
+                    },
+                    "os_profile_windows_config": {
+                        "provision_vm_agent": "true",
+                        "timezone": "Romance Standard Time",
+                        "winrm": {
+                            "protocol": "http",
+                        },
+                        "additional_unattend_config": {
+                            "pass": "oobeSystem",
+                            "component": "Microsoft-Windows-Shell-Setup",
+                            "setting_name": "AutoLogon",
+                            "content": "<AutoLogon><Password><Value>Xyzabc123@</Value></Password><Enabled>true</Enabled><LogonCount>1</LogonCount><Username>azureuser</Username></AutoLogon>",
+                        },
+                    },
+                    'provisioner "remote-exec"': {
+                        "connection": {
+                            "host": "${azurerm_public_ip.%s.ip_address}" % public_ip,
+                            "type": "winrm",
+                            "port": "5985",
+                            "https": "false",
+                            "timeout": "5m",
+                            "user": "azureuser",
+                            "password": "Xyzabc123@",
+                        },
+                        "inline": [
+                            "powershell.exe -ExecutionPolicy Unrestricted -Command {Install-WindowsFeature -name Web-Server -IncludeManagementTools}",
+                        ],
+                    },
+                }
+            }
+
+        # Begin building the JSON
 
         # Begin building the JSON
         instance_name = self.node_name
@@ -669,6 +768,12 @@ class TerraformAdaptor(abco.Adaptor):
         subnet_name = properties["subnet"]
         self.tf_json.add_data("azurerm_subnet", get_subnet())
 
+        linux = True
+        if properties.get("public_ip"):
+            public_ip = properties["public_ip"]
+            linux = False
+            self.tf_json.add_data("azurerm_public_ip", get_public_ip())
+
         network_security_group_name = properties["network_security_group"]
         self.tf_json.add_data(
             "azurerm_network_security_group", get_network_security_group()
@@ -676,15 +781,26 @@ class TerraformAdaptor(abco.Adaptor):
 
         nic_config_name = "{}-nic-config".format(instance_name)
         network_interface_name = "{}-nic".format(instance_name)
-        self.tf_json.add_resource("azurerm_network_interface", get_network_interface())
+        if linux:
+            self.tf_json.add_resource("azurerm_network_interface", get_network_interface())
+        else:
+            self.tf_json.add_resource("azurerm_network_interface", get_network_interface_w())
 
         virtual_machine_size = properties["vm_size"]
         virtual_machine_disk_name = "{}-disk".format(instance_name)
         virtual_machine_image = properties["image"]
-        cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
-        ssh_key_data = properties.get("key_data", "")
-
-        self.tf_json.add_resource("azurerm_virtual_machine", get_virtual_machine())
+        if linux:
+            cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
+            ssh_key_data = properties.get("key_data", "")
+            self.tf_json.add_resource("azurerm_virtual_machine", get_virtual_machine())
+        else:
+            setup_file_name = "{}-winrm.ps1".format(instance_name)
+            setup_file_path = "{}{}".format(self.volume, setup_file_name)
+            with open(self.azure_win_setup) as q:
+                with open(setup_file_path, "w+") as q1:
+                    for line in q:
+                        q1.write(line)
+            self.tf_json.add_resource("azurerm_virtual_machine", get_virtual_machine_w())
 
         self.tf_json.add_output(instance_name, get_ip_output())
 
@@ -774,7 +890,7 @@ class TerraformAdaptor(abco.Adaptor):
     def _remove_cloud_inits(self):
         """ Remove cloud_init files on undeploy """
         for file in os.listdir(self.volume):
-            if "cloud-init.yaml" in file:
+            if "cloud-init.yaml" in file or "winrm.ps1" in file:
                 try:
                     os.remove(self.volume + file)
                 except OSError:
