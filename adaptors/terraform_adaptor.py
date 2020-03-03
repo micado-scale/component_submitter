@@ -839,7 +839,7 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _terraform_init(self):
         """ Run terraform init in the container """
-        command = ["sh", "-c", "terraform init" + LOG_SUFFIX]
+        command = ["sh", "-c", "terraform init -no-color" + LOG_SUFFIX]
         exec_output = self._terraform_exec(command)
         if "successfully initialized" in exec_output:
             logger.debug("Terraform initialization has been successful")
@@ -848,7 +848,7 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _terraform_apply(self, lock_timeout):
         """ Run terraform apply in the container """
-        command = ["sh", "-c", "terraform apply -auto-approve" + LOG_SUFFIX]
+        command = ["sh", "-c", "terraform apply -auto-approve -no-color" + LOG_SUFFIX]
         exec_output = self._terraform_exec(command, lock_timeout)
         if "Apply complete" in exec_output:
             logger.debug("Terraform apply has been successful")
@@ -860,7 +860,7 @@ class TerraformAdaptor(abco.Adaptor):
         command = [
             "sh",
             "-c",
-            "terraform destroy -auto-approve" + LOG_SUFFIX,
+            "terraform destroy -auto-approve -no-color" + LOG_SUFFIX,
         ]
         exec_output = self._terraform_exec(command, lock_timeout=600)
         if "Destroy complete" in exec_output:
