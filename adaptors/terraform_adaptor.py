@@ -530,6 +530,7 @@ class TerraformAdaptor(abco.Adaptor):
         def get_provider(use_msi):
             provider = {}
             provider["subscription_id"] = credential["subscription_id"]
+            provider["features"] = {}
             if use_msi:
                 provider["use_msi"] = "true"
             else:
@@ -582,14 +583,23 @@ class TerraformAdaptor(abco.Adaptor):
                     % resource_group_name,
                     "resource_group_name": "${data.azurerm_resource_group.%s.name}"
                     % resource_group_name,
-                    "network_security_group_id": "${data.azurerm_network_security_group.%s.id}"
-                    % network_security_group_name,
                     "for_each": "${toset(var.%s)}" % instance_name,
                     "ip_configuration": {
                         "name": "%s${each.key}" % nic_config_name,
                         "subnet_id": "${data.azurerm_subnet.%s.id}" % subnet_name,
                         "private_ip_address_allocation": "Dynamic",
                     },
+                }
+            }
+
+        def get_network_security_association():
+            return {
+                network_security_assoc_name: {
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                    "network_interface_id": "${azurerm_network_interface.%s[each.key].id}"
+                    % network_interface_name,
+                    "network_security_group_id": "${data.azurerm_network_security_group.%s.id}"
+                    % network_security_group_name,
                 }
             }
 
@@ -677,6 +687,12 @@ class TerraformAdaptor(abco.Adaptor):
         nic_config_name = "{}-nic-config".format(instance_name)
         network_interface_name = "{}-nic".format(instance_name)
         self.tf_json.add_resource("azurerm_network_interface", get_network_interface())
+
+        network_security_assoc_name = network_security_group_name + "-assoc"
+        self.tf_json.add_resource(
+            "azurerm_network_interface_security_group_association",
+            get_network_security_association(),
+        )
 
         virtual_machine_size = properties["vm_size"]
         virtual_machine_disk_name = "{}-disk".format(instance_name)
