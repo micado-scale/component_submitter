@@ -73,7 +73,10 @@ def get_lifecycle(node, interface_type):
     for stage, value in parent_interfaces.items():
         if stage == "type":
             continue
-        lifecycle[stage] = value.get("inputs")
+        try:
+            lifecycle[stage] = value.get("inputs")
+        except AttributeError:
+            lifecycle[stage] = {}
 
     # Update these interfaces with any inputs from the current node
     interfaces = [x for x in node.interfaces if interface_type in x.type]
