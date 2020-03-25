@@ -150,10 +150,11 @@ class TerraformAdaptor(abco.Adaptor):
 
             self.node_name = node.name
             node = copy.deepcopy(node)
-            cloud_type = self._node_data_get_interface(node)
-            if not cloud_type:
+            tf_interface = self._get_terraform_interface(node)
+            if not tf_interface:
                 continue
 
+            tf_options = self._resolve_terraform_inputs(tf_interface)
             self._get_policies(node)
 
             properties = self._get_properties_values(node)
@@ -163,7 +164,9 @@ class TerraformAdaptor(abco.Adaptor):
 
             if cloud_type == "ec2":
                 logger.debug("EC2 resource detected")
-                aws_properties = self._node_data_get_ec2_host_properties(properties)
+                aws_properties = self._consolidate_ec2_properties(
+                    properties, tf_options
+                )
                 self._add_terraform_aws(aws_properties)
             elif cloud_type == "nova":
                 logger.debug("Nova resource detected")
@@ -290,17 +293,20 @@ class TerraformAdaptor(abco.Adaptor):
             self._remove_tmp_files()
             self.status = "Updated (nothing to update)"
 
-    def _node_data_get_interface(self, node):
+    def _get_terraform_interface(self, node):
         """
-        Get cloud relevant information from tosca
+        Return tosca interfaces for the node
         """
         interfaces = utils.get_lifecycle(node, "Terraform")
         if not interfaces:
             logger.debug("No interface for Terraform in {}".format(node.name))
-            return None
-        cloud_inputs = interfaces.get("create")
+        return interfaces
 
-        # Resolve get_property in interfaces
+    def _resolve_terraform_inputs(self, interface):
+        """
+        Resolve get_property in interface
+        """
+        cloud_inputs = interface.get("create")
         for field, value in cloud_inputs.items():
             if isinstance(value, GetProperty):
                 cloud_inputs[field] = value.result()
@@ -309,7 +315,7 @@ class TerraformAdaptor(abco.Adaptor):
                 continue
             cloud_inputs[field] = node.get_property_value(value.get("get_property")[-1])
 
-        return cloud_inputs["provider"]
+        return cloud_inputs
 
     def _node_data_get_context_section(self, context):
         """
@@ -346,9 +352,9 @@ class TerraformAdaptor(abco.Adaptor):
         utils.dump_order_yaml(node_init, cloud_init_path_tmp)
         return cloud_init_path
 
-    def _node_data_get_ec2_host_properties(self, properties):
+    def _consolidate_ec2_properties(self, properties, options):
         """
-        Return renamed EC2 property keys
+        Return consolidated & renamed EC2 property keys
         """
         aws_properties = {}
         aws_properties["region"] = properties["region_name"]
@@ -359,6 +365,8 @@ class TerraformAdaptor(abco.Adaptor):
         if properties.get("security_group_ids"):
             security_groups = properties["security_group_ids"]
             aws_properties["vpc_security_group_ids"] = security_groups
+        if options.get("endpoint"):
+            aws_properties["endpoint"] = options["endpoint"]
 
         return aws_properties
 
@@ -450,6 +458,9 @@ class TerraformAdaptor(abco.Adaptor):
             "access_key": credential["accesskey"],
             "secret_key": credential["secretkey"],
         }
+        endpoint = properties.pop("endpoint", None)
+        if endpoint:
+            aws_provider.setdefault("endpoints", {})["ec2"] = endpoint
         self.tf_json.add_provider("aws", aws_provider)
 
         instance_name = self.node_name
@@ -476,8 +487,7 @@ class TerraformAdaptor(abco.Adaptor):
         ip_output = {
             "private_ips": "${[for i in aws_instance.%s : i.private_ip]}"
             % instance_name,
-            "public_ips": "${[for i in aws_instance.%s : i.public_ip]}"
-            % instance_name,
+            "public_ips": "${[for i in aws_instance.%s : i.public_ip]}" % instance_name,
         }
         self.tf_json.add_output(instance_name, ip_output)
 
