@@ -505,7 +505,7 @@ class TerraformAdaptor(abco.Adaptor):
         self.tf_json.add_instance_variable(instance_name, self.min_instances)
 
         credential = self._get_credential_info("nova")
-        auth_url = properties["auth_url"]
+        auth_url = properties.get("auth_url") or properties.get("endpoint")
         tenant_id = properties["project_id"]
         self.tf_json.add_provider("openstack", get_provider())
 
