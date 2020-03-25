@@ -352,7 +352,6 @@ class TerraformAdaptor(abco.Adaptor):
         Return renamed EC2 property keys
         """
         aws_properties = {}
-
         aws_properties["region"] = properties["region_name"]
         aws_properties["ami"] = properties["image_id"]
         aws_properties["instance_type"] = properties["instance_type"]
@@ -434,7 +433,7 @@ class TerraformAdaptor(abco.Adaptor):
                 return True
 
     def _add_terraform_aws(self, properties):
-        """ Add Terraform template for AWS in JSON"""
+        """ Add Terraform template for AWS to JSON"""
 
         # Get the credentials info
         credential = self._get_credential_info("ec2")
@@ -532,6 +531,7 @@ class TerraformAdaptor(abco.Adaptor):
         def get_provider(use_msi):
             provider = {}
             provider["subscription_id"] = credential["subscription_id"]
+            provider["features"] = {}
             if use_msi:
                 provider["use_msi"] = "true"
             else:
@@ -567,22 +567,25 @@ class TerraformAdaptor(abco.Adaptor):
                 }
             }
 
-        def get_public_ip():
-            return {
-                public_ip: {
-                    "name": public_ip,
-                    "resource_group_name": "${data.azurerm_resource_group.%s.name}"
-                    % resource_group_name,
-                }
-            }
-
-
         def get_network_security_group():
             return {
                 network_security_group_name: {
                     "name": network_security_group_name,
                     "resource_group_name": "${data.azurerm_resource_group.%s.name}"
                     % resource_group_name,
+                }
+            }
+
+        def get_public_ip():
+            return {
+                public_ip: {
+                    "name": "%s${each.key}" % public_ip,
+                    "location": "${data.azurerm_resource_group.%s.location}"
+                    % resource_group_name,
+                    "resource_group_name": "${data.azurerm_resource_group.%s.name}"
+                    % resource_group_name,
+                    "allocation_method": "Static",
+                    "for_each": "${toset(var.%s)}" % instance_name,
                 }
             }
 
@@ -594,8 +597,6 @@ class TerraformAdaptor(abco.Adaptor):
                     % resource_group_name,
                     "resource_group_name": "${data.azurerm_resource_group.%s.name}"
                     % resource_group_name,
-                    "network_security_group_id": "${data.azurerm_network_security_group.%s.id}"
-                    % network_security_group_name,
                     "for_each": "${toset(var.%s)}" % instance_name,
                     "ip_configuration": {
                         "name": "%s${each.key}" % nic_config_name,
@@ -608,21 +609,29 @@ class TerraformAdaptor(abco.Adaptor):
         def get_network_interface_w():
             return {
                 network_interface_name: {
-                    "name": "%s${count.index}" % network_interface_name,
+                    "name": "%s${each.key}" % network_interface_name,
                     "location": "${data.azurerm_resource_group.%s.location}"
                     % resource_group_name,
                     "resource_group_name": "${data.azurerm_resource_group.%s.name}"
                     % resource_group_name,
-                    "network_security_group_id": "${data.azurerm_network_security_group.%s.id}"
-                    % network_security_group_name,
                     "for_each": "${toset(var.%s)}" % instance_name,
                     "ip_configuration": {
-                        "name": "%s${count.index}" % nic_config_name,
+                        "name": "%s${each.key}" % nic_config_name,
                         "subnet_id": "${data.azurerm_subnet.%s.id}" % subnet_name,
                         "private_ip_address_allocation": "Dynamic",
-                        "public_ip_address_id": "${data.azurerm_public_ip.%s.id}"
-                    % public_ip,
+                        "public_ip_address_id": "${azurerm_public_ip.%s[each.key].id}" % public_ip,
                     },
+                }
+            }
+
+        def get_network_security_association():
+            return {
+                network_security_assoc_name: {
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                    "network_interface_id": "${azurerm_network_interface.%s[each.key].id}"
+                    % network_interface_name,
+                    "network_security_group_id": "${data.azurerm_network_security_group.%s.id}"
+                    % network_security_group_name,
                 }
             }
 
@@ -670,11 +679,6 @@ class TerraformAdaptor(abco.Adaptor):
                 }
             }
 
-        def get_ip_output():
-            return {
-                "private_ips": "${[for i in azurerm_network_interface.%s : i.private_ip_address]}"
-                % network_interface_name
-            }
         def get_virtual_machine_w():
             return {
                 instance_name: {
@@ -684,7 +688,7 @@ class TerraformAdaptor(abco.Adaptor):
                     "resource_group_name": "${data.azurerm_resource_group.%s.name}"
                     % resource_group_name,
                     "network_interface_ids": [
-                        "${element(azurerm_network_interface.%s.*.id, count.index)}"
+                        "${azurerm_network_interface.%s[each.key].id}"
                         % network_interface_name
                     ],
                     "vm_size": virtual_machine_size,
@@ -705,42 +709,24 @@ class TerraformAdaptor(abco.Adaptor):
                     },
                     "os_profile": {
                         "computer_name": "micado-worker",
-                        "admin_username": "azureuser",
-                        "admin_password":"Xyzabc123@",
+                        "admin_username": "windows",
+                        "admin_password": "Xyzabc123@",
                         "custom_data": '${file("${path.module}/%s")}'
                         % setup_file_name,
                     },
                     "os_profile_windows_config": {
                         "provision_vm_agent": "true",
                         "timezone": "Romance Standard Time",
-                        "winrm": {
-                            "protocol": "http",
-                        },
-                        "additional_unattend_config": {
-                            "pass": "oobeSystem",
-                            "component": "Microsoft-Windows-Shell-Setup",
-                            "setting_name": "AutoLogon",
-                            "content": "<AutoLogon><Password><Value>Xyzabc123@</Value></Password><Enabled>true</Enabled><LogonCount>1</LogonCount><Username>azureuser</Username></AutoLogon>",
-                        },
-                    },
-                    'provisioner "remote-exec"': {
-                        "connection": {
-                            "host": "${azurerm_public_ip.%s.ip_address}" % public_ip,
-                            "type": "winrm",
-                            "port": "5985",
-                            "https": "false",
-                            "timeout": "5m",
-                            "user": "azureuser",
-                            "password": "Xyzabc123@",
-                        },
-                        "inline": [
-                            "powershell.exe -ExecutionPolicy Unrestricted -Command {Install-WindowsFeature -name Web-Server -IncludeManagementTools}",
-                        ],
                     },
                 }
             }
 
-        # Begin building the JSON
+
+        def get_ip_output():
+            return {
+                "private_ips": "${[for i in azurerm_network_interface.%s : i.private_ip_address]}"
+                % network_interface_name
+            }
 
         # Begin building the JSON
         instance_name = self.node_name
@@ -768,28 +754,35 @@ class TerraformAdaptor(abco.Adaptor):
         subnet_name = properties["subnet"]
         self.tf_json.add_data("azurerm_subnet", get_subnet())
 
-        linux = True
-        if properties.get("public_ip"):
-            public_ip = properties["public_ip"]
-            linux = False
-            self.tf_json.add_data("azurerm_public_ip", get_public_ip())
-
         network_security_group_name = properties["network_security_group"]
         self.tf_json.add_data(
             "azurerm_network_security_group", get_network_security_group()
         )
 
+        flag_ip = True
+        if properties.get("public_ip"):
+            flag_ip = False
+            public_ip = "{}-ip".format(instance_name)
+            self.tf_json.add_resource("azurerm_public_ip", get_public_ip())
+
         nic_config_name = "{}-nic-config".format(instance_name)
         network_interface_name = "{}-nic".format(instance_name)
-        if linux:
+        if flag_ip:
             self.tf_json.add_resource("azurerm_network_interface", get_network_interface())
         else:
             self.tf_json.add_resource("azurerm_network_interface", get_network_interface_w())
 
+        network_security_assoc_name = network_security_group_name + "-assoc"
+        self.tf_json.add_resource(
+            "azurerm_network_interface_security_group_association",
+            get_network_security_association(),
+        )
+
         virtual_machine_size = properties["vm_size"]
         virtual_machine_disk_name = "{}-disk".format(instance_name)
         virtual_machine_image = properties["image"]
-        if linux:
+
+        if properties.get("key_data"):
             cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
             ssh_key_data = properties.get("key_data", "")
             self.tf_json.add_resource("azurerm_virtual_machine", get_virtual_machine())
@@ -955,7 +948,7 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _terraform_init(self):
         """ Run terraform init in the container """
-        command = ["sh", "-c", "terraform init" + LOG_SUFFIX]
+        command = ["sh", "-c", "terraform init -no-color" + LOG_SUFFIX]
         exec_output = self._terraform_exec(command)
         if "successfully initialized" in exec_output:
             logger.debug("Terraform initialization has been successful")
@@ -964,7 +957,7 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _terraform_apply(self, lock_timeout):
         """ Run terraform apply in the container """
-        command = ["sh", "-c", "terraform apply -auto-approve" + LOG_SUFFIX]
+        command = ["sh", "-c", "terraform apply -auto-approve -no-color" + LOG_SUFFIX]
         exec_output = self._terraform_exec(command, lock_timeout)
         if "Apply complete" in exec_output:
             logger.debug("Terraform apply has been successful")
@@ -976,7 +969,7 @@ class TerraformAdaptor(abco.Adaptor):
         command = [
             "sh",
             "-c",
-            "terraform destroy -auto-approve" + LOG_SUFFIX,
+            "terraform destroy -auto-approve -no-color" + LOG_SUFFIX,
         ]
         exec_output = self._terraform_exec(command, lock_timeout=600)
         if "Destroy complete" in exec_output:
