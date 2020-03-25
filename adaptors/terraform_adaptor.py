@@ -445,6 +445,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         # Add the provider
         aws_provider = {
+            "version": "~> 2.54",
             "region": region,
             "access_key": credential["accesskey"],
             "secret_key": credential["secretkey"],
@@ -485,6 +486,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         def get_provider():
             return {
+                "version": "~> 1.26",
                 "auth_url": auth_url,
                 "tenant_id": tenant_id,
                 "user_name": credential["username"],
@@ -528,7 +530,7 @@ class TerraformAdaptor(abco.Adaptor):
         """ Write Terraform template files for Azure in JSON"""
 
         def get_provider(use_msi):
-            provider = {}
+            provider = {"version": "~> 2.2"}
             provider["subscription_id"] = credential["subscription_id"]
             provider["features"] = {}
             if use_msi:
@@ -709,6 +711,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         def get_provider():
             return {
+                "version": "~> 3.14",
                 "credentials": '${file("accounts.json")}',
                 "project": project,
                 "region": region,
