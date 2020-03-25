@@ -73,7 +73,7 @@ class TerraformDict(dict):
     def add_instance_variable(self, name, value):
         self.add_variable(name, {})
         node_list = []
-        for i in range(value):
+        for i in range(1, value + 1):
             node_list.append(str(i))
         self.tfvars[name] = node_list
 
