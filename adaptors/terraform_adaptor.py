@@ -14,7 +14,6 @@ import utils
 from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
 from toscaparser.tosca_template import ToscaTemplate
-from toscaparser.functions import GetProperty
 
 logger = logging.getLogger("adaptor." + __name__)
 
@@ -24,6 +23,7 @@ LOG_SUFFIX = (
     ' do printf "%s %s\n" "$(date "+[%Y-%m-%d %H:%M:%S]")" "$line";'
     " done | tee /proc/1/fd/1"
 )
+SUPPORTED_CLOUDS = ("ec2", "nova", "azure", "gce")
 
 
 class TerraformDict(dict):
@@ -73,7 +73,7 @@ class TerraformDict(dict):
     def add_instance_variable(self, name, value):
         self.add_variable(name, {})
         node_list = []
-        for i in range(value):
+        for i in range(1, value + 1):
             node_list.append(str(i))
         self.tfvars[name] = node_list
 
@@ -150,20 +150,24 @@ class TerraformAdaptor(abco.Adaptor):
 
             self.node_name = node.name
             node = copy.deepcopy(node)
-            cloud_type = self._node_data_get_interface(node)
-            if not cloud_type:
+            tf_interface = self._get_terraform_interface(node)
+            if not tf_interface:
                 continue
 
             self._get_policies(node)
-
+            tf_options = utils.resolve_get_property(tf_interface.get("create"))
             properties = self._get_properties_values(node)
+            properties.update(tf_options)
+
             context = properties.get("context")
             cloud_init = self._node_data_get_context_section(context)
             self.cloud_inits.add(cloud_init)
 
+            cloud_type = utils.get_cloud_type(node, SUPPORTED_CLOUDS)
+
             if cloud_type == "ec2":
                 logger.debug("EC2 resource detected")
-                aws_properties = self._node_data_get_ec2_host_properties(properties)
+                aws_properties = self._consolidate_ec2_properties(properties)
                 self._add_terraform_aws(aws_properties)
             elif cloud_type == "nova":
                 logger.debug("Nova resource detected")
@@ -290,26 +294,14 @@ class TerraformAdaptor(abco.Adaptor):
             self._remove_tmp_files()
             self.status = "Updated (nothing to update)"
 
-    def _node_data_get_interface(self, node):
+    def _get_terraform_interface(self, node):
         """
-        Get cloud relevant information from tosca
+        Return tosca interfaces for the node
         """
         interfaces = utils.get_lifecycle(node, "Terraform")
         if not interfaces:
             logger.debug("No interface for Terraform in {}".format(node.name))
-            return None
-        cloud_inputs = interfaces.get("create")
-
-        # Resolve get_property in interfaces
-        for field, value in cloud_inputs.items():
-            if isinstance(value, GetProperty):
-                cloud_inputs[field] = value.result()
-                continue
-            elif not isinstance(value, dict) or not "get_property" in value:
-                continue
-            cloud_inputs[field] = node.get_property_value(value.get("get_property")[-1])
-
-        return cloud_inputs["provider"]
+        return interfaces
 
     def _node_data_get_context_section(self, context):
         """
@@ -346,9 +338,9 @@ class TerraformAdaptor(abco.Adaptor):
         utils.dump_order_yaml(node_init, cloud_init_path_tmp)
         return cloud_init_path
 
-    def _node_data_get_ec2_host_properties(self, properties):
+    def _consolidate_ec2_properties(self, properties):
         """
-        Return renamed EC2 property keys
+        Return consolidated & renamed EC2 property keys
         """
         aws_properties = {}
         aws_properties["region"] = properties["region_name"]
@@ -445,10 +437,14 @@ class TerraformAdaptor(abco.Adaptor):
 
         # Add the provider
         aws_provider = {
+            "version": "~> 2.54",
             "region": region,
             "access_key": credential["accesskey"],
             "secret_key": credential["secretkey"],
         }
+        endpoint = properties.pop("endpoint", None)
+        if endpoint:
+            aws_provider.setdefault("endpoints", {})["ec2"] = endpoint
         self.tf_json.add_provider("aws", aws_provider)
 
         instance_name = self.node_name
@@ -475,8 +471,7 @@ class TerraformAdaptor(abco.Adaptor):
         ip_output = {
             "private_ips": "${[for i in aws_instance.%s : i.private_ip]}"
             % instance_name,
-            "public_ips": "${[for i in aws_instance.%s : i.public_ip]}"
-            % instance_name,
+            "public_ips": "${[for i in aws_instance.%s : i.public_ip]}" % instance_name,
         }
         self.tf_json.add_output(instance_name, ip_output)
 
@@ -485,6 +480,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         def get_provider():
             return {
+                "version": "~> 1.26",
                 "auth_url": auth_url,
                 "tenant_id": tenant_id,
                 "user_name": credential["username"],
@@ -509,7 +505,7 @@ class TerraformAdaptor(abco.Adaptor):
         self.tf_json.add_instance_variable(instance_name, self.min_instances)
 
         credential = self._get_credential_info("nova")
-        auth_url = properties["auth_url"]
+        auth_url = properties.get("auth_url") or properties.get("endpoint")
         tenant_id = properties["project_id"]
         self.tf_json.add_provider("openstack", get_provider())
 
@@ -528,7 +524,7 @@ class TerraformAdaptor(abco.Adaptor):
         """ Write Terraform template files for Azure in JSON"""
 
         def get_provider(use_msi):
-            provider = {}
+            provider = {"version": "~> 2.2"}
             provider["subscription_id"] = credential["subscription_id"]
             provider["features"] = {}
             if use_msi:
@@ -709,6 +705,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         def get_provider():
             return {
+                "version": "~> 3.14",
                 "credentials": '${file("accounts.json")}',
                 "project": project,
                 "region": region,

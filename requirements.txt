@@ -1,6 +1,6 @@
-docker==4.0.2
+docker==4.2.0
 Flask==1.1.1
-pykube-ng==0.28
-requests==2.22.0
-ruamel.yaml==0.16.2
-tosca-parser==1.4.0
+pykube-ng==20.1.0
+requests==2.23.0
+ruamel.yaml==0.16.10
+tosca-parser==1.7.0
