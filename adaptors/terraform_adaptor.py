@@ -14,7 +14,6 @@ import utils
 from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
 from toscaparser.tosca_template import ToscaTemplate
-from toscaparser.functions import GetProperty
 
 logger = logging.getLogger("adaptor." + __name__)
 
@@ -24,6 +23,7 @@ LOG_SUFFIX = (
     ' do printf "%s %s\n" "$(date "+[%Y-%m-%d %H:%M:%S]")" "$line";'
     " done | tee /proc/1/fd/1"
 )
+SUPPORTED_CLOUDS = ("ec2", "nova", "azure", "gce")
 
 
 class TerraformDict(dict):
@@ -154,19 +154,20 @@ class TerraformAdaptor(abco.Adaptor):
             if not tf_interface:
                 continue
 
-            tf_options = self._resolve_terraform_inputs(tf_interface)
             self._get_policies(node)
-
+            tf_options = utils.resolve_get_property(tf_interface.get("create"))
             properties = self._get_properties_values(node)
+            properties.update(tf_options)
+
             context = properties.get("context")
             cloud_init = self._node_data_get_context_section(context)
             self.cloud_inits.add(cloud_init)
 
+            cloud_type = utils.get_cloud_type(node, SUPPORTED_CLOUDS)
+
             if cloud_type == "ec2":
                 logger.debug("EC2 resource detected")
-                aws_properties = self._consolidate_ec2_properties(
-                    properties, tf_options
-                )
+                aws_properties = self._consolidate_ec2_properties(properties)
                 self._add_terraform_aws(aws_properties)
             elif cloud_type == "nova":
                 logger.debug("Nova resource detected")
@@ -302,21 +303,6 @@ class TerraformAdaptor(abco.Adaptor):
             logger.debug("No interface for Terraform in {}".format(node.name))
         return interfaces
 
-    def _resolve_terraform_inputs(self, interface):
-        """
-        Resolve get_property in interface
-        """
-        cloud_inputs = interface.get("create")
-        for field, value in cloud_inputs.items():
-            if isinstance(value, GetProperty):
-                cloud_inputs[field] = value.result()
-                continue
-            elif not isinstance(value, dict) or not "get_property" in value:
-                continue
-            cloud_inputs[field] = node.get_property_value(value.get("get_property")[-1])
-
-        return cloud_inputs
-
     def _node_data_get_context_section(self, context):
         """
         Create the cloud-init config file
@@ -352,7 +338,7 @@ class TerraformAdaptor(abco.Adaptor):
         utils.dump_order_yaml(node_init, cloud_init_path_tmp)
         return cloud_init_path
 
-    def _consolidate_ec2_properties(self, properties, options):
+    def _consolidate_ec2_properties(self, properties):
         """
         Return consolidated & renamed EC2 property keys
         """
@@ -365,8 +351,6 @@ class TerraformAdaptor(abco.Adaptor):
         if properties.get("security_group_ids"):
             security_groups = properties["security_group_ids"]
             aws_properties["vpc_security_group_ids"] = security_groups
-        if options.get("endpoint"):
-            aws_properties["endpoint"] = options["endpoint"]
 
         return aws_properties
 

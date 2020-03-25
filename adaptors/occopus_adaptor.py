@@ -13,10 +13,15 @@ import jinja2
 from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
 from toscaparser.tosca_template import ToscaTemplate
-from toscaparser.functions import GetProperty
 
 logger = logging.getLogger("adaptor."+__name__)
 
+SUPPORTED_CLOUDS = (
+    "ec2",
+    "nova",
+    "cloudsigma",
+    "cloudbroker"
+)
 
 class OccopusAdaptor(abco.Adaptor):
 
@@ -77,10 +82,14 @@ class OccopusAdaptor(abco.Adaptor):
             self.node_data = {}
             
             node = copy.deepcopy(node)
-            cloud_type = self._node_data_get_interface(node, "resource")
-            if not cloud_type:
+            occo_interface = self._node_data_get_interface(node)
+            if not occo_interface:
                 continue
-            elif cloud_type == "cloudsigma":
+
+            self._node_resolve_interface_data(occo_interface, "resource")
+            cloud_type = utils.get_cloud_type(node, SUPPORTED_CLOUDS)
+
+            if cloud_type == "cloudsigma":
                 logger.info("CloudSigma resource detected")
                 self._node_data_get_cloudsigma_host_properties(node, "resource")
             elif cloud_type == "ec2":
@@ -260,29 +269,27 @@ class OccopusAdaptor(abco.Adaptor):
             logger.info("there are no changes in the Occopus files")
             self._remove_tmp_files()
 
-    def _node_data_get_interface(self, node, key):
+    def _node_data_get_interface(self, node):
         """
-        Get cloud relevant information from tosca
+        Get interface for node from tosca
         """
         interfaces = utils.get_lifecycle(node, "Occopus")
         if not interfaces:
             logger.debug("No interface for Occopus in {}".format(node.name))
-            return None
-        cloud_inputs = interfaces.get("create")
+        return interfaces
 
-        # Resolve get_property in interfaces
-        for field, value in cloud_inputs.items():
-            if isinstance(value, GetProperty):
-                cloud_inputs[field] = value.result()
-                continue
-            elif not isinstance(value, dict) or not "get_property" in value:
-                continue
-            cloud_inputs[field] = node.get_property_value(value.get("get_property")[-1])
-        self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
-        self.node_data.setdefault(key, {}).setdefault("endpoint", cloud_inputs["endpoint_cloud"])
+    def _node_resolve_interface_data(self, interfaces, key):
+        """
+        Get cloud relevant information from tosca
+        """
+        cloud_inputs = utils.resolve_get_property(interfaces.get("create"))
+        
+        # DEPRECATE 'interface_cloud' to read cloud from TOSCA type
+        #self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
 
-        return cloud_inputs["interface_cloud"]
-
+        # DEPRECATE 'endpoint_cloud' in favour of 'endpoint'
+        endpoint = cloud_inputs.get("endpoint", cloud_inputs.get("endpoint_cloud"))
+        self.node_data.setdefault(key, {}).setdefault("endpoint", endpoint)
 
     def _node_data_get_context_section(self,properties):
         """
@@ -324,7 +331,7 @@ class OccopusAdaptor(abco.Adaptor):
         """
         properties = self._get_host_properties(node)
         nics = dict()
-
+        self.node_data.setdefault(key, {}).setdefault("type", "cloudsigma")
         self.node_data.setdefault(key, {})\
             .setdefault("libdrive_id", properties["libdrive_id"].value)
         self.node_data.setdefault(key, {})\
@@ -360,6 +367,7 @@ class OccopusAdaptor(abco.Adaptor):
         """
         properties = self._get_host_properties(node)
 
+        self.node_data.setdefault(key, {}).setdefault("type", "ec2")
         self.node_data.setdefault(key, {}) \
             .setdefault("regionname", properties["region_name"].value)
         self.node_data.setdefault(key, {}) \
@@ -389,6 +397,7 @@ class OccopusAdaptor(abco.Adaptor):
         """
         properties = self._get_host_properties(node)
 
+        self.node_data.setdefault(key, {}).setdefault("type", "cloudbroker")
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
             .setdefault("deployment_id", properties["deployment_id"].value)
@@ -415,7 +424,8 @@ class OccopusAdaptor(abco.Adaptor):
         Get NOVA properties and create node definition
         """
         properties = self._get_host_properties(node)
-
+        
+        self.node_data.setdefault(key, {}).setdefault("type", "nova")
         self.node_data.setdefault(key, {}) \
             .setdefault("project_id", properties["project_id"].value)
         self.node_data.setdefault(key, {}) \
