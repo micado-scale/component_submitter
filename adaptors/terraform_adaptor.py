@@ -571,6 +571,19 @@ class TerraformAdaptor(abco.Adaptor):
                 }
             }
 
+        def get_public_ip():
+            return {
+                public_ip: {
+                    "name": "%s${each.key}" % public_ip,
+                    "location": "${data.azurerm_resource_group.%s.location}"
+                    % resource_group_name,
+                    "resource_group_name": "${data.azurerm_resource_group.%s.name}"
+                    % resource_group_name,
+                    "allocation_method": "Static",
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                }
+            }
+
         def get_network_interface():
             return {
                 network_interface_name: {
@@ -599,7 +612,7 @@ class TerraformAdaptor(abco.Adaptor):
                 }
             }
 
-        def get_virtual_machine():
+        def get_lin_virtual_machine():
             return {
                 instance_name: {
                     "name": "%s${each.key}" % instance_name,
@@ -611,34 +624,53 @@ class TerraformAdaptor(abco.Adaptor):
                         "${azurerm_network_interface.%s[each.key].id}"
                         % network_interface_name
                     ],
-                    "vm_size": virtual_machine_size,
-                    "for_each": "${toset(var.%s)}" % instance_name,
-                    "delete_os_disk_on_termination": "true",
-                    "delete_data_disks_on_termination": "true",
-                    "storage_os_disk": {
-                        "name": "%s${each.key}" % virtual_machine_disk_name,
-                        "caching": "ReadWrite",
-                        "create_option": "FromImage",
-                        "managed_disk_type": "Standard_LRS",
+                    "size": size,
+                    "admin_username": admin_user or "ubuntu",
+                    "admin_ssh_key": {
+                        "username": admin_user or "ubuntu",
+                        "public_key": public_key,
                     },
-                    "storage_image_reference": {
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                    "os_disk": {
+                        "caching": "ReadWrite",
+                        "storage_account_type": "Standard_LRS",
+                    },
+                    "source_image_reference": {
                         "publisher": "Canonical",
                         "offer": "UbuntuServer",
-                        "sku": virtual_machine_image,
+                        "sku": image_sku or "18.04-LTS",
                         "version": "latest",
                     },
-                    "os_profile": {
-                        "computer_name": "micado-worker",
-                        "admin_username": "ubuntu",
-                        "custom_data": '${file("${path.module}/%s")}'
-                        % cloud_init_file_name,
+                    "custom_data": '${filebase64("${path.module}/%s")}'
+                    % cloud_init_file_name,
+                }
+            }
+
+        def get_win_virtual_machine():
+            return {
+                instance_name: {
+                    "name": "%s${each.key}" % instance_name,
+                    "location": "${data.azurerm_resource_group.%s.location}"
+                    % resource_group_name,
+                    "resource_group_name": "${data.azurerm_resource_group.%s.name}"
+                    % resource_group_name,
+                    "size": size,
+                    "admin_username": admin_user or "windows",
+                    "admin_password": admin_pass or "Xyzabc123@",
+                    "network_interface_ids": [
+                        "${azurerm_network_interface.%s[each.key].id}"
+                        % network_interface_name
+                    ],
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                    "os_disk": {
+                        "caching": "ReadWrite",
+                        "storage_account_type": "Standard_LRS",
                     },
-                    "os_profile_linux_config": {
-                        "disable_password_authentication": "true",
-                        "ssh_keys": {
-                            "path": "/home/ubuntu/.ssh/authorized_keys",
-                            "key_data": ssh_key_data,
-                        },
+                    "source_image_reference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": image_sku or "2016-Datacenter",
+                        "version": "latest",
                     },
                 }
             }
@@ -682,7 +714,15 @@ class TerraformAdaptor(abco.Adaptor):
 
         nic_config_name = "{}-nic-config".format(instance_name)
         network_interface_name = "{}-nic".format(instance_name)
-        self.tf_json.add_resource("azurerm_network_interface", get_network_interface())
+        network_interface = get_network_interface()
+        if properties.get("public_ip"):
+            public_ip = "{}-ip".format(instance_name)
+            network_interface[network_interface_name]["ip_configuration"][
+                "public_ip_address_id"
+            ] = ("${azurerm_public_ip.%s[each.key].id}" % public_ip)
+            self.tf_json.add_resource("azurerm_public_ip", get_public_ip())
+
+        self.tf_json.add_resource("azurerm_network_interface", network_interface)
 
         network_security_assoc_name = network_security_group_name + "-assoc"
         self.tf_json.add_resource(
@@ -690,14 +730,30 @@ class TerraformAdaptor(abco.Adaptor):
             get_network_security_association(),
         )
 
-        virtual_machine_size = properties["vm_size"]
-        virtual_machine_disk_name = "{}-disk".format(instance_name)
-        virtual_machine_image = properties["image"]
+        size = properties["size"]
+        image_sku = properties.get("image_sku")
+        source_image_id = properties.get("source_image_id")
+        admin_user = properties.get("admin_username")
+        admin_pass = properties.get("admin_password")
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
-        ssh_key_data = properties.get("key_data", "")
 
-        self.tf_json.add_resource("azurerm_virtual_machine", get_virtual_machine())
+        if properties.get("public_key"):
+            public_key = properties.get("public_key")
+            virtual_machine = get_lin_virtual_machine()
+            virtual_machine_os = "azurerm_linux_virtual_machine"
+        else:
+            virtual_machine = get_win_virtual_machine()
+            virtual_machine_os = "azurerm_windows_virtual_machine"
+            if properties.get("context"):
+                virtual_machine[instance_name]["custom_data"] = (
+                    '${filebase64("${path.module}/%s")}' % cloud_init_file_name
+                )
 
+        if source_image_id:
+            virtual_machine[instance_name].pop("source_image_reference")
+            virtual_machine[instance_name]["source_image_id"] = source_image_id
+
+        self.tf_json.add_resource(virtual_machine_os, virtual_machine)
         self.tf_json.add_output(instance_name, get_ip_output())
 
     def _add_terraform_gce(self, properties):
