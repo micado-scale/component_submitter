@@ -3,6 +3,7 @@ import os
 import copy
 import logging
 import time
+import shutil
 
 import requests
 import docker
@@ -384,7 +385,8 @@ class TerraformAdaptor(abco.Adaptor):
                 for y in tosca_cloud_config:
                     if x == y:
                         for z in tosca_cloud_config[y]:
-                            default_cloud_config[x].append(z)
+                            # Insert anywhere before 'join kubernetes'
+                            default_cloud_config[x].insert(29, z)
             return default_cloud_config
         else:
             return default_cloud_config
@@ -494,7 +496,7 @@ class TerraformAdaptor(abco.Adaptor):
                     "image_id": image_id,
                     "flavor_id": flavor_id,
                     "key_pair": key_pair,
-                    "security_groups": ["%s" % security_groups],
+                    "security_groups": security_groups,
                     "user_data": '${file("${path.module}/%s")}' % cloud_init_file_name,
                     "for_each": "${toset(var.%s)}" % instance_name,
                     "network": {"name": network_name, "uuid": network_id,},
@@ -510,7 +512,7 @@ class TerraformAdaptor(abco.Adaptor):
         self.tf_json.add_provider("openstack", get_provider())
 
         image_id = properties["image_id"]
-        flavor_id = properties["flavor_id"]
+        flavor_id = properties.get("flavor_name") or properties.get("flavor_id")
         network_name = properties["network_name"]
         network_id = properties["network_id"]
         key_pair = properties["key_name"]
@@ -724,7 +726,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         self.tf_json.add_resource("azurerm_network_interface", network_interface)
 
-        network_security_assoc_name = network_security_group_name + "-assoc"
+        network_security_assoc_name = instance_name + "security-association"
         self.tf_json.add_resource(
             "azurerm_network_interface_security_group_association",
             get_network_security_association(),
@@ -788,10 +790,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         self.tf_json.add_instance_variable(instance_name, self.min_instances)
 
-        with open(self.auth_gce) as q:
-            with open(self.account_file, "w+") as q1:
-                for line in q:
-                    q1.write(line)
+        shutil.copyfile(self.auth_gce, self.account_file)
 
         project = properties["project"]
         region = properties["region"]
