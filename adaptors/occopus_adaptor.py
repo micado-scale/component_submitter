@@ -22,6 +22,7 @@ SUPPORTED_CLOUDS = (
     "cloudsigma",
     "cloudbroker"
 )
+RUNCMD_PLACEHOLDER = "echo micado runcmd placeholder"
 
 class OccopusAdaptor(abco.Adaptor):
 
@@ -86,7 +87,7 @@ class OccopusAdaptor(abco.Adaptor):
             if not occo_interface:
                 continue
 
-            self._node_resolve_interface_data(occo_interface, "resource")
+            self._node_resolve_interface_data(node, occo_interface, "resource")
             cloud_type = utils.get_cloud_type(node, SUPPORTED_CLOUDS)
 
             if cloud_type == "cloudsigma":
@@ -278,11 +279,11 @@ class OccopusAdaptor(abco.Adaptor):
             logger.debug("No interface for Occopus in {}".format(node.name))
         return interfaces
 
-    def _node_resolve_interface_data(self, interfaces, key):
+    def _node_resolve_interface_data(self, node, interfaces, key):
         """
         Get cloud relevant information from tosca
         """
-        cloud_inputs = utils.resolve_get_property(interfaces.get("create"))
+        cloud_inputs = utils.resolve_get_property(node, interfaces.get("create"))
         
         # DEPRECATE 'interface_cloud' to read cloud from TOSCA type
         #self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
@@ -291,39 +292,40 @@ class OccopusAdaptor(abco.Adaptor):
         endpoint = cloud_inputs.get("endpoint", cloud_inputs.get("endpoint_cloud"))
         self.node_data.setdefault(key, {}).setdefault("endpoint", endpoint)
 
-    def _node_data_get_context_section(self,properties):
+    def _node_data_get_context_section(self, properties):
         """
         Create the context section in node definition
         """
-        self.node_data.setdefault("contextualisation", {}) \
-            .setdefault("type", "cloudinit")
-
-        if properties.get("context") is not None:
-            context=properties.get("context").value
-            if context.get("cloud_config") is None:
-                if context["append"]:
-                    # Missing cloud-config and append set to yes
-                    logger.info("You set append properties but you do not have cloud_config. Please check it again!")
-                    raise AdaptorCritical("You set append properties but you don't have cloud_config. Please check it again!")
-                else:
-                    # Append false and cloud-config is not exist - get default cloud-init
-                    logger.info("Get default cloud-config")
-                    self.node_data.setdefault("contextualisation", {}) \
-                    .setdefault("context_template", self._get_cloud_init(context.get("cloud_config"),False,False))
-            else:
-                if context["append"]:
-                    # Append Tosca context to the default config
-                    logger.info("Append the TOSCA cloud-config with the default config")
-                    self.node_data.setdefault("contextualisation", {}) \
-                    .setdefault("context_template", self._get_cloud_init(context["cloud_config"],True,False))
-                else:
-                    # Use the TOSCA context
-                    logger.info("The adaptor will use the TOSCA cloud-config")
-                    self.node_data.setdefault("contextualisation", {}) \
-                    .setdefault("context_template", self._get_cloud_init(context["cloud_config"],False,True))
+        self.node_data.setdefault("contextualisation", {}).setdefault(
+            "type", "cloudinit"
+        )
+        context = properties.get("context", {})
+        cloud_config = context.get("cloud_config")
+        if not context:
+            logger.debug("The adaptor will use a default cloud-config")
+            self.node_data["contextualisation"].setdefault(
+                "context_template", self._get_cloud_init(None)
+            )
+        elif not cloud_config:
+            logger.debug("No cloud-config provided... using default cloud-config")
+            self.node_data["contextualisation"].setdefault(
+                "context_template", self._get_cloud_init(None)
+            )
+        elif context.get("insert"):
+            logger.debug("Insert the TOSCA cloud-config in the default config")
+            self.node_data["contextualisation"].setdefault(
+                "context_template", self._get_cloud_init(cloud_config, "insert")
+            )
+        elif context.get("append"):
+            logger.debug("Append the TOSCA cloud-config to the default config")
+            self.node_data["contextualisation"].setdefault(
+                "context_template", self._get_cloud_init(cloud_config, "append")
+            )
         else:
-            self.node_data.setdefault("contextualisation", {}) \
-                    .setdefault("context_template", self._get_cloud_init(None,False,False))
+            logger.debug("Overwrite the default cloud-config")
+            self.node_data["contextualisation"].setdefault(
+                "context_template", self._get_cloud_init(cloud_config, "overwrite")
+            )
 
     def _node_data_get_cloudsigma_host_properties(self, node, key):
         """
@@ -333,29 +335,29 @@ class OccopusAdaptor(abco.Adaptor):
         nics = dict()
         self.node_data.setdefault(key, {}).setdefault("type", "cloudsigma")
         self.node_data.setdefault(key, {})\
-            .setdefault("libdrive_id", properties["libdrive_id"].value)
+            .setdefault("libdrive_id", properties["libdrive_id"])
         self.node_data.setdefault(key, {})\
             .setdefault("description", {})\
-            .setdefault("cpu", properties["num_cpus"].value)
+            .setdefault("cpu", properties["num_cpus"])
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("mem", properties["mem_size"].value)
+            .setdefault("mem", properties["mem_size"])
         self.node_data.setdefault(key, {})\
             .setdefault("description", {})\
-            .setdefault("vnc_password", properties["vnc_password"].value)
+            .setdefault("vnc_password", properties["vnc_password"])
         if properties.get("public_key_id") is not None:
             pubkeys = list()
-            pubkeys.append(properties["public_key_id"].value)
+            pubkeys.append(properties["public_key_id"])
             self.node_data[key]["description"]["pubkeys"] = pubkeys
         if properties.get("hv_relaxed") is not None:
             self.node_data.setdefault(key, {})\
             .setdefault("description", {})\
-            .setdefault("hv_relaxed", properties["hv_relaxed"].value)
+            .setdefault("hv_relaxed", properties["hv_relaxed"])
         if properties.get("hv_tsc") is not None:
             self.node_data.setdefault(key, {})\
             .setdefault("description", {})\
-            .setdefault("hv_tsc", properties["hv_tsc"].value)
-        nics=properties.get("nics").value
+            .setdefault("hv_tsc", properties["hv_tsc"])
+        nics=properties.get("nics")
         self.node_data[key]["description"]["nics"] = nics
         self._node_data_get_context_section(properties)
         self.node_data.setdefault("health_check", {}) \
@@ -369,24 +371,24 @@ class OccopusAdaptor(abco.Adaptor):
 
         self.node_data.setdefault(key, {}).setdefault("type", "ec2")
         self.node_data.setdefault(key, {}) \
-            .setdefault("regionname", properties["region_name"].value)
+            .setdefault("regionname", properties["region_name"])
         self.node_data.setdefault(key, {}) \
-            .setdefault("image_id", properties["image_id"].value)
+            .setdefault("image_id", properties["image_id"])
         self.node_data.setdefault(key, {}) \
-            .setdefault("instance_type", properties["instance_type"].value)
+            .setdefault("instance_type", properties["instance_type"])
         self._node_data_get_context_section(properties)
         if properties.get("key_name") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("key_name", properties["key_name"].value)
+              .setdefault("key_name", properties["key_name"])
         if properties.get("subnet_id") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("subnet_id", properties["subnet_id"].value)
+              .setdefault("subnet_id", properties["subnet_id"])
         if properties.get("security_group_ids") is not None:
             security_groups = list()
-            security_groups = properties["security_group_ids"].value
+            security_groups = properties["security_group_ids"]
             self.node_data[key]["security_group_ids"] = security_groups
         if properties.get("tags") is not None:
-            tags = properties["tags"].value
+            tags = properties["tags"]
             self.node_data[key]["tags"] = tags
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
@@ -400,21 +402,21 @@ class OccopusAdaptor(abco.Adaptor):
         self.node_data.setdefault(key, {}).setdefault("type", "cloudbroker")
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("deployment_id", properties["deployment_id"].value)
+            .setdefault("deployment_id", properties["deployment_id"])
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("instance_type_id", properties["instance_type_id"].value)
+            .setdefault("instance_type_id", properties["instance_type_id"])
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("key_pair_id", properties["key_pair_id"].value)
+            .setdefault("key_pair_id", properties["key_pair_id"])
         if properties.get("opened_port") is not None:
             self.node_data.setdefault(key, {}) \
               .setdefault("description", {}) \
-              .setdefault("opened_port", properties["opened_port"].value)
+              .setdefault("opened_port", properties["opened_port"])
         if properties.get("infrastructure_component_id") is not None:
             self.node_data.setdefault(key,{}) \
               .setdefault("description", {}) \
-              .setdefault("infrastructure_component_id", properties["infrastructure_component_id"].value)
+              .setdefault("infrastructure_component_id", properties["infrastructure_component_id"])
         self._node_data_get_context_section(properties)
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
@@ -427,26 +429,26 @@ class OccopusAdaptor(abco.Adaptor):
         
         self.node_data.setdefault(key, {}).setdefault("type", "nova")
         self.node_data.setdefault(key, {}) \
-            .setdefault("project_id", properties["project_id"].value)
+            .setdefault("project_id", properties["project_id"])
         self.node_data.setdefault(key, {}) \
-            .setdefault("image_id", properties["image_id"].value)
+            .setdefault("image_id", properties["image_id"])
         self.node_data.setdefault(key, {}) \
-            .setdefault("network_id", properties["network_id"].value)
+            .setdefault("network_id", properties["network_id"])
         self.node_data.setdefault(key, {}) \
-            .setdefault("flavor_name", properties["flavor_name"].value)
+            .setdefault("flavor_name", properties["flavor_name"])
         if properties.get("server_name") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("server_name", properties["server_name"].value)
+              .setdefault("server_name", properties["server_name"])
         if properties.get("key_name") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("key_name", properties["key_name"].value)
+              .setdefault("key_name", properties["key_name"])
         if properties.get("security_groups") is not None:
-            self.node_data[key]["security_groups"] = properties["security_groups"].value
+            self.node_data[key]["security_groups"] = properties["security_groups"]
         self._node_data_get_context_section(properties)
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
 
-    def _get_cloud_init(self,tosca_cloud_config,append,override):
+    def _get_cloud_init(self,tosca_cloud_config,insert_mode=None):
         """
         Get cloud-config from MiCADO cloud-init template
         """
@@ -459,19 +461,16 @@ class OccopusAdaptor(abco.Adaptor):
                 default_cloud_config = yaml.round_trip_load(rendered, preserve_quotes=True)
         except OSError as e:
             logger.error(e)
-        if override:
-            return yaml.round_trip_load(tosca_cloud_config, preserve_quotes=True)
-        if tosca_cloud_config is not None:
-            tosca_cloud_config=yaml.round_trip_load(tosca_cloud_config, preserve_quotes=True)
-        if append:
-            for x in default_cloud_config:
-                for y in tosca_cloud_config:
-                    if x==y:
-                        for z in tosca_cloud_config[y]:
-                            default_cloud_config[x].append(z)
+
+        if not tosca_cloud_config:
             return default_cloud_config
-        else:
-            return default_cloud_config
+
+        tosca_cloud_config = yaml.round_trip_load(
+            tosca_cloud_config, preserve_quotes=True
+        )
+        return utils.get_cloud_config(
+            insert_mode, RUNCMD_PLACEHOLDER, default_cloud_config, tosca_cloud_config
+        )
 
     def _get_infra_def(self, tmp):
         """Read infra definition and modify the min max instances according to the TOSCA policies.
@@ -523,7 +522,7 @@ class OccopusAdaptor(abco.Adaptor):
 
     def _get_host_properties(self, node):
         """ Get host properties """
-        return node.get_properties()
+        return {x: y.value for x, y in node.get_properties().items()}
 
     def _get_policies(self, node):
         """ Get the TOSCA policies """

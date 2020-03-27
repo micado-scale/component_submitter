@@ -104,7 +104,7 @@ def get_cloud_type(node, supported_clouds):
         if any(cloud in x for x in generate_parents(node)):
             return cloud
 
-def resolve_get_property(cloud_inputs):
+def resolve_get_property(node, cloud_inputs):
     """Resolve get property and return resolved inputs
 
     Returns:
@@ -119,3 +119,33 @@ def resolve_get_property(cloud_inputs):
         cloud_inputs[field] = node.get_property_value(value.get("get_property")[-1])
     
     return cloud_inputs
+
+
+def get_cloud_config(
+    insert_mode, runcmd_placeholder, default_cloud_config, tosca_cloud_config
+):
+
+    if insert_mode == "overwrite":
+        return tosca_cloud_config
+
+    elif insert_mode == "insert":
+        for x, y in tosca_cloud_config.items():
+            try:
+                idx = default_cloud_config[x].index(runcmd_placeholder)
+                default_cloud_config[x][idx:idx] = y
+            except (AttributeError, KeyError):
+                default_cloud_config[x] = y
+            except (ValueError, TypeError):
+                default_cloud_config[x] = y + default_cloud_config[x]
+
+    else:
+        for x, y in tosca_cloud_config.items():
+            try:
+                if isinstance(default_cloud_config[x], bool):
+                    default_cloud_config[x] = y
+                else:
+                    default_cloud_config[x] += y
+            except KeyError:
+                default_cloud_config[x] = y
+
+    return default_cloud_config
