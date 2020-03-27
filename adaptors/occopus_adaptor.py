@@ -333,29 +333,29 @@ class OccopusAdaptor(abco.Adaptor):
         nics = dict()
         self.node_data.setdefault(key, {}).setdefault("type", "cloudsigma")
         self.node_data.setdefault(key, {})\
-            .setdefault("libdrive_id", properties["libdrive_id"].value)
+            .setdefault("libdrive_id", properties["libdrive_id"])
         self.node_data.setdefault(key, {})\
             .setdefault("description", {})\
-            .setdefault("cpu", properties["num_cpus"].value)
+            .setdefault("cpu", properties["num_cpus"])
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("mem", properties["mem_size"].value)
+            .setdefault("mem", properties["mem_size"])
         self.node_data.setdefault(key, {})\
             .setdefault("description", {})\
-            .setdefault("vnc_password", properties["vnc_password"].value)
+            .setdefault("vnc_password", properties["vnc_password"])
         if properties.get("public_key_id") is not None:
             pubkeys = list()
-            pubkeys.append(properties["public_key_id"].value)
+            pubkeys.append(properties["public_key_id"])
             self.node_data[key]["description"]["pubkeys"] = pubkeys
         if properties.get("hv_relaxed") is not None:
             self.node_data.setdefault(key, {})\
             .setdefault("description", {})\
-            .setdefault("hv_relaxed", properties["hv_relaxed"].value)
+            .setdefault("hv_relaxed", properties["hv_relaxed"])
         if properties.get("hv_tsc") is not None:
             self.node_data.setdefault(key, {})\
             .setdefault("description", {})\
-            .setdefault("hv_tsc", properties["hv_tsc"].value)
-        nics=properties.get("nics").value
+            .setdefault("hv_tsc", properties["hv_tsc"])
+        nics=properties.get("nics")
         self.node_data[key]["description"]["nics"] = nics
         self._node_data_get_context_section(properties)
         self.node_data.setdefault("health_check", {}) \
@@ -369,24 +369,24 @@ class OccopusAdaptor(abco.Adaptor):
 
         self.node_data.setdefault(key, {}).setdefault("type", "ec2")
         self.node_data.setdefault(key, {}) \
-            .setdefault("regionname", properties["region_name"].value)
+            .setdefault("regionname", properties["region_name"])
         self.node_data.setdefault(key, {}) \
-            .setdefault("image_id", properties["image_id"].value)
+            .setdefault("image_id", properties["image_id"])
         self.node_data.setdefault(key, {}) \
-            .setdefault("instance_type", properties["instance_type"].value)
+            .setdefault("instance_type", properties["instance_type"])
         self._node_data_get_context_section(properties)
         if properties.get("key_name") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("key_name", properties["key_name"].value)
+              .setdefault("key_name", properties["key_name"])
         if properties.get("subnet_id") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("subnet_id", properties["subnet_id"].value)
+              .setdefault("subnet_id", properties["subnet_id"])
         if properties.get("security_group_ids") is not None:
             security_groups = list()
-            security_groups = properties["security_group_ids"].value
+            security_groups = properties["security_group_ids"]
             self.node_data[key]["security_group_ids"] = security_groups
         if properties.get("tags") is not None:
-            tags = properties["tags"].value
+            tags = properties["tags"]
             self.node_data[key]["tags"] = tags
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
@@ -400,21 +400,21 @@ class OccopusAdaptor(abco.Adaptor):
         self.node_data.setdefault(key, {}).setdefault("type", "cloudbroker")
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("deployment_id", properties["deployment_id"].value)
+            .setdefault("deployment_id", properties["deployment_id"])
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("instance_type_id", properties["instance_type_id"].value)
+            .setdefault("instance_type_id", properties["instance_type_id"])
         self.node_data.setdefault(key, {}) \
             .setdefault("description", {}) \
-            .setdefault("key_pair_id", properties["key_pair_id"].value)
+            .setdefault("key_pair_id", properties["key_pair_id"])
         if properties.get("opened_port") is not None:
             self.node_data.setdefault(key, {}) \
               .setdefault("description", {}) \
-              .setdefault("opened_port", properties["opened_port"].value)
+              .setdefault("opened_port", properties["opened_port"])
         if properties.get("infrastructure_component_id") is not None:
             self.node_data.setdefault(key,{}) \
               .setdefault("description", {}) \
-              .setdefault("infrastructure_component_id", properties["infrastructure_component_id"].value)
+              .setdefault("infrastructure_component_id", properties["infrastructure_component_id"])
         self._node_data_get_context_section(properties)
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
@@ -427,21 +427,21 @@ class OccopusAdaptor(abco.Adaptor):
         
         self.node_data.setdefault(key, {}).setdefault("type", "nova")
         self.node_data.setdefault(key, {}) \
-            .setdefault("project_id", properties["project_id"].value)
+            .setdefault("project_id", properties["project_id"])
         self.node_data.setdefault(key, {}) \
-            .setdefault("image_id", properties["image_id"].value)
+            .setdefault("image_id", properties["image_id"])
         self.node_data.setdefault(key, {}) \
-            .setdefault("network_id", properties["network_id"].value)
+            .setdefault("network_id", properties["network_id"])
         self.node_data.setdefault(key, {}) \
-            .setdefault("flavor_name", properties["flavor_name"].value)
+            .setdefault("flavor_name", properties["flavor_name"])
         if properties.get("server_name") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("server_name", properties["server_name"].value)
+              .setdefault("server_name", properties["server_name"])
         if properties.get("key_name") is not None:
             self.node_data.setdefault(key, {}) \
-              .setdefault("key_name", properties["key_name"].value)
+              .setdefault("key_name", properties["key_name"])
         if properties.get("security_groups") is not None:
-            self.node_data[key]["security_groups"] = properties["security_groups"].value
+            self.node_data[key]["security_groups"] = properties["security_groups"]
         self._node_data_get_context_section(properties)
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
@@ -523,7 +523,7 @@ class OccopusAdaptor(abco.Adaptor):
 
     def _get_host_properties(self, node):
         """ Get host properties """
-        return node.get_properties()
+        return {x: y.value for x, y in node.get_properties().items()}
 
     def _get_policies(self, node):
         """ Get the TOSCA policies """
