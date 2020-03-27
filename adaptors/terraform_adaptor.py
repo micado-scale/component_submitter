@@ -25,6 +25,7 @@ LOG_SUFFIX = (
     " done | tee /proc/1/fd/1"
 )
 SUPPORTED_CLOUDS = ("ec2", "nova", "azure", "gce")
+RUNCMD_PLACEHOLDER = "echo micado runcmd placeholder"
 
 
 class TerraformDict(dict):
@@ -160,7 +161,7 @@ class TerraformAdaptor(abco.Adaptor):
             properties = self._get_properties_values(node)
             properties.update(tf_options)
 
-            context = properties.get("context")
+            context = properties.get("context", {})
             cloud_init = self._node_data_get_context_section(context)
             self.cloud_inits.add(cloud_init)
 
@@ -308,29 +309,22 @@ class TerraformAdaptor(abco.Adaptor):
         """
         Create the cloud-init config file
         """
+        cloud_config = context.get("cloud_config")
         if not context:
             logger.debug("The adaptor will use a default cloud-config")
-            node_init = self._get_cloud_init(None, False, False)
-
+            node_init = self._get_cloud_init(None)
+        elif not cloud_config:
+            logger.debug("No cloud-config provided... using default cloud-config")
+            node_init = self._get_cloud_init(None)
+        elif context.get("insert"):
+            logger.debug("Insert the TOSCA cloud-config in the default config")
+            node_init = self._get_cloud_init(cloud_config, "insert")
         elif context.get("append"):
-            if not context.get("cloud_config"):
-                logger.error(
-                    "You set append properties but you do not have cloud_config. Please check it again!"
-                )
-                raise AdaptorCritical(
-                    "You set append properties but you don't have cloud_config. Please check it again!"
-                )
-            else:
-                logger.debug("Append the TOSCA cloud-config to the default config")
-                node_init = self._get_cloud_init(context["cloud_config"], True, False)
-
+            logger.debug("Append the TOSCA cloud-config to the default config")
+            node_init = self._get_cloud_init(cloud_config, "append")
         else:
-            if not context.get("cloud_config"):
-                logger.debug("The adaptor will use a default cloud-config")
-                node_init = self._get_cloud_init(None, False, False)
-            else:
-                logger.debug("The adaptor will use the TOSCA cloud-config")
-                node_init = self._get_cloud_init(context["cloud_config"], False, True)
+            logger.debug("Overwrite the default cloud-config")
+            node_init = self._get_cloud_init(cloud_config, "overwrite")
 
         cloud_init_file_name = "{}-cloud-init.yaml".format(self.node_name)
         cloud_init_path = "{}{}".format(self.volume, cloud_init_file_name)
@@ -355,7 +349,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         return aws_properties
 
-    def _get_cloud_init(self, tosca_cloud_config, append, override):
+    def _get_cloud_init(self, tosca_cloud_config, insert_mode=None):
         """
         Get cloud-config from MiCADO cloud-init template
         """
@@ -374,22 +368,16 @@ class TerraformAdaptor(abco.Adaptor):
                 )
         except OSError as e:
             logger.error(e)
-        if override:
-            return yaml.round_trip_load(tosca_cloud_config, preserve_quotes=True)
-        if tosca_cloud_config is not None:
-            tosca_cloud_config = yaml.round_trip_load(
-                tosca_cloud_config, preserve_quotes=True
-            )
-        if append:
-            for x in default_cloud_config:
-                for y in tosca_cloud_config:
-                    if x == y:
-                        for z in tosca_cloud_config[y]:
-                            # Insert anywhere before 'join kubernetes'
-                            default_cloud_config[x].insert(29, z)
+
+        if not tosca_cloud_config:
             return default_cloud_config
-        else:
-            return default_cloud_config
+
+        tosca_cloud_config = yaml.round_trip_load(
+            tosca_cloud_config, preserve_quotes=True
+        )
+        return utils.get_cloud_config(
+            insert_mode, RUNCMD_PLACEHOLDER, default_cloud_config, tosca_cloud_config
+        )
 
     def _get_properties_values(self, node):
         """ Get host properties """
