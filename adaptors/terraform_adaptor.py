@@ -487,7 +487,7 @@ class TerraformAdaptor(abco.Adaptor):
                     "security_groups": security_groups,
                     "user_data": '${file("${path.module}/%s")}' % cloud_init_file_name,
                     "for_each": "${toset(var.%s)}" % instance_name,
-                    "network": {"name": network_name, "uuid": network_id,},
+                    "network": network,
                 }
             }
 
@@ -501,8 +501,12 @@ class TerraformAdaptor(abco.Adaptor):
 
         image_id = properties["image_id"]
         flavor_id = properties.get("flavor_name") or properties.get("flavor_id")
-        network_name = properties["network_name"]
-        network_id = properties["network_id"]
+        
+        network = {}
+        network["name"] = properties.get("network_name")
+        network["uuid"] = properties.get("network_id")
+        network = {x: y for x, y in network.items() if y}
+
         key_pair = properties["key_name"]
         security_groups = properties["security_groups"]
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
