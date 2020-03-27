@@ -156,7 +156,7 @@ class TerraformAdaptor(abco.Adaptor):
                 continue
 
             self._get_policies(node)
-            tf_options = utils.resolve_get_property(tf_interface.get("create"))
+            tf_options = utils.resolve_get_property(node, tf_interface.get("create"))
             properties = self._get_properties_values(node)
             properties.update(tf_options)
 

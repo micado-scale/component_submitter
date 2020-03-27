@@ -104,7 +104,7 @@ def get_cloud_type(node, supported_clouds):
         if any(cloud in x for x in generate_parents(node)):
             return cloud
 
-def resolve_get_property(cloud_inputs):
+def resolve_get_property(node, cloud_inputs):
     """Resolve get property and return resolved inputs
 
     Returns:
