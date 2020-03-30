@@ -718,7 +718,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         self.tf_json.add_resource("azurerm_network_interface", network_interface)
 
-        network_security_assoc_name = instance_name + "security-association"
+        network_security_assoc_name = instance_name + "-security-association"
         self.tf_json.add_resource(
             "azurerm_network_interface_security_group_association",
             get_network_security_association(),
