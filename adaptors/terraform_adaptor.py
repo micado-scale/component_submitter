@@ -355,8 +355,12 @@ class TerraformAdaptor(abco.Adaptor):
         """
         yaml.default_flow_style = False
         default_cloud_config = {}
-        with open(self.master_cert, "r") as p:
-            master_file = p.read()
+        try:
+            with open(self.master_cert, "r") as p:
+                master_file = p.read()
+        except FileNotFoundError:
+            logger.warning("No CA Cert found for IPSec on worker node")
+            master_file=""
         try:
             with open(self.cloud_init_template, "r") as f:
                 template = jinja2.Template(f.read())
