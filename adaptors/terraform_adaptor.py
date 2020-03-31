@@ -120,8 +120,8 @@ class TerraformAdaptor(abco.Adaptor):
         self.account_file = "{}accounts.json".format(self.volume)
 
         self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
-        self.auth_data_file = "/var/lib/submitter/system/auth_data.yaml"
-        self.auth_gce = "/var/lib/submitter/system/gce_auth.json"
+        self.auth_data_file = "/var/lib/submitter/auth/auth_data.yaml"
+        self.auth_gce = "/var/lib/submitter/gce-auth/accounts.json"
         self.master_cert = "/var/lib/submitter/system/master.pem"
 
         self.tf_json = TerraformDict()

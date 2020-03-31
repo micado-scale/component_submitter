@@ -61,7 +61,7 @@ class OccopusAdaptor(abco.Adaptor):
                 self._init_docker()
 
         self.occopus_address = "occopus:5000"
-        self.auth_data_file = "/var/lib/micado/occopus/data/auth_data.yaml"
+        self.auth_data_file = "/var/lib/micado/occopus/auth/auth_data.yaml"
         self.occo_node_path = "/var/lib/micado/occopus/submitter/{}.yaml".format(self.ID)
         self.occo_infra_path = "/var/lib/micado/occopus/submitter/{}-infra.yaml".format(self.ID)
         logger.info("Occopus Adaptor initialised")
