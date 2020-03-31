@@ -120,8 +120,8 @@ class TerraformAdaptor(abco.Adaptor):
         self.account_file = "{}accounts.json".format(self.volume)
 
         self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
-        self.auth_data_file = "/var/lib/submitter/system/auth_data.yaml"
-        self.auth_gce = "/var/lib/submitter/system/gce_auth.json"
+        self.auth_data_file = "/var/lib/submitter/auth/auth_data.yaml"
+        self.auth_gce = "/var/lib/submitter/gce-auth/accounts.json"
         self.master_cert = "/var/lib/submitter/system/master.pem"
 
         self.tf_json = TerraformDict()
@@ -355,8 +355,12 @@ class TerraformAdaptor(abco.Adaptor):
         """
         yaml.default_flow_style = False
         default_cloud_config = {}
-        with open(self.master_cert, "r") as p:
-            master_file = p.read()
+        try:
+            with open(self.master_cert, "r") as p:
+                master_file = p.read()
+        except FileNotFoundError:
+            logger.warning("No CA Cert found for IPSec on worker node")
+            master_file=""
         try:
             with open(self.cloud_init_template, "r") as f:
                 template = jinja2.Template(f.read())
@@ -473,8 +477,6 @@ class TerraformAdaptor(abco.Adaptor):
                 "version": "~> 1.26",
                 "auth_url": auth_url,
                 "tenant_id": tenant_id,
-                "user_name": credential["username"],
-                "password": credential["password"],
             }
 
         def get_virtual_machine():
@@ -497,7 +499,18 @@ class TerraformAdaptor(abco.Adaptor):
         credential = self._get_credential_info("nova")
         auth_url = properties.get("auth_url") or properties.get("endpoint")
         tenant_id = properties["project_id"]
-        self.tf_json.add_provider("openstack", get_provider())
+        
+        provider = get_provider()
+        app_cred_id = credential.get("application_credential_id")
+        app_cred_secret = credential.get("application_credential_secret")
+        if app_cred_id and app_cred_secret:
+            provider["application_credential_id"] = app_cred_id
+            provider["application_credential_secret"] = app_cred_secret
+        else:
+            provider["user_name"] = credential["username"]
+            provider["password"] = credential["password"]
+
+        self.tf_json.add_provider("openstack", provider)
 
         image_id = properties["image_id"]
         flavor_id = properties.get("flavor_name") or properties.get("flavor_id")
@@ -684,7 +697,6 @@ class TerraformAdaptor(abco.Adaptor):
         use_msi = any(
             [
                 not credential.get("client_secret"),
-                credential.get("use_msi", "").lower() == "true",
                 properties.pop("use_msi", "").lower() == "true",
             ]
         )
@@ -718,7 +730,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         self.tf_json.add_resource("azurerm_network_interface", network_interface)
 
-        network_security_assoc_name = instance_name + "security-association"
+        network_security_assoc_name = instance_name + "-security-association"
         self.tf_json.add_resource(
             "azurerm_network_interface_security_group_association",
             get_network_security_association(),

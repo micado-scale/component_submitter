@@ -44,6 +44,8 @@ class OccopusAdaptor(abco.Adaptor):
         self.max_instances = 1
         self.ID = adaptor_id
         self.template = template
+        self.auth_data_in = "/var/lib/submitter/auth/auth_data.yaml"
+        self.auth_data_out = "{}auth_data_modified.yaml".format(self.config['volume'])
         self.node_path = "{}{}.yaml".format(self.config['volume'], self.ID)
         self.node_path_tmp = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
         self.infra_def_path_output = "{}{}-infra.yaml".format(self.config['volume'], self.ID)
@@ -61,7 +63,7 @@ class OccopusAdaptor(abco.Adaptor):
                 self._init_docker()
 
         self.occopus_address = "occopus:5000"
-        self.auth_data_file = "/var/lib/micado/occopus/data/auth_data.yaml"
+        self.auth_data_file = "/var/lib/micado/occopus/auth/auth_data.yaml"
         self.occo_node_path = "/var/lib/micado/occopus/submitter/{}.yaml".format(self.ID)
         self.occo_infra_path = "/var/lib/micado/occopus/submitter/{}-infra.yaml".format(self.ID)
         logger.info("Occopus Adaptor initialised")
@@ -110,6 +112,7 @@ class OccopusAdaptor(abco.Adaptor):
             self.node_def.setdefault(node_type, [])
             self.node_def[node_type].append(self.node_data)
         if self.node_def:
+            self.prepare_auth_file()
             if tmp:
                 utils.dump_order_yaml(self.node_def, self.node_path_tmp)
             elif self.validate is False:
@@ -206,6 +209,7 @@ class OccopusAdaptor(abco.Adaptor):
         try:
             os.remove(self.node_path)
             os.remove(self.infra_def_path_output)
+            os.remove(self.auth_data_out)
         except OSError as e:
             logger.warning(e)
         # Flush the occopus-redis db
@@ -540,6 +544,36 @@ class OccopusAdaptor(abco.Adaptor):
                     properties = policy.get_properties()
                     self.min_instances = properties["min_instances"].value
                     self.max_instances = properties["max_instances"].value
+
+    def prepare_auth_file(self):
+        """ Prepare the Occopus auth file """
+        changed = False
+        try:
+            with open(self.auth_data_in, 'r') as f:
+                auth_file = yaml.round_trip_load(f, preserve_quotes=True)
+        except OSError:
+            logger.error("Could not load credentials for editing")
+            return
+
+        for resource in auth_file.get("resource", []):
+            if resource.get("type") == "nova":
+                changed = self.modify_openstack_authentication(resource.get("auth_data"))
+
+        if changed:
+            utils.dump_order_yaml(auth_file, self.auth_data_out)
+            self.auth_data_path = "/var/lib/micado/occopus/submitter/auth_data_modified.yaml"
+
+    def modify_openstack_authentication(self, auth_data):
+        """ Modify the OpenStack credential type """
+        app_cred_id = auth_data.pop("application_credential_id", None)
+        app_cred_secret = auth_data.pop("application_credential_secret", None)
+        if app_cred_id and app_cred_secret:
+            auth_data["type"] = "application_credential"
+            auth_data["id"] = app_cred_id
+            auth_data["secret"] = app_cred_secret
+            auth_data.pop("username", None)
+            auth_data.pop("password", None)
+            return True
 
     def _differentiate(self, path, tmp_path):
         """ Compare two files """
