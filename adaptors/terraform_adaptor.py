@@ -477,8 +477,6 @@ class TerraformAdaptor(abco.Adaptor):
                 "version": "~> 1.26",
                 "auth_url": auth_url,
                 "tenant_id": tenant_id,
-                "user_name": credential["username"],
-                "password": credential["password"],
             }
 
         def get_virtual_machine():
@@ -501,7 +499,18 @@ class TerraformAdaptor(abco.Adaptor):
         credential = self._get_credential_info("nova")
         auth_url = properties.get("auth_url") or properties.get("endpoint")
         tenant_id = properties["project_id"]
-        self.tf_json.add_provider("openstack", get_provider())
+        
+        provider = get_provider()
+        app_cred_id = credential.get("application_credential_id")
+        app_cred_secret = credential.get("application_credential_secret")
+        if app_cred_id and app_cred_secret:
+            provider["application_credential_id"] = app_cred_id
+            provider["application_credential_secret"] = app_cred_secret
+        else:
+            provider["user_name"] = credential["username"]
+            provider["password"] = credential["password"]
+
+        self.tf_json.add_provider("openstack", provider)
 
         image_id = properties["image_id"]
         flavor_id = properties.get("flavor_name") or properties.get("flavor_id")
@@ -688,7 +697,6 @@ class TerraformAdaptor(abco.Adaptor):
         use_msi = any(
             [
                 not credential.get("client_secret"),
-                credential.get("use_msi", "").lower() == "true",
                 properties.pop("use_msi", "").lower() == "true",
             ]
         )
