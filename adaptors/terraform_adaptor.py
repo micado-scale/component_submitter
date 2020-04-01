@@ -360,7 +360,7 @@ class TerraformAdaptor(abco.Adaptor):
                 master_file = p.read()
         except FileNotFoundError:
             logger.warning("No CA Cert found for IPSec on worker node")
-            master_file=""
+            master_file = ""
         try:
             with open(self.cloud_init_template, "r") as f:
                 template = jinja2.Template(f.read())
@@ -436,7 +436,10 @@ class TerraformAdaptor(abco.Adaptor):
             "access_key": credential["accesskey"],
             "secret_key": credential["secretkey"],
         }
-        endpoint = properties.pop("endpoint", None)
+        # Handle deprecated Occopus inputs
+        properties.pop("interface_cloud", None)
+        occo_endpoint = properties.pop("endpoint_cloud", None)
+        endpoint = properties.pop("endpoint", occo_endpoint)
         if endpoint:
             aws_provider.setdefault("endpoints", {})["ec2"] = endpoint
         self.tf_json.add_provider("aws", aws_provider)
@@ -497,9 +500,13 @@ class TerraformAdaptor(abco.Adaptor):
         self.tf_json.add_instance_variable(instance_name, self.min_instances)
 
         credential = self._get_credential_info("nova")
-        auth_url = properties.get("auth_url") or properties.get("endpoint")
+        auth_url = (
+            properties.get("auth_url")
+            or properties.get("endpoint")
+            or properties.get("endpoint_cloud")
+        )
         tenant_id = properties["project_id"]
-        
+
         provider = get_provider()
         app_cred_id = credential.get("application_credential_id")
         app_cred_secret = credential.get("application_credential_secret")
@@ -514,7 +521,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         image_id = properties["image_id"]
         flavor_id = properties.get("flavor_name") or properties.get("flavor_id")
-        
+
         network = {}
         network["name"] = properties.get("network_name")
         network["uuid"] = properties.get("network_id")
