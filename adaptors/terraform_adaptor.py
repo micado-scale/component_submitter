@@ -75,6 +75,7 @@ class TerraformDict(dict):
     def add_instance_variable(self, name, value):
         self.add_variable(name, {})
         node_list = []
+        value = int(value)
         for i in range(1, value + 1):
             node_list.append(str(i))
         self.tfvars[name] = node_list
@@ -401,8 +402,8 @@ class TerraformAdaptor(abco.Adaptor):
                 if self.node_name == target.name:
                     logger.debug("policy target match for compute node")
                     properties = self._get_properties_values(policy)
-                    self.min_instances = properties["min_instances"]
-                    self.max_instances = properties["max_instances"]
+                    self.min_instances = properties.get("min_instances", self.min_instances)
+                    self.max_instances = properties.get("max_instances")
 
     def _differentiate(self, path, tmp_path):
         """ Compare two files """
