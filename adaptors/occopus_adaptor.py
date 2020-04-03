@@ -561,7 +561,7 @@ class OccopusAdaptor(abco.Adaptor):
 
         if changed:
             utils.dump_order_yaml(auth_file, self.auth_data_out)
-            self.auth_data_path = "/var/lib/micado/occopus/submitter/auth_data_modified.yaml"
+            self.auth_data_file = "/var/lib/micado/occopus/submitter/auth_data_modified.yaml"
 
     def modify_openstack_authentication(self, auth_data):
         """ Modify the OpenStack credential type """
