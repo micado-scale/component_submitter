@@ -1,5 +1,6 @@
 import filecmp
 import os
+import base64
 import copy
 import logging
 import docker
@@ -9,6 +10,7 @@ import requests
 import utils
 
 import jinja2
+import pykube
 
 from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
@@ -44,8 +46,7 @@ class OccopusAdaptor(abco.Adaptor):
         self.max_instances = 1
         self.ID = adaptor_id
         self.template = template
-        self.auth_data_in = "/var/lib/submitter/auth/auth_data.yaml"
-        self.auth_data_out = "{}auth_data_modified.yaml".format(self.config['volume'])
+        self.auth_data_submitter = "/var/lib/submitter/auth/auth_data.yaml"
         self.node_path = "{}{}.yaml".format(self.config['volume'], self.ID)
         self.node_path_tmp = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
         self.infra_def_path_output = "{}{}-infra.yaml".format(self.config['volume'], self.ID)
@@ -112,10 +113,10 @@ class OccopusAdaptor(abco.Adaptor):
             self.node_def.setdefault(node_type, [])
             self.node_def[node_type].append(self.node_data)
         if self.node_def:
-            self.prepare_auth_file()
             if tmp:
                 utils.dump_order_yaml(self.node_def, self.node_path_tmp)
             elif self.validate is False:
+                self.prepare_auth_file()
                 utils.dump_order_yaml(self.node_def, self.node_path)
 
         self.status = "translated"
@@ -209,7 +210,6 @@ class OccopusAdaptor(abco.Adaptor):
         try:
             os.remove(self.node_path)
             os.remove(self.infra_def_path_output)
-            os.remove(self.auth_data_out)
         except OSError as e:
             logger.warning(e)
         # Flush the occopus-redis db
@@ -547,24 +547,66 @@ class OccopusAdaptor(abco.Adaptor):
 
     def prepare_auth_file(self):
         """ Prepare the Occopus auth file """
-        changed = False
-        try:
-            with open(self.auth_data_in, 'r') as f:
-                auth_file = yaml.round_trip_load(f, preserve_quotes=True)
-        except OSError:
-            logger.error("Could not load credentials for editing")
-            return
+        # Pull the auth data out of the secret
+        changes = {}
+        auth_secret = self.load_auth_data_secret()
+        auth_data = auth_secret.obj["data"]
+        auth_file = auth_data.get("auth_data.yaml", {})
+        auth_file = base64.decodestring(auth_file.encode())
+        auth_file = yaml.safe_load(auth_file)
 
+        # Modify the auth data
         for resource in auth_file.get("resource", []):
             if resource.get("type") == "nova":
-                changed = self.modify_openstack_authentication(resource.get("auth_data"))
+                auth = resource.get("auth_data", {})
+                self.modify_openstack_authentication(auth, changes)
 
-        if changed:
-            utils.dump_order_yaml(auth_file, self.auth_data_out)
-            self.auth_data_file = "/var/lib/micado/occopus/submitter/auth_data_modified.yaml"
+        # Update the secret with the modified auth data
+        if changes:
+            new_auth_data = yaml.dump(auth_file).encode()
+            new_auth_data = base64.encodestring(new_auth_data)
+            auth_data["auth_data.yaml"] = new_auth_data.decode()
+            auth_secret.update()
+            self.wait_for_volume_update(changes)
 
-    def modify_openstack_authentication(self, auth_data):
+    def load_auth_data_secret(self):
+        """ Return the auth data secret """
+        kube_config = pykube.KubeConfig.from_file("~/.kube/config")
+        api = pykube.HTTPClient(kube_config)
+        secrets = pykube.Secret.objects(api).filter(namespace="micado-system")
+        for secret in secrets:
+            if secret.name == "cloud-credentials":
+                return secret
+    
+    def wait_for_volume_update(self, changes):
+        """ Wait for update changes to be reflected in the volume """
+        wait_timer = 100
+        logger.debug("Waiting for authentication data to update...")
+        while wait_timer > 0:
+            # Read the file in the submitter's auth volume
+            try:
+                with open(self.auth_data_submitter) as auth_file:
+                    auth_data = yaml.safe_load(auth_file)
+            except FileNotFoundError:
+                logger.error("Credential file missing...")
+                raise AdaptorCritical
+
+            # Check to see if the necessary changes have been reflected
+            for cloud in auth_data.get("resource", []):
+                cloud_type = cloud["type"]
+                auth_type = cloud["auth_data"].get("type", "")
+                if cloud_type in changes and auth_type == changes[cloud_type]:
+                    return
+            time.sleep(5)           
+            wait_timer -= 5
+        logger.warning("Got timeout while waiting for secret volume to update...")
+
+    def modify_openstack_authentication(self, auth_data, changes):
         """ Modify the OpenStack credential type """
+        if auth_data.get("type") == "application_credential":
+            # Already up-to-date
+            return
+
         app_cred_id = auth_data.pop("application_credential_id", None)
         app_cred_secret = auth_data.pop("application_credential_secret", None)
         if app_cred_id and app_cred_secret:
@@ -573,7 +615,7 @@ class OccopusAdaptor(abco.Adaptor):
             auth_data["secret"] = app_cred_secret
             auth_data.pop("username", None)
             auth_data.pop("password", None)
-            return True
+            changes["nova"] = "application_credential"
 
     def _differentiate(self, path, tmp_path):
         """ Compare two files """
