@@ -7,6 +7,8 @@ from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
 import ruamel.yaml as yaml
 
+import utils
+
 logger = logging.getLogger("adaptor."+__name__)
 
 # Hard-coded things for Pk
@@ -53,8 +55,8 @@ class PkAdaptor(abco.Adaptor):
             if not policy.type.startswith("tosca.policies.Scaling"):
                 continue
             for target in policy.targets_list:
-                if "Compute" in target.type:
-                    node_data = {"name": target.name}
+                if utils.get_cloud_type(target, ["compute"]):
+                    node_data = {"name": target.name, "orchestrator": get_interface(target)}
                     node_data.update(self._pk_scaling_properties(policy))
                     self.pk_data.setdefault(SCALING, {}).setdefault(NODES, []).append(node_data)
                 else:
@@ -181,3 +183,11 @@ class PkAdaptor(abco.Adaptor):
     def _differentiate(self):
         # Compare two Pk file
         return filecmp.cmp(self.path, self.tmp_path)
+
+
+def get_interface(node):
+    """Get first interface, from parent if necessary"""
+    if node.interfaces:
+        return node.interfaces[0].type
+    else:
+        return list(node.type_definition.interfaces.keys())[0]

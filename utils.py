@@ -1,15 +1,33 @@
 import random
 import string
-import ruamel.yaml as yaml
+import json
 from six.moves import urllib
 import codecs
 import logging
+
+import ruamel.yaml as yaml
+from toscaparser.functions import GetProperty
+
 logger=logging.getLogger("submitter."+__name__)
 
 class NoAliasRTDumper(yaml.RoundTripDumper):
     """ Turn off aliases, preserve order """
     def ignore_aliases(self, data):
         return True
+
+def load_json(path):
+    """ Load the dictionary from a json file """    
+
+    with open(path, 'r') as file:
+        data = json.load(file)
+        
+    return data
+
+def dump_json(data, path):
+    """ Dump the dictionary to a json file """    
+
+    with open(path, 'w') as file:
+        json.dump(data, file, indent=4)
 
 def dump_order_yaml(data, path):
     """ Dump the dictionary to a yaml file """    
@@ -55,7 +73,10 @@ def get_lifecycle(node, interface_type):
     for stage, value in parent_interfaces.items():
         if stage == "type":
             continue
-        lifecycle[stage] = value.get("inputs")
+        try:
+            lifecycle[stage] = value.get("inputs")
+        except AttributeError:
+            lifecycle[stage] = {}
 
     # Update these interfaces with any inputs from the current node
     interfaces = [x for x in node.interfaces if interface_type in x.type]
@@ -63,3 +84,68 @@ def get_lifecycle(node, interface_type):
         lifecycle.setdefault(stage.name, {}).update(stage.inputs or {})
 
     return lifecycle
+
+def get_cloud_type(node, supported_clouds):
+    """Get parent types of a node
+
+    Returns the cloud type from node type or parent types
+
+    Returns:
+        string: lowercase node type
+    """
+    def generate_parents(node):
+        while True:
+            if not hasattr(node, "type"):
+                break
+            yield node.type.lower()
+            node = node.parent_type
+    
+    for cloud in supported_clouds:
+        if any(cloud in x for x in generate_parents(node)):
+            return cloud
+
+def resolve_get_property(node, cloud_inputs):
+    """Resolve get property and return resolved inputs
+
+    Returns:
+        dict: resolved interface inputs
+    """
+    for field, value in cloud_inputs.items():
+        if isinstance(value, GetProperty):
+            cloud_inputs[field] = value.result()
+            continue
+        elif not isinstance(value, dict) or not "get_property" in value:
+            continue
+        cloud_inputs[field] = node.get_property_value(value.get("get_property")[-1])
+    
+    return cloud_inputs
+
+
+def get_cloud_config(
+    insert_mode, runcmd_placeholder, default_cloud_config, tosca_cloud_config
+):
+
+    if insert_mode == "overwrite":
+        return tosca_cloud_config
+
+    elif insert_mode == "insert":
+        for x, y in tosca_cloud_config.items():
+            try:
+                idx = default_cloud_config[x].index(runcmd_placeholder)
+                default_cloud_config[x][idx:idx] = y
+            except (AttributeError, KeyError):
+                default_cloud_config[x] = y
+            except (ValueError, TypeError):
+                default_cloud_config[x] = y + default_cloud_config[x]
+
+    else:
+        for x, y in tosca_cloud_config.items():
+            try:
+                if isinstance(default_cloud_config[x], bool):
+                    default_cloud_config[x] = y
+                else:
+                    default_cloud_config[x] += y
+            except KeyError:
+                default_cloud_config[x] = y
+
+    return default_cloud_config
