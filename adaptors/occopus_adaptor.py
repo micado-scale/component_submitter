@@ -549,7 +549,11 @@ class OccopusAdaptor(abco.Adaptor):
         """ Prepare the Occopus auth file """
         # Pull the auth data out of the secret
         changes = {}
-        auth_secret = self.load_auth_data_secret()
+        try:
+            auth_secret = self.load_auth_data_secret()
+        except FileNotFoundError:
+            logger.error("Auth data not found")
+            raise AdaptorCritical
         auth_data = auth_secret.obj["data"]
         auth_file = auth_data.get("auth_data.yaml", {})
         auth_file = base64.decodestring(auth_file.encode())
@@ -577,6 +581,7 @@ class OccopusAdaptor(abco.Adaptor):
         for secret in secrets:
             if secret.name == "cloud-credentials":
                 return secret
+        raise FileNotFoundError
     
     def wait_for_volume_update(self, changes):
         """ Wait for update changes to be reflected in the volume """
