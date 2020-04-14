@@ -170,8 +170,8 @@ class TerraformAdaptor(abco.Adaptor):
 
             if cloud_type == "ec2":
                 logger.debug("EC2 resource detected")
-                aws_properties = self._consolidate_ec2_properties(properties)
-                self._add_terraform_aws(aws_properties)
+                self._rename_ec2_properties(properties)
+                self._add_terraform_aws(properties)
             elif cloud_type == "nova":
                 logger.debug("Nova resource detected")
                 self._add_terraform_nova(properties)
@@ -334,21 +334,15 @@ class TerraformAdaptor(abco.Adaptor):
         utils.dump_order_yaml(node_init, cloud_init_path_tmp)
         return cloud_init_path
 
-    def _consolidate_ec2_properties(self, properties):
+    def _rename_ec2_properties(self, properties):
         """
-        Return consolidated & renamed EC2 property keys
+        Rename EC2 property keys
         """
-        aws_properties = {}
-        aws_properties["region"] = properties["region_name"]
-        aws_properties["ami"] = properties["image_id"]
-        aws_properties["instance_type"] = properties["instance_type"]
-        if properties.get("key_name"):
-            aws_properties["key_name"] = properties["key_name"]
+        properties["region"] = properties.pop("region_name")
+        properties["ami"] = properties.pop("image_id")
         if properties.get("security_group_ids"):
-            security_groups = properties["security_group_ids"]
-            aws_properties["vpc_security_group_ids"] = security_groups
-
-        return aws_properties
+            security_groups = properties.pop("security_group_ids")
+            properties["vpc_security_group_ids"] = security_groups
 
     def _get_cloud_init(self, tosca_cloud_config, insert_mode=None):
         """
