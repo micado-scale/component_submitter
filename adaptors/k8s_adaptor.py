@@ -24,8 +24,9 @@ TOSCA_TYPES = (
     KUBERNETES_RESOURCE,
     TOSCA_CONTAINER,
     MICADO_COMPUTE,
+    MICADO_EDGE,
     MICADO_MONITORING,
-    MICADO_SECURITY
+    MICADO_SECURITY,
 ) = (
     "tosca.nodes.MiCADO.Container.Application.Docker",
     "tosca.nodes.MiCADO.Container.Volume",
@@ -35,8 +36,9 @@ TOSCA_TYPES = (
     "tosca.nodes.MiCADO.Kubernetes",
     "tosca.nodes.Container.Application",
     "tosca.nodes.MiCADO.Compute",
+    "tosca.nodes.MiCADO.Edge",
     "tosca.policies.Monitoring.MiCADO",
-    'tosca.policies.Security.MiCADO.Network'
+    "tosca.policies.Security.MiCADO.Network",
 )
 
 SECURITY_POLICIES = (
@@ -1113,11 +1115,38 @@ class WorkloadManifest(Manifest):
         Returns:
             dict: NodeAffinity descriptor for the PodSpec
         """
-        host_list = []
+        selector_terms = []
+        compute_list = []
+        edge_list = []
         for host in self.node.related.keys():
             if host.is_derived_from(MICADO_COMPUTE):
-                host_list.append(host.name)
-        if not host_list:
+                compute_list.append(host.name)
+            elif host.is_derived_from(MICADO_EDGE):
+                edge_list.append(host.name)
+
+        compute_selector = {
+            "matchExpressions": [
+                {
+                    "key": "micado.eu/node_type",
+                    "operator": "In",
+                    "values": compute_list,
+                }
+            ]
+        }
+        edge_selector = {
+            "matchExpressions": [
+                {
+                    "key": "name",
+                    "operator": "In",
+                    "values": edge_list,
+                }
+            ]
+        }
+        if compute_list:
+            selector_terms.append(compute_selector)
+        if edge_list:
+            selector_terms.append(edge_selector)
+        if not selector_terms:
             return {}
 
         # Build & return the affinity descriptor
@@ -1125,22 +1154,13 @@ class WorkloadManifest(Manifest):
             "affinity": {
                 "nodeAffinity": {
                     "requiredDuringSchedulingIgnoredDuringExecution": {
-                        "nodeSelectorTerms": [
-                            {
-                                "matchExpressions": [
-                                    {
-                                        "key": "micado.eu/node_type",
-                                        "operator": "In",
-                                        "values": host_list,
-                                    }
-                                ]
-                            }
-                        ]
+                        "nodeSelectorTerms": selector_terms
                     }
                 }
             }
         }
         return affinity
+
 
 class ServiceManifest(Manifest):
     """Store ServiceSpec data for a Service manifest
