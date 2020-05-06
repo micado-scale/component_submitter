@@ -69,7 +69,11 @@ def get_lifecycle(node, interface_type):
     """
     lifecycle = {}
     # Get the interfaces from the first parent
-    parent_interfaces = node.type_definition.interfaces.get(interface_type, {})
+    try:
+        parent_interfaces = node.type_definition.interfaces[interface_type]
+    except (AttributeError, KeyError, TypeError):
+        parent_interfaces = {}
+
     for stage, value in parent_interfaces.items():
         if stage == "type":
             continue
