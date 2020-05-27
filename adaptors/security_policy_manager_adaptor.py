@@ -11,7 +11,7 @@ from abstracts import base_adaptor as abco
 from abstracts.exceptions import AdaptorCritical
 import logging
 import requests
-TYPES=["tosca.policies.KubernetesSecretDistribution"]
+SECRET_TYPE = "tosca.policies.Security.MiCADO.Secret.KubernetesSecretDistribution"
 
 logger = logging.getLogger("adaptors."+__name__)
 
@@ -71,7 +71,7 @@ class SecurityPolicyManagerAdaptor(abco.Adaptor):
         """ Send to the Security Enforcer the informations
             retrieved from the TOSCA template"""
         for policy in self.policies:
-            if "tosca.policies.KubernetesSecretDistribution" in policy.type:
+            if SECRET_TYPE in policy.type:
                 _interm_dict = policy.get_properties()["text_secrets"].value
                 for key, value in _interm_dict.items():
                     if self.config["dry_run"] is True:
@@ -85,7 +85,7 @@ class SecurityPolicyManagerAdaptor(abco.Adaptor):
     def undeploy(self):
         """ Send to the Security Enforcer the id of the policy to undeploy """
         for policy in self.policies:
-            if "tosca.policies.KubernetesSecretDistribution" in policy.type:
+            if SECRET_TYPE in policy.type:
                 _interm_dict = policy.get_properties()["text_secrets"].value
                 for key, value in _interm_dict.items():
                     if self.config["dry_run"] is True:
