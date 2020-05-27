@@ -56,6 +56,7 @@ class SecurityPolicyManagerAdaptor(abco.Adaptor):
         self.tpl = template
         self.ID = adaptor_id
         self.config = config
+        self.dryrun = dryrun
         self.endpoint = 'http://10.97.170.199:5003/'
         'v1.0/nodecerts'
         self.status = "init"
@@ -74,9 +75,9 @@ class SecurityPolicyManagerAdaptor(abco.Adaptor):
             if SECRET_TYPE in policy.type:
                 _interm_dict = policy.get_properties()["text_secrets"].value
                 for key, value in _interm_dict.items():
-                    if self.config["dry_run"] is True:
+                    if self.dryrun:
                         logger.info("launch api command with params name={} and value={} to {}/v1.0/appsecrets".format(key,value,self.endpoint))
-                    elif self.config["dry_run"] is False:
+                    else:
                         data_keys = {'name':key, 'value':value}
                         logger.info("launch secret")
                         response = requests.post("{}/v1.0/appsecrets".format(self.endpoint), data = data_keys)
@@ -88,9 +89,9 @@ class SecurityPolicyManagerAdaptor(abco.Adaptor):
             if SECRET_TYPE in policy.type:
                 _interm_dict = policy.get_properties()["text_secrets"].value
                 for key, value in _interm_dict.items():
-                    if self.config["dry_run"] is True:
+                    if self.dryrun:
                         logger.info("launch api command to delete secrets with {}/v1.0/appsecrets/{}".format(self.endpoint, key))
-                    elif self.config["dry_run"] is False:
+                    else:
                         logger.info("launch secret delete")
                         response = requests.delete("{}/v1.0/appsecrets/{}".format(self.endpoint, key))
         self.status = "undeployed"
