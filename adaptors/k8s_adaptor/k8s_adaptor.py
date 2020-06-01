@@ -9,40 +9,54 @@ import json
 import pykube
 from toscaparser.tosca_template import ToscaTemplate
 
-from .specs import Manifest, VolumeManifest, ConfigMapManifest, Container, WorkloadManifest, ServiceManifest
+from .specs import (
+    Manifest,
+    VolumeManifest,
+    ConfigMapManifest,
+    Container,
+    WorkloadManifest,
+    ServiceManifest,
+)
 import utils
 from abstracts import base_adaptor
 from abstracts.exceptions import AdaptorCritical, TranslateError
 
 logger = logging.getLogger("adaptors." + __name__)
 
-TOSCA_TYPES = (
+MICADO_NODE_PREFIX = "tosca.nodes.MiCADO"
+TOSCA_NODE_TYPES = (
     DOCKER_CONTAINER,
     CONTAINER_VOLUME,
     CONTAINER_CONFIG,
-    KUBERNETES_INTERFACE,
     KUBERNETES_POD,
     KUBERNETES_RESOURCE,
-    TOSCA_CONTAINER,
     MICADO_COMPUTE,
     MICADO_EDGE,
-    MICADO_MONITORING,
-    MICADO_SECURITY,
 ) = (
-    "tosca.nodes.MiCADO.Container.Application.Docker",
-    "tosca.nodes.MiCADO.Container.Volume",
-    "tosca.nodes.MiCADO.Container.Config",
-    "Kubernetes",
-    "tosca.nodes.MiCADO.Container.Pod.Kubernetes",
-    "tosca.nodes.MiCADO.Kubernetes",
-    "tosca.nodes.Container.Application",
-    "tosca.nodes.MiCADO.Compute",
-    "tosca.nodes.MiCADO.Edge",
-    "tosca.policies.Monitoring.MiCADO",
-    "tosca.policies.Security.MiCADO.Network",
+    MICADO_NODE_PREFIX + "." + policy
+    for policy in (
+        # Docker Container
+        "Container.Application.Docker",
+        # Volume
+        "Container.Volume",
+        # ConfigMap
+        "Container.Config",
+        # Pod
+        "Container.Pod.Kubernetes",
+        # Bare Kubernetes Resource
+        "Kubernetes",
+        # Compute
+        "Compute",
+        #Edge
+        "Edge",
+    )
 )
 
-SECURITY_POLICIES = (
+KUBERNETES_INTERFACE = "Kubernetes"
+
+MICADO_MONITOR_POLICY_PREFIX = "tosca.policies.Monitoring.MiCADO"
+MICADO_NETWORK_POLICY_PREFIX = "tosca.policies.Security.MiCADO.Network"
+NETWORK_POLICIES = (
     PASSTHROUGH_PROXY,
     PLUG_PROXY,
     SMTP_PROXY,
@@ -50,18 +64,21 @@ SECURITY_POLICIES = (
     HTTP_URI_FILTER_PROXY,
     HTTP_WEBDAV_PROXY,
 ) = (
-    # PfService
-    "tosca.policies.Security.MiCADO.Network.Passthrough",
-    # PlugProxy
-    "tosca.policies.Security.MiCADO.Network.L7Proxy",
-    # SmtpProxy
-    "tosca.policies.Security.MiCADO.Network.SmtpProxy",
-    # HttpProxy
-    "tosca.policies.Security.MiCADO.Network.HttpProxy",
-    # HttpURIFilterProxy
-    "tosca.policies.Security.MiCADO.Network.HttpURIFilterProxy",
-    # HttpWebdavProxy
-    "tosca.policies.Security.MiCADO.Network.HttpWebdavProxy",
+    MICADO_NETWORK_POLICY_PREFIX + "." + policy
+    for policy in (
+        # PfService
+        "Passthrough",
+        # PlugProxy
+        "L7Proxy",
+        # SmtpProxy
+        "SmtpProxy",
+        # HttpProxy
+        "HttpProxy",
+        # HttpURIFilterProxy
+        "HttpURIFilterProxy",
+        # HttpWebdavProxy
+        "HttpWebdavProxy",
+    )
 )
 
 
@@ -122,10 +139,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         # Look for a monitoring policy and attach default metric exporters to the application
         for policy in self.tpl.policies:
-            if policy.type == MICADO_MONITORING:
+            if policy.type.startswith(MICADO_MONITOR_POLICY_PREFIX):
                 self._translate_monitoring_policy(policy)
 
-            if policy.type.startswith(MICADO_SECURITY):
+            if policy.type.startswith(MICADO_NETWORK_POLICY_PREFIX):
                 self._translate_security_policy(policy)
 
         if self.ingress_conf:
@@ -155,7 +172,11 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         if not lifecycle:
             return
 
-        if node.is_derived_from(KUBERNETES_RESOURCE):
+        if node.is_derived_from(DOCKER_CONTAINER):
+            manifest = WorkloadManifest(
+                self.short_id, node, lifecycle, self.tpl.repositories
+            )
+        elif node.is_derived_from(KUBERNETES_RESOURCE):
             manifest = Manifest(
                 self.short_id, node.name, lifecycle.get("create"), kind="custom"
             )
@@ -165,10 +186,6 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             manifest = VolumeManifest(self.short_id, node, lifecycle)
         elif node.is_derived_from(CONTAINER_CONFIG):
             manifest = ConfigMapManifest(self.short_id, node, lifecycle)
-        else:
-            manifest = WorkloadManifest(
-                self.short_id, node, lifecycle, self.tpl.repositories
-            )
 
         self.manifests += manifest.manifests
 
@@ -207,7 +224,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         if policy.type == PASSTHROUGH_PROXY:
             # This should now work as expected
             pass
-        elif policy.type in SECURITY_POLICIES:
+        elif policy.type in NETWORK_POLICIES:
             self._translate_level7_policy(policy)
         else:
             logger.warning("Unknown network security policy: {}".format(policy.type))
@@ -552,7 +569,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         logger.info("Fetching outputs...")
         for output in self.tpl.outputs:
             node = output.value.get_referenced_node_template()
-            if node.is_derived_from(TOSCA_CONTAINER):
+            if node.is_derived_from(DOCKER_CONTAINER):
                 logger.debug("Inspect node: {}".format(node.name))
                 query = output.value.attribute_name
                 if query == "port":
@@ -573,7 +590,6 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             logger.info("DRY-RUN: Kubernetes {} in dry-run mode...".format(self.status))
             self.status = "DRY-RUN Deployment"
             return True
-
 
 
 def _get_node(node):
