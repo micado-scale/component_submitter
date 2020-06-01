@@ -124,7 +124,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         logger.info("Kubernetes Adaptor is ready.")
         self.status = "Initialised"
 
-    def translate(self, update=False):
+    def translate(self, update=False, write_files=True):
         """ Translate the relevant sections of the ADT into a Kubernetes Manifest """
         logger.info("Translating into Kubernetes Manifests")
         self.status = "Translating..."
@@ -157,7 +157,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             self.status = "Skipped Translation"
             return
 
-        if update:
+        if not write_files:
+            pass
+        elif update:
             utils.dump_list_yaml(self.manifests, self.manifest_tmp_path)
         elif self.validate is False:
             utils.dump_list_yaml(self.manifests, self.manifest_path)
