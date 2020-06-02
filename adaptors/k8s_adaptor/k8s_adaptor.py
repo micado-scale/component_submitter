@@ -9,6 +9,8 @@ import json
 import pykube
 from toscaparser.tosca_template import ToscaTemplate
 
+from .zorp import ZorpManifests
+
 from .specs import (
     Manifest,
     VolumeManifest,
@@ -21,7 +23,7 @@ import utils
 from abstracts import base_adaptor
 from abstracts.exceptions import AdaptorCritical, TranslateError
 
-logger = logging.getLogger("adaptors." + __name__)
+logger = logging.getLogger("adaptors.k8s_adaptor")
 
 MICADO_NODE_PREFIX = "tosca.nodes.MiCADO"
 TOSCA_NODE_TYPES = (
@@ -148,7 +150,6 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         if self.ingress_conf:
             self._deploy_zorp()
             self._manifest_secrets()
-            self._manifest_ingress()
 
         if not self.manifests:
             logger.info(
@@ -269,137 +270,15 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 pass
 
     def _deploy_zorp(self):
-        self._manifest_zorp_service_account()
-        self._manifest_zorp_cluster_role()
-        self._manifest_zorp_role_binding()
-        self._manifest_zorp_daemon_set()
+        zorp = ZorpManifests()
+        ports_list = self._list_ports()
+        ingress_conf = json.dumps(self.ingress_conf)
 
-    def _manifest_zorp_service_account(self):
-        self.manifests.append(
-            {
-                "apiVersion": "v1",
-                "kind": "ServiceAccount",
-                "metadata": {
-                    "name": "zorp-ingress-service-account",
-                    "namespace": "micado-worker",
-                    "labels": {
-                        "app.kubernetes.io/name": "zorp-ingress-service-account",
-                        "app.kubernetes.io/managed-by": "micado",
-                        "app.kubernetes.io/version": "1.0",
-                    },
-                },
-            }
-        )
-
-    def _manifest_zorp_cluster_role(self):
-        self.manifests.append(
-            {
-                "apiVersion": "rbac.authorization.k8s.io/v1",
-                "kind": "ClusterRole",
-                "metadata": {
-                    "name": "zorp-ingress-cluster-role",
-                    "labels": {
-                        "app.kubernetes.io/name": "zorp-ingress-cluster-role",
-                        "app.kubernetes.io/managed-by": "micado",
-                        "app.kubernetes.io/version": "1.0",
-                    },
-                },
-                "rules": [
-                    {
-                        "apiGroups": [""],
-                        "resources": [
-                            "configmaps",
-                            "endpoints",
-                            "nodes",
-                            "pods",
-                            "secrets",
-                            "services",
-                            "namespaces",
-                            "events",
-                            "serviceaccounts",
-                        ],
-                        "verbs": ["get", "list", "watch"],
-                    },
-                    {
-                        "apiGroups": ["extensions"],
-                        "resources": ["ingresses", "ingresses/status"],
-                        "verbs": ["get", "list", "watch"],
-                    },
-                ],
-            }
-        )
-
-    def _manifest_zorp_role_binding(self):
-        self.manifests.append(
-            {
-                "apiVersion": "rbac.authorization.k8s.io/v1",
-                "kind": "ClusterRoleBinding",
-                "metadata": {
-                    "name": "zorp-ingress-cluster-role-binding",
-                    "namespace": "micado-worker",
-                    "labels": {
-                        "app.kubernetes.io/name": "zorp-ingress-cluster-role-binding",
-                        "app.kubernetes.io/managed-by": "micado",
-                        "app.kubernetes.io/version": "1.0",
-                    },
-                },
-                "roleRef": {
-                    "apiGroup": "rbac.authorization.k8s.io",
-                    "kind": "ClusterRole",
-                    "name": "zorp-ingress-cluster-role",
-                },
-                "subjects": [
-                    {
-                        "kind": "ServiceAccount",
-                        "name": "zorp-ingress-service-account",
-                        "namespace": "micado-worker",
-                    }
-                ],
-            }
-        )
-
-    def _manifest_zorp_daemon_set(self):
-        self.manifests.append(
-            {
-                "apiVersion": "apps/v1",
-                "kind": "DaemonSet",
-                "metadata": {
-                    "name": "zorp-ingress",
-                    "namespace": "micado-worker",
-                    "labels": {
-                        "run": "zorp-ingress",
-                        "app.kubernetes.io/name": "zorp-ingress",
-                        "app.kubernetes.io/managed-by": "micado",
-                        "app.kubernetes.io/version": "1.0",
-                    },
-                },
-                "spec": {
-                    "selector": {"matchLabels": {"run": "zorp-ingress"}},
-                    "template": {
-                        "metadata": {"labels": {"run": "zorp-ingress"}},
-                        "spec": {
-                            "serviceAccountName": "zorp-ingress-service-account",
-                            "containers": [
-                                {
-                                    "name": "zorp-ingress",
-                                    "image": "balasys/zorp-ingress:1.0",
-                                    "args": [
-                                        "--namespace=micado-worker",
-                                        "--ingress.class=zorp",
-                                        "--behaviour=tosca",
-                                        "--ignore-namespaces=micado-system,kube-system",
-                                    ],
-                                    "livenessProbe": {
-                                        "httpGet": {"path": "/healthz", "port": 1042}
-                                    },
-                                    "ports": self._list_ports(),
-                                }
-                            ],
-                        },
-                    },
-                },
-            }
-        )
+        self.manifests.append(zorp.service_account())
+        self.manifests.append(zorp.cluster_role())
+        self.manifests.append(zorp.role_binding())
+        self.manifests.append(zorp.daemon_set(ports_list))
+        self.manifests.append(zorp.ingress(ingress_conf))
 
     def _list_ports(self):
         return [
@@ -422,25 +301,6 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 for key, value in secret.items()
             },
         }
-
-    def _manifest_ingress(self):
-        self.manifests.append(
-            {
-                "apiVersion": "networking.k8s.io/v1beta1",
-                "kind": "Ingress",
-                "metadata": {
-                    "name": "zorp-ingress",
-                    "namespace": "micado-worker",
-                    "annotations": {
-                        "kubernetes.io/ingress.class": "zorp",
-                        "zorp.ingress.kubernetes.io/conf": json.dumps(
-                            self.ingress_conf
-                        ),
-                    },
-                },
-                "spec": {"rules": [{"http": None}]},
-            }
-        )
 
     def execute(self, update=False):
         """ Execute """
