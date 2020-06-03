@@ -690,6 +690,49 @@ class TerraformAdaptor(abco.Adaptor):
                 }
             }
 
+        def get_virtual_machine_w():
+            return {
+                instance_name: {
+                    "name": "%s${each.key}" % instance_name,
+                    "location": "${data.azurerm_resource_group.%s.location}"
+                    % resource_group_name,
+                    "resource_group_name": "${data.azurerm_resource_group.%s.name}"
+                    % resource_group_name,
+                    "network_interface_ids": [
+                        "${azurerm_network_interface.%s[each.key].id}"
+                        % network_interface_name
+                    ],
+                    "vm_size": virtual_machine_size,
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                    "delete_os_disk_on_termination": "true",
+                    "delete_data_disks_on_termination": "true",
+                    "storage_os_disk": {
+                        "name": "%s${each.key}" % virtual_machine_disk_name,
+                        "caching": "ReadWrite",
+                        "create_option": "FromImage",
+                        "managed_disk_type": "Standard_LRS",
+                    },
+                    "storage_image_reference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": virtual_machine_image,
+                        "version": "latest",
+                    },
+                    "os_profile": {
+                        "computer_name": "micado-worker",
+                        "admin_username": "windows",
+                        "admin_password": "Xyzabc123@",
+                        "custom_data": '${file("${path.module}/%s")}'
+                        % setup_file_name,
+                    },
+                    "os_profile_windows_config": {
+                        "provision_vm_agent": "true",
+                        "timezone": "Romance Standard Time",
+                    },
+                }
+            }
+
+
         def get_ip_output():
             return {
                 "private_ips": "${[for i in azurerm_network_interface.%s : i.private_ip_address]}"
@@ -725,6 +768,12 @@ class TerraformAdaptor(abco.Adaptor):
         self.tf_json.add_data(
             "azurerm_network_security_group", get_network_security_group()
         )
+
+        flag_ip = True
+        if properties.get("public_ip"):
+            flag_ip = False
+            public_ip = "{}-ip".format(instance_name)
+            self.tf_json.add_resource("azurerm_public_ip", get_public_ip())
 
         nic_config_name = "{}-nic-config".format(instance_name)
         network_interface_name = "{}-nic".format(instance_name)
@@ -854,7 +903,7 @@ class TerraformAdaptor(abco.Adaptor):
     def _remove_cloud_inits(self):
         """ Remove cloud_init files on undeploy """
         for file in os.listdir(self.volume):
-            if "cloud-init.yaml" in file:
+            if "cloud-init.yaml" in file or "winrm.ps1" in file:
                 try:
                     os.remove(self.volume + file)
                 except OSError:
