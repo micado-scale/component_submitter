@@ -24,7 +24,7 @@ LOG_SUFFIX = (
     ' do printf "%s %s\n" "$(date "+[%Y-%m-%d %H:%M:%S]")" "$line";'
     " done | tee /proc/1/fd/1"
 )
-SUPPORTED_CLOUDS = ("ec2", "nova", "azure", "gce")
+SUPPORTED_CLOUDS = ("ec2", "nova", "azure", "gce", "oci")
 RUNCMD_PLACEHOLDER = "echo micado runcmd placeholder"
 
 
@@ -119,10 +119,12 @@ class TerraformAdaptor(abco.Adaptor):
         self.vars_file = "{}terraform.tfvars.json".format(self.volume)
         self.vars_file_tmp = "{}terraform.tfvars.json.tmp".format(self.volume)
         self.account_file = "{}accounts.json".format(self.volume)
+        self.oci_auth_key = "{}oci_api_key.pem".format(self.volume)
 
         self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
         self.auth_data_file = "/var/lib/submitter/auth/auth_data.yaml"
         self.auth_gce = "/var/lib/submitter/gce-auth/accounts.json"
+        self.auth_oci = "/var/lib/submitter/oci-auth/oci_api_key.pem"
         self.master_cert = "/var/lib/submitter/system/master.pem"
 
         self.tf_json = TerraformDict()
@@ -181,6 +183,9 @@ class TerraformAdaptor(abco.Adaptor):
             elif cloud_type == "gce":
                 logger.debug("GCE resource detected")
                 self._add_terraform_gce(properties)
+            elif cloud_type == "oci":
+                logger.debug("OCI resource detected")
+                self._add_terraform_oci(properties)
 
         if not self.tf_json.provider:
             logger.info("No nodes to orchestrate with Terraform. Skipping...")
@@ -247,6 +252,7 @@ class TerraformAdaptor(abco.Adaptor):
             self.tf_file,
             self.vars_file,
             self.account_file,
+            self.oci_auth_key,
             self.volume + "terraform.tfstate",
             self.volume + "terraform.tfstate.backup",
         ]
@@ -690,49 +696,6 @@ class TerraformAdaptor(abco.Adaptor):
                 }
             }
 
-        def get_virtual_machine_w():
-            return {
-                instance_name: {
-                    "name": "%s${each.key}" % instance_name,
-                    "location": "${data.azurerm_resource_group.%s.location}"
-                    % resource_group_name,
-                    "resource_group_name": "${data.azurerm_resource_group.%s.name}"
-                    % resource_group_name,
-                    "network_interface_ids": [
-                        "${azurerm_network_interface.%s[each.key].id}"
-                        % network_interface_name
-                    ],
-                    "vm_size": virtual_machine_size,
-                    "for_each": "${toset(var.%s)}" % instance_name,
-                    "delete_os_disk_on_termination": "true",
-                    "delete_data_disks_on_termination": "true",
-                    "storage_os_disk": {
-                        "name": "%s${each.key}" % virtual_machine_disk_name,
-                        "caching": "ReadWrite",
-                        "create_option": "FromImage",
-                        "managed_disk_type": "Standard_LRS",
-                    },
-                    "storage_image_reference": {
-                        "publisher": "MicrosoftWindowsServer",
-                        "offer": "WindowsServer",
-                        "sku": virtual_machine_image,
-                        "version": "latest",
-                    },
-                    "os_profile": {
-                        "computer_name": "micado-worker",
-                        "admin_username": "windows",
-                        "admin_password": "Xyzabc123@",
-                        "custom_data": '${file("${path.module}/%s")}'
-                        % setup_file_name,
-                    },
-                    "os_profile_windows_config": {
-                        "provision_vm_agent": "true",
-                        "timezone": "Romance Standard Time",
-                    },
-                }
-            }
-
-
         def get_ip_output():
             return {
                 "private_ips": "${[for i in azurerm_network_interface.%s : i.private_ip_address]}"
@@ -768,12 +731,6 @@ class TerraformAdaptor(abco.Adaptor):
         self.tf_json.add_data(
             "azurerm_network_security_group", get_network_security_group()
         )
-
-        flag_ip = True
-        if properties.get("public_ip"):
-            flag_ip = False
-            public_ip = "{}-ip".format(instance_name)
-            self.tf_json.add_resource("azurerm_public_ip", get_public_ip())
 
         nic_config_name = "{}-nic-config".format(instance_name)
         network_interface_name = "{}-nic".format(instance_name)
@@ -865,6 +822,65 @@ class TerraformAdaptor(abco.Adaptor):
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
         self.tf_json.add_resource("google_compute_instance", get_virtual_machine())
 
+    def _add_terraform_oci(self, properties):
+        """ Write Terraform template files for OCI in JSON"""
+
+        def get_provider():
+            return {
+                "version": "~> 3.78.0",
+                "tenancy_ocid": credential["tenancy_ocid"],
+                "user_ocid": credential["user_ocid"],
+                "fingerprint": credential["fingerprint"],
+                "private_key_path": "%s" % self.oci_auth_key,
+                "region": region,
+            }
+
+        def get_virtual_machine():
+            return {
+                instance_name: {
+                    "display_name": "%s${each.key}" % instance_name,
+                    "availability_domain": availability_domain,
+                    "compartment_id": compartment_id,
+                    "shape": shape,
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                    "create_vnic_details": {
+                        "subnet_id": subnet_id,
+                        "display_name": network_interface_name,
+                        "nsg_ids": ["%s" % nsg_ids],
+                    },
+                    "source_details": {
+                        "source_type": "image",
+                        "source_id": source_id,
+                    },
+                    "metadata": {
+                        "ssh_authorized_keys": "%s" % ssh_keys,
+                        "user_data": '${filebase64("${path.module}/%s")}'
+                        % cloud_init_file_name,
+                    },
+                }
+            }
+
+        instance_name = self.node_name
+
+        self.tf_json.add_instance_variable(instance_name, self.min_instances)
+
+        shutil.copyfile(self.auth_oci, self.oci_auth_key)
+
+        credential = self._get_credential_info("oci")        
+        region = properties["region"]
+        self.tf_json.add_provider("oci", get_provider())
+
+        availability_domain = properties["availability_domain"]
+        compartment_id = properties["compartment_id"]
+        shape = properties["shape"]
+        subnet_id = properties["subnet_id"]
+        nsg_ids = properties["network_security_group"]
+        source_id = properties["source_id"]
+        ssh_keys = properties["ssh_keys"]
+        network_interface_name = "{}-vnic".format(instance_name)
+        cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
+        self.tf_json.add_resource("oci_core_instance", get_virtual_machine())
+
     def _config_file_exists(self):
         """ Check if config file was generated during translation """
         return os.path.exists(self.tf_file)
@@ -903,7 +919,7 @@ class TerraformAdaptor(abco.Adaptor):
     def _remove_cloud_inits(self):
         """ Remove cloud_init files on undeploy """
         for file in os.listdir(self.volume):
-            if "cloud-init.yaml" in file or "winrm.ps1" in file:
+            if "cloud-init.yaml" in file:
                 try:
                     os.remove(self.volume + file)
                 except OSError:
