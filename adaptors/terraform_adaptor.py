@@ -825,15 +825,21 @@ class TerraformAdaptor(abco.Adaptor):
     def _add_terraform_oci(self, properties):
         """ Write Terraform template files for OCI in JSON"""
 
-        def get_provider():
-            return {
-                "version": "~> 3.78.0",
-                "tenancy_ocid": credential["tenancy_ocid"],
-                "user_ocid": credential["user_ocid"],
-                "fingerprint": credential["fingerprint"],
-                "private_key_path": "%s" % self.oci_auth_key,
-                "region": region,
-            }
+        def get_provider(use_ipa):
+            provider = {"version": "~> 3.78.0"}
+            provider["region"] = region
+            if use_ipa:
+                provider["auth"] = "InstancePrincipal"
+            else:
+                provider.update(
+                    {
+                        "tenancy_ocid": credential["tenancy_ocid"],
+                        "user_ocid": credential["user_ocid"],
+                        "fingerprint": credential["fingerprint"],
+                        "private_key_path": "%s" % self.oci_auth_key,
+                    }
+                )
+            return provider
 
         def get_virtual_machine():
             return {
@@ -866,9 +872,13 @@ class TerraformAdaptor(abco.Adaptor):
 
         shutil.copyfile(self.auth_oci, self.oci_auth_key)
 
-        credential = self._get_credential_info("oci")        
+        credential = self._get_credential_info("oci") 
+        if credential["user_ocid"]:
+            use_ipa = "false"
+        else:
+            use_ipa = "true"       
         region = properties["region"]
-        self.tf_json.add_provider("oci", get_provider())
+        self.tf_json.add_provider("oci", get_provider(use_ipa))
 
         availability_domain = properties["availability_domain"]
         compartment_id = properties["compartment_id"]
