@@ -396,7 +396,9 @@ class TerraformAdaptor(abco.Adaptor):
                 if self.node_name == target.name:
                     logger.debug("policy target match for compute node")
                     properties = self._get_properties_values(policy)
-                    self.min_instances = properties.get("min_instances", self.min_instances)
+                    self.min_instances = properties.get(
+                        "min_instances", self.min_instances
+                    )
                     self.max_instances = properties.get("max_instances")
 
     def _differentiate(self, path, tmp_path):
@@ -478,7 +480,7 @@ class TerraformAdaptor(abco.Adaptor):
             }
 
         def get_virtual_machine():
-            return {
+            vm = {
                 instance_name: {
                     "name": "%s${each.key}" % instance_name,
                     "image_id": image_id,
@@ -490,6 +492,9 @@ class TerraformAdaptor(abco.Adaptor):
                     "network": network,
                 }
             }
+            if config_drive:
+                vm[instance_name]["config_drive"] = True
+            return vm
 
         instance_name = self.node_name
         self.tf_json.add_instance_variable(instance_name, self.min_instances)
@@ -524,6 +529,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         key_pair = properties["key_name"]
         security_groups = properties["security_groups"]
+        config_drive = properties.get("config_drive")
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
         self.tf_json.add_resource(
             "openstack_compute_instance_v2", get_virtual_machine()
