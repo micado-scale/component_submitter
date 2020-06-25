@@ -7,7 +7,7 @@ import base64
 import json
 
 import pykube
-from toscaparser.tosca_template import ToscaTemplate
+import kubernetes_validate
 
 from .zorp import ZorpManifests
 
@@ -157,6 +157,13 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             )
             self.status = "Skipped Translation"
             return
+
+        for manifest in self.manifests:
+            try:
+                kubernetes_validate.validate(manifest, "1.18.0", strict=True)
+            except kubernetes_validate.ValidationError as err:
+                logger.error(err.message)
+                raise AdaptorCritical(err.message)
 
         if not write_files:
             pass
