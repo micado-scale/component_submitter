@@ -108,12 +108,12 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.tpl = template
 
         out_volume = self.config.get("volume", "files/output_configs")
-        self.manifest_path = "{}{}.yaml".format(out_volume, self.ID)
-        self.manifest_tmp_path = "{}tmp_{}.yaml".format(out_volume, self.ID)
+        self.manifest_path = f"{out_volume}{self.ID}.yaml"
+        self.manifest_tmp_path = f"{out_volume}tmp_{self.ID}.yaml"
 
         sys_volume = self.config.get("system", "system/")
-        self.cadvisor_manifest_path = "{}cadvisor.yaml".format(sys_volume)
-        self.nodex_manifest_path = "{}nodex.yaml".format(sys_volume)
+        self.cadvisor_manifest_path = f"{sys_volume}cadvisor.yaml"
+        self.nodex_manifest_path = f"{sys_volume}nodex.yaml"
 
         self.manifests = []
         self.services = []
@@ -206,9 +206,8 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             self.manifests.append(cadvisor)
         except FileNotFoundError:
             logger.warning(
-                "Could not find cAdvisor manifest at {}".format(
-                    self.cadvisor_manifest_path
-                )
+                "Could not find cAdvisor manifest"
+                f" at {self.cadvisor_manifest_path}"
             )
 
     def _translate_node_monitoring_policy(self):
@@ -218,9 +217,8 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             self.manifests.append(nodex)
         except FileNotFoundError:
             logger.warning(
-                "Could not find NodeExporter manifest at {}".format(
-                    self.nodex_manifest_path
-                )
+                "Could not find NodeExporter manifest"
+                f" at {self.nodex_manifest_path}"
             )
 
     def _translate_security_policy(self, policy):
@@ -230,7 +228,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         elif policy.type in NETWORK_POLICIES:
             self._translate_level7_policy(policy)
         else:
-            logger.warning("Unknown network security policy: {}".format(policy.type))
+            logger.warning(f"Unknown network security policy: {policy.type}")
 
     def _translate_level7_policy(self, policy):
         ingress = {"policy_type": policy.type.split(".")[-1]}
@@ -249,10 +247,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
     def _translate_tls_secrets(self, ingress, policy):
         if ingress.get("encryption", False):
-            if "encryption_key" not in ingress or "encryption_cert" not in ingress:
-                error = "Encryption key and/or cert missing for policy {}".format(
-                    policy.type
-                )
+                error = f"Key and/or cert missing for policy {policy.type}"
                 logger.error(error)
                 raise TranslateError(error)
             index = "krumpli" + str(len(self.ingress_secrets))
@@ -316,19 +311,19 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 "apply",
                 "--prune",
                 "-l",
-                "app.kubernetes.io/instance={}".format(self.short_id),
+                f"app.kubernetes.io/instance={self.short_id}",
                 "-f",
                 self.manifest_path,
             ]
         else:
             operation = ["kubectl", "create", "-f", self.manifest_path, "--save-config"]
         try:
-            logger.debug("Executing {}".format(operation))
+            logger.debug(f"Executing {operation}")
             subprocess.run(operation, stderr=subprocess.PIPE, check=True)
 
         except subprocess.CalledProcessError as e:
-            logger.error("kubectl: {}".format(e.stderr))
-            raise AdaptorCritical("kubectl: {}".format(e.stderr))
+            logger.error(f"kubectl: {e.stderr}")
+            raise AdaptorCritical(f"kubectl: {e.stderr}")
 
         logger.info("Kube objects deployed, trying to get outputs...")
         self._get_outputs()
@@ -357,7 +352,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         elif os.path.exists(self.manifest_path) and filecmp.cmp(
             self.manifest_path, self.manifest_tmp_path
         ):
-            logger.debug("No update - removing {}".format(self.manifest_tmp_path))
+            logger.debug(f"No update - removing {self.manifest_tmp_path}")
             os.remove(self.manifest_tmp_path)
             logger.info("Nothing to update")
             self.status = "Updated (nothing to update)"
@@ -381,7 +376,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             # Delete nodes from the cluster
             operation = ["kubectl", "delete", "no", "-l", "micado.eu/node_type"]
             try:
-                logger.debug("Undeploy {}".format(operation))
+                logger.debug(f"Undeploy {operation}")
                 subprocess.run(operation, stderr=subprocess.PIPE, check=True)
             except subprocess.CalledProcessError:
                 logger.debug("Got error deleting nodes")
@@ -390,7 +385,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         # Delete resources in the manifest
         operation = ["kubectl", "delete", "-f", self.manifest_path, "--timeout", "90s"]
         try:
-            logger.debug("Undeploy {}".format(operation))
+            logger.debug(f"Undeploy {operation}")
             subprocess.run(operation, stderr=subprocess.PIPE, check=True)
         except subprocess.CalledProcessError:
             logger.debug("Had some trouble removing Kubernetes workloads...")
@@ -415,7 +410,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
     def query(self, query):
         """ Query """
-        logger.info("Query ID {}".format(self.ID))
+        logger.info(f"Query ID {self.ID}")
         kube_config = pykube.KubeConfig.from_file("~/.kube/config")
         api = pykube.HTTPClient(kube_config)
 
@@ -431,13 +426,14 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         logger.info("Fetching outputs...")
         for output in self.tpl.outputs:
             node = output.value.get_referenced_node_template()
-            if node.is_derived_from(DOCKER_CONTAINER):
-                logger.debug("Inspect node: {}".format(node.name))
+                logger.debug(f"Inspect node: {node.name}")
                 query = output.value.attribute_name
                 if query == "port":
                     self.output.setdefault(node.name, {})[query] = query_port(node.name)
             else:
-                logger.warning("{} is not a Docker container!".format(node.name))
+                logger.warning(
+                    f"{node.name} is not a Docker container!"
+                )
 
     def _config_file_exists(self):
         """ Check if config file was generated during translation """
@@ -445,11 +441,15 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
     def _skip_check(self):
         if not self._config_file_exists:
-            logger.info("No config generated, skipping {} step...".format(self.status))
+            logger.info(
+                f"No config generated, skipping {self.status} step..."
+            )
             self.status = "Skipped"
             return True
         elif self.dryrun:
-            logger.info("DRY-RUN: Kubernetes {} in dry-run mode...".format(self.status))
+            logger.info(
+                f"DRY-RUN: Kubernetes {self.status} in dry-run mode..."
+            )
             self.status = "DRY-RUN Deployment"
             return True
 
@@ -473,13 +473,11 @@ def _get_node(node):
     if name_errors:
         joined_errors = ", ".join(name_errors)
         logger.error(
-            "Failed name convention check (underscores) on node: {}".format(name)
+            f"Failed name convention check (underscores) on node: {node.name}"
         )
         raise AdaptorCritical(
-            "Underscores in node {} not allowed for {}".format(name, joined_errors)
+            f"Underscores in node {node.name} not allowed for {errors}"
         )
-
-    return copy.deepcopy(node)
 
 
 def query_port(service_name):
@@ -496,5 +494,5 @@ def query_port(service_name):
     try:
         service = pykube.Service.objects(api).get_by_name(service_name)
     except Exception:
-        return "Service {} not found".format(service_name)
+        return f"Service {service_name} not found"
     return service.obj.get("spec", {}).get("ports", {})
