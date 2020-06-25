@@ -125,6 +125,20 @@ def resolve_get_property(node, cloud_inputs):
     return cloud_inputs
 
 
+def update_get_property(list_of_dict, properties):
+    for field in list_of_dict:
+        try:
+            field.update(
+                {
+                    key: properties.get(value["get_property"][1])
+                    for key, value in field.items()
+                    if "get_property" in value
+                }
+            )
+        except (TypeError, AttributeError):
+            pass
+
+
 def get_cloud_config(
     insert_mode, runcmd_placeholder, default_cloud_config, tosca_cloud_config
 ):
