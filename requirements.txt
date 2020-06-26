@@ -1,7 +1,7 @@
-docker==4.2.0
+docker==4.2.1
 Flask==1.1.2
-pykube-ng==20.1.0
-requests==2.23.0
+pykube-ng==20.5.0
+requests==2.24.0
 ruamel.yaml==0.16.10
-tosca-parser==2.0.0
+tosca-parser==2.1.0
 kubernetes-validate==1.18.0
