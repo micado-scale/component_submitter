@@ -5,83 +5,23 @@ import filecmp
 import copy
 import base64
 import json
-
 import pykube
 import kubernetes_validate
 
-from .zorp import ZorpManifests
+from .tosca import Prefix
+from .tosca import NodeType
+from .tosca import Interface
+from .tosca import NetworkProxy
 
-from .specs import (
-    Manifest,
-    VolumeManifest,
-    ConfigMapManifest,
-    Container,
-    WorkloadManifest,
-    ServiceManifest,
-)
+from toscaparser.tosca_template import ToscaTemplate
 import utils
+
 from abstracts import base_adaptor
 from abstracts.exceptions import AdaptorCritical, TranslateError
+from .zorp import ZorpManifests
+from .translator import get_translator
 
 logger = logging.getLogger("adaptors.k8s_adaptor")
-
-MICADO_NODE_PREFIX = "tosca.nodes.MiCADO"
-TOSCA_NODE_TYPES = (
-    DOCKER_CONTAINER,
-    CONTAINER_VOLUME,
-    CONTAINER_CONFIG,
-    KUBERNETES_POD,
-    KUBERNETES_RESOURCE,
-    MICADO_COMPUTE,
-    MICADO_EDGE,
-) = (
-    MICADO_NODE_PREFIX + "." + policy
-    for policy in (
-        # Docker Container
-        "Container.Application.Docker",
-        # Volume
-        "Container.Volume",
-        # ConfigMap
-        "Container.Config",
-        # Pod
-        "Container.Pod.Kubernetes",
-        # Bare Kubernetes Resource
-        "Kubernetes",
-        # Compute
-        "Compute",
-        #Edge
-        "Edge",
-    )
-)
-
-KUBERNETES_INTERFACE = "Kubernetes"
-
-MICADO_MONITOR_POLICY_PREFIX = "tosca.policies.Monitoring.MiCADO"
-MICADO_NETWORK_POLICY_PREFIX = "tosca.policies.Security.MiCADO.Network"
-NETWORK_POLICIES = (
-    PASSTHROUGH_PROXY,
-    PLUG_PROXY,
-    SMTP_PROXY,
-    HTTP_PROXY,
-    HTTP_URI_FILTER_PROXY,
-    HTTP_WEBDAV_PROXY,
-) = (
-    MICADO_NETWORK_POLICY_PREFIX + "." + policy
-    for policy in (
-        # PfService
-        "Passthrough",
-        # PlugProxy
-        "L7Proxy",
-        # SmtpProxy
-        "SmtpProxy",
-        # HttpProxy
-        "HttpProxy",
-        # HttpURIFilterProxy
-        "HttpURIFilterProxy",
-        # HttpWebdavProxy
-        "HttpWebdavProxy",
-    )
-)
 
 
 class KubernetesAdaptor(base_adaptor.Adaptor):
@@ -139,12 +79,13 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             if node.type.startswith("tosca.nodes.MiCADO"):
                 self._translate_node_templates(node)
 
-        # Look for a monitoring policy and attach default metric exporters to the application
+        # Look for a monitoring policy and attach default
+        # metric exporters to the application
         for policy in self.tpl.policies:
-            if policy.type.startswith(MICADO_MONITOR_POLICY_PREFIX):
+            if policy.type.startswith(Prefix.MONITOR_POLICY):
                 self._translate_monitoring_policy(policy)
 
-            if policy.type.startswith(MICADO_NETWORK_POLICY_PREFIX):
+            if policy.type.startswith(Prefix.NETWORK_POLICY):
                 self._translate_security_policy(policy)
 
         if self.ingress_conf:
@@ -176,28 +117,20 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.status = "Translated"
 
     def _translate_node_templates(self, node):
-        node = _get_node(node)
+        _name_check_node(node)
+        node = copy.deepcopy(node)
+        manifests = []
 
-        lifecycle = utils.get_lifecycle(node, KUBERNETES_INTERFACE)
-        if not lifecycle:
+        if not utils.get_lifecycle(node, Interface.KUBERNETES):
             return
 
-        if node.is_derived_from(DOCKER_CONTAINER):
-            manifest = WorkloadManifest(
-                self.short_id, node, lifecycle, self.tpl.repositories
-            )
-        elif node.is_derived_from(KUBERNETES_RESOURCE):
-            manifest = Manifest(
-                self.short_id, node.name, lifecycle.get("create"), kind="custom"
-            )
-            self.manifests += [manifest.resource]
-            return
-        elif node.is_derived_from(CONTAINER_VOLUME):
-            manifest = VolumeManifest(self.short_id, node, lifecycle)
-        elif node.is_derived_from(CONTAINER_CONFIG):
-            manifest = ConfigMapManifest(self.short_id, node, lifecycle)
+        translator = get_translator(node)
+        tosca_translator = translator.from_toscaparser(
+            self.short_id, node, self.tpl.repositories
+        )
 
-        self.manifests += manifest.manifests
+        manifests = tosca_translator.build()
+        self.manifests += manifests
 
     def _translate_monitoring_policy(self, policy):
         if policy.get_property_value("enable_container_metrics"):
@@ -229,10 +162,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             )
 
     def _translate_security_policy(self, policy):
-        if policy.type == PASSTHROUGH_PROXY:
+        if policy.type == str(NetworkProxy.PASSTHROUGH):
             # This should now work as expected
             pass
-        elif policy.type in NETWORK_POLICIES:
+        elif policy.type in NetworkProxy.values():
             self._translate_level7_policy(policy)
         else:
             logger.warning(f"Unknown network security policy: {policy.type}")
@@ -433,6 +366,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         logger.info("Fetching outputs...")
         for output in self.tpl.outputs:
             node = output.value.get_referenced_node_template()
+            # TODO Use ONLY is_derived_from when v9 API deprecated
+            if node.is_derived_from(
+                NodeType.DOCKER_CONTAINER
+            ) or node.type.startswith(str(NodeType.DOCKER_CONTAINER)):
                 logger.debug(f"Inspect node: {node.name}")
                 query = output.value.attribute_name
                 if query == "port":
@@ -461,24 +398,17 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             return True
 
 
-def _get_node(node):
-    """Check the node name for errors (underscores)
-
-    Returns:
-        toscaparser.nodetemplate.NodeTemplate: a deepcopy of a valid node object
-    """
-    name = node.name
-    name_errors = []
-
-    if "_" in name:
-        name_errors.append("TOSCA node names")
+def _name_check_node(node):
+    errors = []
+    if "_" in node.name:
+        errors.append("TOSCA node names")
     if "_" in (node.get_property_value("name") or ""):
-        name_errors.append("property: 'name'")
+        errors.append("property: 'name'")
     if "_" in (node.get_property_value("container_name") or ""):
-        name_errors.append("property: 'container_name'")
+        errors.append("property: 'container_name'")
 
-    if name_errors:
-        joined_errors = ", ".join(name_errors)
+    if errors:
+        errors = ", ".join(errors)
         logger.error(
             f"Failed name convention check (underscores) on node: {node.name}"
         )
