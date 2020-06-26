@@ -31,7 +31,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     and the subsequent execution, update and undeployment of the translation.
     """
 
-    def __init__(self, adaptor_id, config, dryrun, validate=False, template=None):
+    def __init__(
+        self, adaptor_id, config, dryrun, validate=False, template=None
+    ):
         """ init method of the Adaptor """
         super().__init__()
 
@@ -67,7 +69,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         self.status = "Initialised"
 
     def translate(self, update=False, write_files=True):
-        """ Translate the relevant sections of the ADT into a Kubernetes Manifest """
+        """ Translate sections of the ADT into a Kubernetes Manifest """
         logger.info("Translating into Kubernetes Manifests")
         self.status = "Translating..."
         self.manifests = []
@@ -93,9 +95,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             self._manifest_secrets()
 
         if not self.manifests:
-            logger.info(
-                "No nodes to orchestrate with Kubernetes. Do you need this adaptor?"
-            )
+            logger.info("No nodes to orchestrate with Kubernetes. Skipping")
             self.status = "Skipped Translation"
             return
 
@@ -142,7 +142,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     def _translate_container_monitoring_policy(self):
         try:
             cadvisor = utils.get_yaml_data(self.cadvisor_manifest_path)
-            cadvisor["metadata"]["labels"]["app.kubernetes.io/instance"] = self.short_id
+            cadvisor["metadata"]["labels"][
+                "app.kubernetes.io/instance"
+            ] = self.short_id
             self.manifests.append(cadvisor)
         except FileNotFoundError:
             logger.warning(
@@ -153,7 +155,9 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     def _translate_node_monitoring_policy(self):
         try:
             nodex = utils.get_yaml_data(self.nodex_manifest_path)
-            nodex["metadata"]["labels"]["app.kubernetes.io/instance"] = self.short_id
+            nodex["metadata"]["labels"][
+                "app.kubernetes.io/instance"
+            ] = self.short_id
             self.manifests.append(nodex)
         except FileNotFoundError:
             logger.warning(
@@ -173,7 +177,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
     def _translate_level7_policy(self, policy):
         ingress = {"policy_type": policy.type.split(".")[-1]}
         ingress.update(
-            {key: value.value for key, value in policy.get_properties().items()}
+            {
+                key: value.value
+                for key, value in policy.get_properties().items()
+            }
         )
         self._extract_ports(ingress)
         self._translate_tls_secrets(ingress, policy)
@@ -187,6 +194,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
     def _translate_tls_secrets(self, ingress, policy):
         if ingress.get("encryption", False):
+            if (
+                "encryption_key" not in ingress
+                or "encryption_cert" not in ingress
+            ):
                 error = f"Key and/or cert missing for policy {policy.type}"
                 logger.error(error)
                 raise TranslateError(error)
@@ -217,7 +228,11 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
     def _list_ports(self):
         return [
-            {"name": "port-" + str(port), "containerPort": port, "hostPort": port}
+            {
+                "name": "port-" + str(port),
+                "containerPort": port,
+                "hostPort": port,
+            }
             for port in self.tcp_ports
         ]
 
@@ -256,7 +271,13 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 self.manifest_path,
             ]
         else:
-            operation = ["kubectl", "create", "-f", self.manifest_path, "--save-config"]
+            operation = [
+                "kubectl",
+                "create",
+                "-f",
+                self.manifest_path,
+                "--save-config",
+            ]
         try:
             logger.debug(f"Executing {operation}")
             subprocess.run(operation, stderr=subprocess.PIPE, check=True)
@@ -285,9 +306,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             logger.info("Updated (removed all Kubernetes workloads)")
             self.status = "Updated (removed all Kubernetes workloads)"
         elif not self.manifests:
-            logger.info(
-                "No nodes to orchestrate with Kubernetes. Do you need this adaptor?"
-            )
+            logger.info("No nodes to orchestrate with Kubernetes. Skipping...")
             self.status = "Skipped Update"
         elif os.path.exists(self.manifest_path) and filecmp.cmp(
             self.manifest_path, self.manifest_tmp_path
@@ -314,7 +333,13 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         if kill_nodes:
             # Delete nodes from the cluster
-            operation = ["kubectl", "delete", "no", "-l", "micado.eu/node_type"]
+            operation = [
+                "kubectl",
+                "delete",
+                "no",
+                "-l",
+                "micado.eu/node_type",
+            ]
             try:
                 logger.debug(f"Undeploy {operation}")
                 subprocess.run(operation, stderr=subprocess.PIPE, check=True)
@@ -323,7 +348,14 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 error = True
 
         # Delete resources in the manifest
-        operation = ["kubectl", "delete", "-f", self.manifest_path, "--timeout", "90s"]
+        operation = [
+            "kubectl",
+            "delete",
+            "-f",
+            self.manifest_path,
+            "--timeout",
+            "90s",
+        ]
         try:
             logger.debug(f"Undeploy {operation}")
             subprocess.run(operation, stderr=subprocess.PIPE, check=True)
@@ -373,11 +405,11 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 logger.debug(f"Inspect node: {node.name}")
                 query = output.value.attribute_name
                 if query == "port":
-                    self.output.setdefault(node.name, {})[query] = query_port(node.name)
+                    self.output.setdefault(node.name, {})[query] = query_port(
+                        node.name
+                    )
             else:
-                logger.warning(
-                    f"{node.name} is not a Docker container!"
-                )
+                logger.warning(f"{node.name} is not a Docker container!")
 
     def _config_file_exists(self):
         """ Check if config file was generated during translation """
@@ -385,9 +417,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
     def _skip_check(self):
         if not self._config_file_exists:
-            logger.info(
-                f"No config generated, skipping {self.status} step..."
-            )
+            logger.info(f"No config generated, skipping {self.status} step...")
             self.status = "Skipped"
             return True
         elif self.dryrun:
