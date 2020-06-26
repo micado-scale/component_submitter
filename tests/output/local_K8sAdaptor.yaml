@@ -1,0 +1,327 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbit
+  labels:
+    app.kubernetes.io/name: rabbit
+    app.kubernetes.io/instance: local
+    app.kubernetes.io/managed-by: micado
+    app.kubernetes.io/version: 3-management
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: rabbit
+        app.kubernetes.io/instance: local
+        app.kubernetes.io/managed-by: micado
+        app.kubernetes.io/version: 3-management
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: micado.eu/node_type
+                operator: In
+                values:
+                - cq-server
+      containers:
+      - image: rabbitmq:3-management
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          value: guest
+        - name: RABBITMQ_DEFAULT_PASS
+          value: guest
+        name: rabbitmq
+      - image: kbudde/rabbitmq-exporter
+        env:
+        - name: RABBIT_URL
+          value: http://127.0.0.1:15672
+        - name: PUBLISH_PORT
+          value: '8090'
+        - name: RABBIT_EXPORTERS
+          value: queue
+        name: rabbitmq-exporter
+        ports:
+        - containerPort: 8090
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rabbit
+      app.kubernetes.io/instance: local
+      app.kubernetes.io/managed-by: micado
+      app.kubernetes.io/version: 3-management
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbit
+  labels:
+    app.kubernetes.io/name: rabbit
+    app.kubernetes.io/instance: local
+    app.kubernetes.io/managed-by: micado
+spec:
+  selector:
+    app.kubernetes.io/name: rabbit
+    app.kubernetes.io/instance: local
+    app.kubernetes.io/managed-by: micado
+    app.kubernetes.io/version: 3-management
+  ports:
+  - name: 15672-tcp
+    port: 15672
+  - name: 5672-tcp
+    port: 5672
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/instance: local
+    app.kubernetes.io/managed-by: micado
+    app.kubernetes.io/version: latest
+spec:
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/instance: local
+        app.kubernetes.io/managed-by: micado
+        app.kubernetes.io/version: latest
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: micado.eu/node_type
+                operator: In
+                values:
+                - cq-server
+      containers:
+      - image: redis
+        command:
+        - redis-server
+        args:
+        - --appendonly yes
+        name: redis
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+      app.kubernetes.io/instance: local
+      app.kubernetes.io/managed-by: micado
+      app.kubernetes.io/version: latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  labels:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/instance: local
+    app.kubernetes.io/managed-by: micado
+spec:
+  selector:
+    app.kubernetes.io/name: redis
+    app.kubernetes.io/instance: local
+    app.kubernetes.io/managed-by: micado
+    app.kubernetes.io/version: latest
+  ports:
+  - name: 6379-tcp
+    port: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/instance: local
+    app.kubernetes.io/managed-by: micado
+    app.kubernetes.io/version: latest
+spec:
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: frontend
+        app.kubernetes.io/instance: local
+        app.kubernetes.io/managed-by: micado
+        app.kubernetes.io/version: latest
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: micado.eu/node_type
+                operator: In
+                values:
+                - cq-server
+      containers:
+      - image: sanyi86/cqueue_frontend
+        env:
+        - name: BROKER
+          value: amqp://guest:guest@rabbit:5672
+        - name: RESULT_BACKEND
+          value: redis://redis:6379
+        name: frontend
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: frontend
+      app.kubernetes.io/instance: local
+      app.kubernetes.io/managed-by: micado
+      app.kubernetes.io/version: latest
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/instance: local
+    app.kubernetes.io/managed-by: micado
+spec:
+  selector:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/instance: local
+    app.kubernetes.io/managed-by: micado
+    app.kubernetes.io/version: latest
+  type: NodePort
+  ports:
+  - name: 8080-tcp
+    port: 8080
+    nodePort: 30888
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cqueue-worker
+  labels:
+    app.kubernetes.io/name: cqueue-worker
+    app.kubernetes.io/instance: local
+    app.kubernetes.io/managed-by: micado
+    app.kubernetes.io/version: latest
+spec:
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cqueue-worker
+        app.kubernetes.io/instance: local
+        app.kubernetes.io/managed-by: micado
+        app.kubernetes.io/version: latest
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: micado.eu/node_type
+                operator: In
+                values:
+                - worker-node
+      volumes:
+      - name: docker-binary-host-vol
+        persistentVolumeClaim:
+          claimName: docker-binary-host-vol
+      - name: docker-socket-host-vol
+        persistentVolumeClaim:
+          claimName: docker-socket-host-vol
+      containers:
+      - image: sztakilpds/cqueue_worker
+        env:
+        - name: BROKER
+          value: amqp://guest:guest@rabbit:5672
+        - name: RESULT_BACKEND
+          value: redis://redis:6379
+        name: cqueue-worker
+        volumeMounts:
+        - name: docker-binary-host-vol
+          mountPath: /usr/bin/docker
+        - name: docker-socket-host-vol
+          mountPath: /var/run/docker.sock
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cqueue-worker
+      app.kubernetes.io/instance: local
+      app.kubernetes.io/managed-by: micado
+      app.kubernetes.io/version: latest
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: docker-binary-host-vol
+  labels:
+    app.kubernetes.io/name: docker-binary-host-vol
+    app.kubernetes.io/instance: local
+    app.kubernetes.io/managed-by: micado
+spec:
+  hostPath:
+    path: /usr/bin/docker
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: docker-binary-host-vol
+  labels:
+    app.kubernetes.io/name: docker-binary-host-vol
+    app.kubernetes.io/instance: local
+    app.kubernetes.io/managed-by: micado
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: docker-binary-host-vol
+      app.kubernetes.io/instance: local
+      app.kubernetes.io/managed-by: micado
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: docker-socket-host-vol
+  labels:
+    app.kubernetes.io/name: docker-socket-host-vol
+    app.kubernetes.io/instance: local
+    app.kubernetes.io/managed-by: micado
+spec:
+  hostPath:
+    path: /var/run/docker.sock
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: docker-socket-host-vol
+  labels:
+    app.kubernetes.io/name: docker-socket-host-vol
+    app.kubernetes.io/instance: local
+    app.kubernetes.io/managed-by: micado
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: docker-socket-host-vol
+      app.kubernetes.io/instance: local
+      app.kubernetes.io/managed-by: micado

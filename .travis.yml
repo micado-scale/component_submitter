@@ -3,14 +3,15 @@ python:
   - "3.6"
 cache: pip
 install:
-  - pip install tosca-parser==1.4.0
-  - pip install flask==1.1.1
-  - pip install ruamel.yaml==0.16.2
-  - pip install requests==2.22.0
-  - pip install docker==4.0.2
-  - pip install pykube-ng==0.28
+  - pip install tosca-parser==2.0.0
+  - pip install flask==1.1.2
+  - pip install ruamel.yaml==0.16.10
+  - pip install requests==2.23.0
+  - pip install docker==4.2.0
+  - pip install pykube-ng==20.1.0
+  - pip install kubernetes-validate==1.18.0
 script:
   - python -m unittest tests.test_validator.TestValidation
   - python -m unittest tests.test_submitter_config.TestSubmitterConfig
   - python -m unittest tests.test_micado_parser.TestMiCADOParser
-  - python -m unittest tests.test_k8s_translation.TestK8sTranslation
+  - python -m unittest tests.test_k8s_adaptor
