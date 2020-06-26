@@ -105,8 +105,8 @@ def _get_related_nodes(node, tosca_type, repositories=None):
     return [
         get_container_info(container, repositories)
         for container in node.related.keys()
-        # if container.is_derived_from(tosca_type)
-        if container.type.startswith(str(tosca_type))
+        if container.is_derived_from(tosca_type)
+        or container.type.startswith(str(tosca_type))
     ]
 
 

@@ -188,8 +188,8 @@ class WorkloadTranslator(Translator):
 
             # TODO: Use ONLY container.type == when v9 API deprecated
             if (
-                container.type == tosca.NodeType.KUBERNETES_POD
-                or container.type.endswith("Container.Pod.Kubernetes")
+                str(tosca.NodeType.KUBERNETES_POD) in container.type
+                or "MiCADO.Container.Pod" in container.type
             ):
                 continue
 
