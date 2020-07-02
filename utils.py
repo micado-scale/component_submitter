@@ -45,7 +45,9 @@ def dump_list_yaml(data, path):
     """ Dump a list of dictionaries to a single yaml file """
 
     with open(path, "w") as file:
-        yaml.dump_all(data, file, default_flow_style=False, Dumper=NoAliasRTDumper)
+        yaml.dump_all(
+            data, file, default_flow_style=False, Dumper=NoAliasRTDumper
+        )
 
 
 def get_yaml_data(path):
@@ -64,6 +66,17 @@ def id_generator(size=8, chars=string.ascii_uppercase + string.digits):
     return "".join(random.choice(chars) for _ in range(size))
 
 
+def check_lifecycle(node, interface_type):
+    """Check that an interface type is present """
+    if [x for x in node.interfaces if interface_type in x.type]:
+        return True
+    else:
+        try:
+            return "create" in node.type_definition.interfaces[interface_type]
+        except (AttributeError, KeyError, TypeError):
+            return False
+
+
 def get_lifecycle(node, interface_type):
     """Get inputs from TOSCA interfaces
 
@@ -73,8 +86,20 @@ def get_lifecycle(node, interface_type):
     Returns:
         dict: a set of inputs for different lifecycle stages
     """
-    lifecycle = {}
     # Get the interfaces from the first parent
+    lifecycle = _get_parent_interfaces(node, interface_type)
+    properties = {k: v.value for k, v in node.get_properties().items()}
+
+    # Update these interfaces with any inputs from the current node
+    interfaces = [x for x in node.interfaces if interface_type in x.type]
+    for stage in interfaces:
+        _update_parent_spec(lifecycle, stage)
+
+    return lifecycle
+
+
+def _get_parent_interfaces(node, interface_type):
+    interfaces = {}
     try:
         parent_interfaces = node.type_definition.interfaces[interface_type]
     except (AttributeError, KeyError, TypeError):
@@ -84,16 +109,24 @@ def get_lifecycle(node, interface_type):
         if stage == "type":
             continue
         try:
-            lifecycle[stage] = value.get("inputs")
+            interfaces[stage] = value.get("inputs")
         except AttributeError:
-            lifecycle[stage] = {}
+            interfaces[stage] = {}
 
-    # Update these interfaces with any inputs from the current node
-    interfaces = [x for x in node.interfaces if interface_type in x.type]
-    for stage in interfaces:
-        lifecycle.setdefault(stage.name, {}).update(stage.inputs or {})
+    return interfaces
 
-    return lifecycle
+
+def _update_parent_spec(lifecycle, stage):
+    lifecycle.setdefault(stage.name, {})
+    if not stage.inputs:
+        return
+
+    try:
+        lifecycle[stage.name]["spec"].update(stage.inputs["spec"])
+        stage.inputs["spec"] = lifecycle[stage.name]["spec"]
+    except KeyError:
+        pass
+    lifecycle[stage.name].update(stage.inputs)
 
 
 def get_cloud_type(node, supported_clouds):
@@ -127,9 +160,11 @@ def resolve_get_property(node, cloud_inputs):
         if isinstance(value, GetProperty):
             cloud_inputs[field] = value.result()
             continue
-        elif not isinstance(value, dict) or not "get_property" in value:
+        elif not isinstance(value, dict) or "get_property" not in value:
             continue
-        cloud_inputs[field] = node.get_property_value(value.get("get_property")[-1])
+        cloud_inputs[field] = node.get_property_value(
+            value.get("get_property")[-1]
+        )
 
     return cloud_inputs
 

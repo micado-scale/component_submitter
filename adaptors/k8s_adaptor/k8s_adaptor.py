@@ -123,7 +123,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         node = copy.deepcopy(node)
         manifests = []
 
-        if not utils.get_lifecycle(node, Interface.KUBERNETES):
+        if not utils.check_lifecycle(node, Interface.KUBERNETES):
             return
 
         translator = get_translator(node)
