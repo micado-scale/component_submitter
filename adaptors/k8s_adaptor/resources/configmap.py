@@ -1,5 +1,4 @@
 from .base import Resource
-from utils import update_get_property
 
 
 class ConfigMap(Resource):
@@ -22,9 +21,11 @@ class ConfigMap(Resource):
 
         # Get rid of keys that are not relevant for ConfigMaps
         self.spec = None
-        self.manifest["metadata"]["labels"].pop("app.kubernetes.io/version", None)
+        self.manifest["metadata"]["labels"].pop(
+            "app.kubernetes.io/version", None
+        )
         self.properties = properties
-        self._handle_properties()
+        self._handle_empty_fields()
 
     @staticmethod
     def _default_manifest():
@@ -38,10 +39,9 @@ class ConfigMap(Resource):
             "metadata": {},
         }
 
-    def _handle_properties(self):
+    def _handle_empty_fields(self):
         """Updates the data and binaryData of the ConfigMap
         """
-        update_get_property([self.manifest], self.properties)
         if not self.manifest.get("binaryData"):
             self.manifest.pop("binaryData", None)
         if not self.manifest.get("data"):

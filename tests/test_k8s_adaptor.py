@@ -473,25 +473,22 @@ class TestWorkload(unittest.TestCase):
 class TestConfigMap(unittest.TestCase):
     """ UnitTests for ConfigMap Class """
 
-    def setUp(self):
-        self.inputs = {"data": {"get_property": ["SELF", "data"]}}
-
     def test_config_map_init(self):
         config = ConfigMap("app", "name", {}, {})
         self.assertFalse(config.spec)
         self.assertNotIn(VER_LABEL, config.manifest["metadata"]["labels"])
 
-    def test_config_map_data_no_properties(self):
-        config = ConfigMap("app", "name", self.inputs, {})
-        self.assertFalse(config.manifest.get("data"))
+    def test_config_map_data(self):
+        config = ConfigMap("app", "name", {"data": {"this": "key"}}, {})
+        self.assertIn("this", config.manifest.get("data"))
         self.assertFalse(config.manifest.get("binaryData"))
 
-    def test_config_map_data_with_properties(self):
+    def test_config_map_binary_data(self):
         config = ConfigMap(
-            "app", "name", self.inputs, {"data": {"some": "data"}}
+            "app", "name", {"binaryData": {"this": "key"}}, {}
         )
-        self.assertFalse(config.manifest.get("binaryData"))
-        self.assertEqual({"some": "data"}, config.manifest.get("data"))
+        self.assertFalse(config.manifest.get("data"))
+        self.assertEqual({"this": "key"}, config.manifest.get("binaryData"))
 
 
 class TestService(unittest.TestCase):
@@ -565,13 +562,6 @@ class TestVolume(unittest.TestCase):
         self.assertFalse(self.vol.namespace)
         self.assertNotIn(VER_LABEL, self.vol.labels)
         self.assertNotIn("namespace", self.vol.manifest["metadata"])
-
-    def test_resolve_get_property(self):
-        inputs = {
-            "spec": {"hostPath": {"path": {"get_property": ["SELF", "path"]}}}
-        }
-        vol = PersistentVolume("app", "name", inputs, {"path": "y"})
-        self.assertEqual(vol.spec["hostPath"]["path"], "y")
 
     def test_pv_defaults(self):
         self.assertTrue(self.vol.size)

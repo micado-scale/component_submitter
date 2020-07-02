@@ -1,5 +1,4 @@
 from .base import Resource
-from utils import update_get_property
 
 PVC_SPEC_FIELDS = (
     "accessModes",
@@ -81,7 +80,6 @@ class PersistentVolume(Resource):
         self.pvc_spec = pvc_spec
         self.size = ""
 
-        update_get_property(self.spec.values(), properties)
         self._set_pv_defaults(properties)
 
     @staticmethod

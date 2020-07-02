@@ -95,6 +95,11 @@ def get_lifecycle(node, interface_type):
     for stage in interfaces:
         _update_parent_spec(lifecycle, stage)
 
+    for inputs in lifecycle.values():
+        _update_get_property([inputs], properties)
+        _update_get_property(inputs.values(), properties)
+        _update_get_property(inputs.get("spec", {}).values(), properties)
+
     return lifecycle
 
 
@@ -169,7 +174,7 @@ def resolve_get_property(node, cloud_inputs):
     return cloud_inputs
 
 
-def update_get_property(list_of_dict, properties):
+def _update_get_property(list_of_dict, properties):
     for field in list_of_dict:
         try:
             field.update(
