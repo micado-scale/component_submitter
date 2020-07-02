@@ -103,8 +103,10 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             try:
                 kubernetes_validate.validate(manifest, "1.18.0", strict=True)
             except kubernetes_validate.ValidationError as err:
-                logger.error(err.message)
-                raise AdaptorCritical(err.message)
+                logger.error(f"K8s Validation: {err.message}")
+                raise AdaptorCritical(
+                    f"K8s Validation: {err.message}"
+                ) from None
 
         if not write_files:
             pass
