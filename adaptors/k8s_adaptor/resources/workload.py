@@ -50,10 +50,17 @@ class Workload(Resource):
 
         self.spec.setdefault("template", {})
         self.spec["template"].setdefault("metadata", {})
-        update_spec = self.spec["template"].setdefault("spec", {})
-        self.pod.spec.update(update_spec)
-        self.spec["template"].update(self.pod.manifest)
+        self.spec["template"].setdefault("spec", {})
+        self.overwrite_pod_spec()
 
         if kind != "Job":
             self.spec.setdefault("selector", {"matchLabels": {}})
             self.spec["selector"]["matchLabels"].update(self.pod.labels)
+
+    def overwrite_pod_spec(self):
+        for field, values in self.spec["template"]["spec"].items():
+            try:
+                self.pod.spec[field].update(values)
+            except (KeyError, AttributeError):
+                self.pod.spec[field] = values
+        self.spec["template"].update(self.pod.manifest)

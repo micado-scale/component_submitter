@@ -439,13 +439,17 @@ class TestWorkload(unittest.TestCase):
             "spec": {"still": "here", "present": "original"}
         }
         self.mock_pod.spec = self.mock_pod.manifest["spec"]
-        self.mock_work.pod = self.mock_pod
-        self.mock_work.spec = {"template": {"spec": {"present": "replaced"}}}
-        Workload._add_pod_to_manifest(self.mock_work, "StatefulSet")
-        self.assertIn(
-            "replaced", self.mock_work.spec["template"]["spec"].values()
+        self.work = Workload("app", "name", {})
+        self.work.spec = {
+            "template": {"spec": {"present": "replaced", "new": "new"}}
+        }
+        self.work.pod = self.mock_pod
+        self.work._add_pod_to_manifest("StatefulSet")
+        self.assertEqual(
+            ["here", "replaced", "new"],
+            list(self.work.spec["template"]["spec"].values()),
         )
-        self.assertIn("here", self.mock_work.spec["template"]["spec"].values())
+        self.assertIn("here", self.work.spec["template"]["spec"].values())
 
     def test_workload_add_selector_to_manifest(self):
         self.mock_work.pod = self.mock_pod
