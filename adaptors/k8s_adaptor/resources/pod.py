@@ -219,7 +219,7 @@ def _get_volume_spec(mount_type, name, inputs, claim_name):
 def _inline_volume_check(inputs, claim_name):
     """Returns either an emptyDir or PVC volumeSpec """
     if "emptyDir" in inputs.get("spec", {}):
-        return inputs
+        return {"emptyDir": {}}
     else:
         return {
             "persistentVolumeClaim": {"claimName": claim_name},

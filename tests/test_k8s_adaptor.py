@@ -391,7 +391,7 @@ class TestPod(unittest.TestCase):
     def test_inline_volume_check_empty_dir(self):
         inputs = {"spec": {"emptyDir": {}}}
         spec = pod._inline_volume_check(inputs, "name")
-        self.assertEqual(spec, inputs)
+        self.assertEqual(spec, {"emptyDir": {}})
 
     def test_inline_volume_check_pvc(self):
         spec = pod._inline_volume_check({}, "name")
