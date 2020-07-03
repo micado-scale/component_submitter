@@ -114,7 +114,7 @@ def _get_parent_interfaces(node, interface_type):
         if stage == "type":
             continue
         try:
-            interfaces[stage] = value.get("inputs")
+            interfaces[stage] = value.get("inputs") or {}
         except AttributeError:
             interfaces[stage] = {}
 
