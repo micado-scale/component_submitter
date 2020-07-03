@@ -20,7 +20,7 @@ class Prefix:
 
 class NodeType(Enum):
     DOCKER_CONTAINER = "Container.Application.Docker"
-    INIT_CONTAINER = "Container.Application.Init"
+    INIT_CONTAINER = "Container.Application.Docker.Init"
     CONTAINER_VOLUME = "Container.Volume"
     CONTAINER_CONFIG = "Container.Config"
     CONTAINER = "Container.Application"
