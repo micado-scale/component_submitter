@@ -64,7 +64,6 @@ class SubmitterEngine(object):
             raise Exception("An application is already running, MiCADO doesn't currently support multi applications")
         
         #template = self._micado_parser_upload(path_to_file, parsed_params)
-        #self.object_config.mapping(template)
         #template, dict_object_adaptors = self._validate(path_to_file, dry_run, False, id_app, parsed_params)
     
         #dict_object_adaptors = self._instantiate_adaptors(id_app, dryrun, template)
@@ -131,7 +130,6 @@ class SubmitterEngine(object):
         logger.info("****** proceding to the update of the application {}******".format(id_app))
 
         #template = self._micado_parser_upload(path_to_file, parsed_params)
-        self.object_config.mapping(template)
         dry_run = self.app_list[id_app]['dry_run']
         
         #dict_object_adaptors = self._instantiate_adaptors(id_app, dry_run, False, template)
@@ -157,8 +155,7 @@ class SubmitterEngine(object):
         """
         # MiCADO Validation
         logger.info("****** Starting the validation process of {} *****".format(path_to_file))
-        template = self._micado_parser_upload(path_to_file, parsed_params)
-        self.object_config.mapping(template)
+        self.object_config.resolve_inputs(template)
         #if validate is True:
         #    dry_run = True
         # Adaptors instantiation
