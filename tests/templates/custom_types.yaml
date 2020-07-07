@@ -1,6 +1,6 @@
 # TOSCA types definitions for MiCADO
-# 
-# MiCADO version: v0.7.4
+#
+# MiCADO version: v0.8.0
 # TOSCA version: Simple Profile in YAML v1.0 (+ some v1.1)
 #
 #
@@ -32,13 +32,17 @@ interface_types:
     description: Interface for VM management with Occopus
     derived_from: tosca.interfaces.node.lifecycle.Standard
     inputs:
-      endpoint_cloud:
+      endpoint:
         type: string
         description: Cloud API endpoint
         required: false
+      endpoint_cloud:
+        type: string
+        description: Cloud API endpoint DEPRECATED
+        required: false
       interface_cloud:
         type: string
-        description: Cloud provider
+        description: Cloud provider DEPRECATED
         required: false
         constraints:
           - valid_values: [ 'ec2', 'nova', 'cloudsigma', 'cloudbroker' ]
@@ -49,8 +53,8 @@ interface_types:
     description: Interface for VM management with Terraform
     derived_from: tosca.interfaces.node.lifecycle.Standard
     inputs:
-      provider:
-        description: Cloud provider
+      endpoint:
+        description: Cloud provider endpoint API
         type: string
         required: false
     create:
@@ -83,7 +87,7 @@ interface_types:
 #
 # MiCADO uses TOSCA nodes to build cloud components such as containers,
 # virtual machines or volumes. These components are further configured,
-# and their lifecycles managed, by passing orchestrator specific 
+# and their lifecycles managed, by passing orchestrator specific
 # options via TOSCA interfaces.
 #
 # OpenStack TOSCAParser WILL enforce restrictions on properties when
@@ -103,7 +107,15 @@ node_types:
   # You can find the following node types below:
   #   * tosca.nodes.MiCADO.Compute
   #   * tosca.nodes.MiCADO.CloudSigma.Compute
+  #   * tosca.nodes.MiCADO.CloudSigma.Compute.Occo
+  #   * tosca.nodes.MiCADO.CloudSigma.Compute.Occo.small
+  #   * tosca.nodes.MiCADO.CloudSigma.Compute.Occo.big
+  #   * tosca.nodes.MiCADO.CloudSigma.Compute.Occo.small.NFS
   #   * tosca.nodes.MiCADO.EC2.Compute
+  #   * tosca.nodes.MiCADO.EC2.Compute.Occo
+  #   * tosca.nodes.MiCADO.EC2.Compute.Terra
+  #   * tosca.nodes.MiCADO.GCE.Compute
+  #   * tosca.nodes.MiCADO.Azure.Compute
   #   * tosca.nodes.MiCADO.CloudBroker.Compute
   #   * tosca.nodes.MiCADO.Nova.Compute
   #
@@ -163,8 +175,80 @@ node_types:
     interfaces:
       Occopus:
         type: tosca.interfaces.MiCADO.Occopus
-      Terraform:
-        type: tosca.interfaces.MiCADO.Terraform
+
+  # Some examples of abstraction in Compute node types
+  tosca.nodes.MiCADO.CloudSigma.Compute.Occo:
+    description: Basic CloudSigma VM for MiCADO, by Occopus
+    derived_from: tosca.nodes.MiCADO.CloudSigma.Compute
+    properties:
+      endpoint:
+        type: string
+        default: https://zrh.cloudsigma.com/api/2.0
+        required: true
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+        create:
+          inputs:
+            endpoint: { get_property: [ SELF, endpoint ] }
+
+  tosca.nodes.MiCADO.CloudSigma.Compute.Occo.small:
+    description: Basic CloudSigma VM (2GHz/2GB) for MiCADO, by Occopus
+    derived_from: tosca.nodes.MiCADO.CloudSigma.Compute.Occo
+    properties:
+      num_cpus:
+        type: integer
+        default: 2000
+        required: true
+      mem_size:
+        type: integer
+        default: 2147483648
+        required: true
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+        create:
+          inputs:
+            endpoint: { get_property: [ SELF, endpoint ] }
+
+  tosca.nodes.MiCADO.CloudSigma.Compute.Occo.big:
+    description: Bigger CloudSigma VM (4GHz/4GB) for MiCADO, by Occopus
+    derived_from: tosca.nodes.MiCADO.CloudSigma.Compute.Occo
+    properties:
+      num_cpus:
+        type: integer
+        default: 4000
+        required: true
+      mem_size:
+        type: integer
+        default: 4294967296
+        required: true
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+        create:
+          inputs:
+            endpoint: { get_property: [ SELF, endpoint ] }
+
+
+  tosca.nodes.MiCADO.CloudSigma.Compute.Occo.small.NFS:
+    description: CloudSigma VM (2GHz/2GB) with NFS dependencies, by Occopus
+    derived_from: tosca.nodes.MiCADO.CloudSigma.Compute.Occo.small
+    properties:
+      context:
+        type: map
+        default:
+          append: yes
+          cloud_config: |
+            runcmd:
+            - apt-get install -y nfs-kernel-server nfs-common
+        required: true
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+        create:
+          inputs:
+            endpoint: { get_property: [ SELF, endpoint ] }
 
   tosca.nodes.MiCADO.EC2.Compute:
     description: Amazon EC2 compute node
@@ -196,6 +280,112 @@ node_types:
         type: tosca.interfaces.MiCADO.Occopus
       Terraform:
         type: tosca.interfaces.MiCADO.Terraform
+  
+  # Some examples of abstraction for EC2
+  tosca.nodes.MiCADO.EC2.Compute.Occo:
+    description: Basic EC2 VM for MiCADO, by Occopus, on eu-west-2
+    derived_from: tosca.nodes.MiCADO.EC2.Compute
+    properties:
+      region_name:
+        type: string
+        default: eu-west-2
+        required: true
+      endpoint:
+        type: string
+        default: https://ec2.eu-west-2.amazonaws.com
+        required: true
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+        create:
+          inputs:
+            endpoint: { get_property: [ SELF, endpoint ] }
+            
+  tosca.nodes.MiCADO.EC2.Compute.Terra:
+    description: Basic EC2 VM for MiCADO, by Terraform, on eu-west-2
+    derived_from: tosca.nodes.MiCADO.EC2.Compute
+    properties:
+      region_name:
+        type: string
+        default: eu-west-2
+        required: true
+    interfaces:
+      Terraform:
+        type: tosca.interfaces.MiCADO.Terraform
+        create:
+            
+  tosca.nodes.MiCADO.GCE.Compute:
+    description: Google Compute Engine compute node
+    derived_from: tosca.nodes.MiCADO.Compute
+    properties:
+      region:
+        type: string
+        required: true
+      project:
+        type: string
+        required: true
+      machine_type:
+        type: string
+        required: true
+      zone:
+        type: string
+        required: true
+      image:
+        type: string
+        required: true
+      network:
+        type: string
+        required: true
+      ssh-keys:
+        type: string
+        required: false
+      tags:
+        type: map
+        required: false
+    interfaces:
+      Terraform:
+        type: tosca.interfaces.MiCADO.Terraform
+
+  tosca.nodes.MiCADO.Azure.Compute:
+    description: Microsoft Azure compute node
+    derived_from: tosca.nodes.MiCADO.Compute
+    properties:
+      resource_group:
+        type: string
+        required: true
+      virtual_network:
+        type: string
+        required: true
+      subnet:
+        type: string
+        required: true
+      network_security_group:
+        type: string
+        required: true
+      size:
+        type: string
+        required: true
+      admin_username:
+        type: string
+        required: false
+      admin_password:
+        type: string
+        required: false
+      image_sku:
+        type: string
+        required: false      
+      source_image_id:
+        type: string
+        required: false
+      public_key:
+        type: string
+        required: false
+      public_ip:
+        type: boolean
+        required: false
+    interfaces:
+      Terraform:
+        type: tosca.interfaces.MiCADO.Terraform
 
   tosca.nodes.MiCADO.CloudBroker.Compute:
     description: CloudBroker compute node
@@ -219,8 +409,6 @@ node_types:
     interfaces:
       Occopus:
         type: tosca.interfaces.MiCADO.Occopus
-      Terraform:
-        type: tosca.interfaces.MiCADO.Terraform
 
   tosca.nodes.MiCADO.Nova.Compute:
     description: Openstack Nova Compute node
@@ -231,8 +419,14 @@ node_types:
         required: true
       flavor_name:
         type: string
-        required: true
+        required: false
+      flavor_id:
+        type: string
+        required: false
       tenant_name:
+        type: string
+        required: false
+      auth_url:
         type: string
         required: false
       project_id:
@@ -241,10 +435,16 @@ node_types:
       user_domain_name:
         type: string
         required: false
+      network_name:
+        type: string
+        required: false
       network_id:
         type: string
         required: true
       server_name:
+        type: string
+        required: false
+      availability_zone:
         type: string
         required: false
       key_name:
@@ -265,6 +465,16 @@ node_types:
       Terraform:
         type: tosca.interfaces.MiCADO.Terraform
 
+  # Custom Kubernetes resource type
+  #
+  # This type can be used to define *any* Kubernetes resource
+  tosca.nodes.MiCADO.Kubernetes:
+    description: Base type for defining custom Kubernetes resources
+    derived_from: tosca.nodes.Root
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+
   # Container node types
   #
   # You can find the following node types below:
@@ -277,12 +487,53 @@ node_types:
   # This node supports both Docker and Kubernetes style field names
   # Where possible, especially for common fields, an adaptor will
   # attempt to translate these fields
+  tosca.nodes.MiCADO.Container.Application:
+    description: |
+      description of a container
+    derived_from: tosca.nodes.Container.Application
+    interfaces:
+      Swarm:
+        type: tosca.interfaces.MiCADO.Swarm
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+
+  tosca.nodes.MiCADO.Container.Application.Pod:
+    description: |
+      description of a Pod
+    derived_from: tosca.nodes.MiCADO.Container.Application
+    requirements:
+    - service:
+        capability: tosca.capabilities.Container.Docker
+        node: tosca.nodes.MiCADO.Container.Application.Docker
+        relationship: tosca.relationships.MiCADO.ConnectsTo
+    - container:
+        capability: tosca.capabilities.Container.Docker
+        node: tosca.nodes.MiCADO.Container.Application.Docker
+        relationship: tosca.relationships.HostedOn
+    - host:
+        capability: tosca.capabilities.Compute
+        node: tosca.nodes.MiCADO.Compute
+        relationship: tosca.relationships.HostedOn
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+
+  tosca.nodes.MiCADO.Container.Application.Pod.Kubernetes:
+    description: |
+      description of a Pod orchestrated by Kubernetes
+    derived_from: tosca.nodes.MiCADO.Container.Application.Pod
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+        create:
+          inputs: {}
+
   tosca.nodes.MiCADO.Container.Application.Docker:
     description: |
-      description of a Docker container in the style of a Kubernetes 
+      description of a Docker container in the style of a Kubernetes
       ContainerSpec or Docker Compose long syntax
-    derived_from: tosca.nodes.Container.Application.Docker
-    
+    derived_from: tosca.nodes.MiCADO.Container.Application
+
     properties:
 
       # Kubernetes style field names
@@ -478,21 +729,14 @@ node_types:
         description: working directory *translates to Kubernetes workingDir*
         type: string
         required: false
-    
-    # Fill the artifact with the image property by default    
+
+    # Fill the artifact with the image property by default
     artifacts:
       image:
         type: tosca.artifacts.Deployment.Image.Container.Docker
         file: { get_property: [ SELF, image ] }
         repository: docker_hub
-    
-    # Possible interfaces for this node
-    interfaces:
-      Swarm:
-        type: tosca.interfaces.MiCADO.Swarm
-      Kubernetes:
-        type: tosca.interfaces.MiCADO.Kubernetes
-    
+
     # Possible outputs for this node
     attributes:
       port:
@@ -506,7 +750,7 @@ node_types:
         type: tosca.capabilities.Container.Docker
       scalable:
         type: tosca.capabilities.Scalable
-    
+
     # Relationships this node supports
     requirements:
       - service:
@@ -530,14 +774,14 @@ node_types:
   tosca.nodes.MiCADO.Container.Application.Docker.Deployment:
     description: An abstraction of the Docker container node, creates a Kubernetes Deployment
     derived_from: tosca.nodes.MiCADO.Container.Application.Docker
-    
+
     # Fill the artifact by default with the image property
     artifacts:
       image:
         type: tosca.artifacts.Deployment.Image.Container.Docker
         file: { get_property: [ SELF, image ] }
         repository: docker_hub
-    
+
     # Use these interface inputs by default
     interfaces:
       Kubernetes:
@@ -564,6 +808,7 @@ node_types:
           inputs:
             kind: DaemonSet
 
+  #TODO Get rid of these Pod definitions in favour of Container.Application.Pod.*
   tosca.nodes.MiCADO.Container.Pod.Kubernetes:
     description: A bare Kubernetes Pod, which supports hosting containers
     derived_from: tosca.nodes.Container.Runtime
@@ -584,7 +829,7 @@ node_types:
           capability: tosca.capabilities.Compute
           node: tosca.nodes.MiCADO.Compute
           relationship: tosca.relationships.HostedOn
-  
+
   tosca.nodes.MiCADO.Container.Pod.Kubernetes.Deployment:
     description: An abstraction of the above, creates a Deployment
     derived_from: tosca.nodes.MiCADO.Container.Pod.Kubernetes
@@ -760,7 +1005,7 @@ node_types:
                 path: { get_property: [ SELF, path ] }
                 endpoints: { get_property: [ SELF, endpoints ] }
                 readOnly: { get_property: [ SELF, readOnly ] }
-  
+
   tosca.nodes.MiCADO.network.Network.Docker:
     description: Node for creating a new Docker network
     derived_from: tosca.nodes.network.Network
@@ -868,7 +1113,7 @@ artifact_types:
       raw_text:
         type: string
         required: false
-  
+
   tosca.artifacts.File.Secrets.Docker:
     description: A legacy artifact type for Docker secrets
     derived_from: tosca.artifacts.File
@@ -899,7 +1144,9 @@ data_types:
       append:
         type: boolean
         required: false
-        default: no
+      insert:
+        type: boolean
+        required: false
 
   deploy_type:
     description: Available properties for Swarm specific orchestration
@@ -951,7 +1198,7 @@ data_types:
         type: integer
         required: false
       protocol:
-        description: Protocol (Swarm & Kubernetes) - SCTP is Kube only 
+        description: Protocol (Swarm & Kubernetes) - SCTP is Kube only
         type: string
         required: false
         constraints:
@@ -965,7 +1212,7 @@ data_types:
         description: Port inside container (Kubernetes-style)
         type: string
         required: false
-          
+
       # Kubernetes ContainerPort fields
       containerPort:
         description: Give more info on exposed ports, omitting this does not prevent the port from being exposed (internally)
@@ -997,7 +1244,7 @@ data_types:
         - valid_values:
           - 'host'
           - 'ingress'
-      
+
       # Kubernetes Service field
       metadata:
         description: Kubernetes space for adding metadata (such as service name)
@@ -1086,8 +1333,11 @@ data_types:
 
 # TOSCA Policy Types
 #
-# TOSCA policy types are used to specify scaling, monitoring
-# and other such requirements for nodes
+# TOSCA policy types are used to specify scaling, alerting, monitoring
+# and other such requirements for nodes. Currently these types exist:
+#   * tosca.policies.Scaling.MiCADO
+#   * tosca.policies.Alerting.MiCADO
+#   * tosca.policies.Monitoring.MiCADO
 #
 policy_types:
 
@@ -1133,15 +1383,11 @@ policy_types:
         type: string
         description: python code to define scaling rule
         required: true
-  
-  tosca.policies.Monitoring.MiCADO:
-    description: base MiCADO policy for monitoring
+
+  tosca.policies.Alerting.MiCADO:
+    description: base MiCADO policy for alerting
     derived_from: tosca.policies.Root
     properties:
-      sources:
-        type: list
-        description: list of prometheus exporters as data sources
-        required: false
       constants:
         type: map
         description: list of constants referred in other sections
@@ -1160,3 +1406,394 @@ policy_types:
         description: the priority with which the policy will be exectued (not yet implemented)
         default: 100
         required: false
+
+  tosca.policies.Monitoring.MiCADO:
+    description: base MiCADO policy for enabling prometheus exporters
+    derived_from: tosca.policies.Root
+    properties:
+      enable_node_metrics:
+        type: boolean
+        description: enable default collection of node resource metrics (with node_exporter)
+        default: false
+        required: true
+      enable_container_metrics:
+        type: boolean
+        description: enable default collection of container resource metrics (with cAdvisor)
+        default: false
+        required: true
+      custom_exporters:
+        type: list
+        description: custom list of exporters in format <pod-name>:<port>
+        required: false
+      stage:
+        type: string
+        description: the stage that will be affected by the policy (not yet implemented)
+        default: started
+        required: false
+      priority:
+        type: integer
+        description: the priority with which the policy will be exectued (not yet implemented)
+        default: 100
+        required: false
+
+  tosca.policies.Security.MiCADO.Network:
+    derived_from: tosca.policies.Root
+    description: Base policy for MiCADO network security policies
+    properties:
+      priority:
+        type: integer
+        required: true
+        default: 100
+      stage:
+        type: string
+        required: true
+        default: deployment
+      target_ports:
+        type: list
+        required: true
+
+  tosca.policies.Security.MiCADO.Network.Passthrough:
+    derived_from: tosca.policies.Security.MiCADO.Network
+    description: Specifies no additional filtering, no application-level firewall
+
+  tosca.policies.Security.MiCADO.Network.L7Proxy:
+    derived_from: tosca.policies.Security.MiCADO.Network
+    description: No protocol enforcement. Apply application-level firewall; can provide TLS control
+    properties:
+      encryption:
+        type: boolean
+        description: Specifies if encryption should be used
+        required: true
+      encryption_key:
+        type: string
+        description: The key file for TLS encryption as unencrypted .PEM
+        required: false
+      encryption_cert:
+        type: string
+        description: The cert file for TLS encryption as .PEM
+        required: false
+      encryption_offload:
+        type: string
+        description: Controls whether connection should be re-encrypted server side
+        required: false
+      encryption_cipher:
+        type: string
+        description: Specifies allowed ciphers client side during TLS handshake
+        required: false
+
+  tosca.policies.Security.MiCADO.Network.SmtpProxy:
+    derived_from: tosca.policies.Security.MiCADO.Network.L7Proxy
+    description: Enforce SMTP protocol, can provide TLS control
+    properties:
+      relay_check:
+        type: boolean
+        description: Toggle relay checking
+        required: true
+      permit_percent_hack:
+        type: boolean
+        description: Allow the % symbol in the local part of an email address
+        required: false
+      error_soft:
+        type: boolean
+        description: Return a soft error when recipient filter does not match
+        required: false
+      relay_domains:
+        type: list
+        description: Domain mails are accepted for use postfix style lists
+        required: false
+      permit_exclamation_mark:
+        type: boolean
+        description: Allow the ! symbol in the local part of an email address
+        required: false
+      relay_domains_matcher_whitelist:
+        type: list
+        description: Domains mails accepted based on list of regex (precedence)
+        required: false
+      relay_domains_matcher_blacklist:
+        type: list
+        description: Domain mails rejected based on list of regular expressions
+        required: false
+      sender_matcher_whitelist:
+        type: list
+        description: Sender addresses accepted based on list of regex (precedence)
+        required: false
+      sender_matcher_blacklist:
+        type: list
+        description: Sender addresses rejected based on list of regex
+        required: false
+      recipient_matcher_whitelist:
+        type: list
+        description: Recipient addresses accepted based on list of regex (precedence)
+        required: false
+      recipient_matcher_blacklist:
+        type: list
+        description: Recipient addresses rejected based on list of regex
+        required: false
+      autodetect_domain_from:
+        type: string
+        description: Let Zorp autodetect firewall domain name and write to received line
+        constraints:
+          - valid_values: ["mailname", "fqdn"]
+        required: false
+      append_domain:
+        type: string
+        description: Domain to append to email addresses which do not specify a domain
+        required: false
+      permit_omission_of_angle_brackets:
+        type: boolean
+        description: Permit MAIL From and RCPT To params without normally required brackets
+        required: false
+      interval_transfer_noop:
+        type: integer
+        description: Interval between two NOOP commands sent to server while waiting for stack proxy results
+        required: false
+      resolve_host:
+        type: boolean
+        description: Resolve client host from IP address and write to received line
+        required: false
+      permit_long_responses:
+        type: boolean
+        description: Permit overly long responses as some MTAs include variable parts in responses
+        required: false
+      max_auth_request_length:
+        type: integer
+        description: Maximum allowed length of a request during SASL style authentication
+        required: false
+      max_response_length:
+        type: integer
+        description: Maximum allowed line length of server response
+        required: false
+      unconnected_response_code:
+        type: integer
+        description: Error code sent to client if connecting to server fails
+        required: false
+      add_received_header:
+        type: boolean
+        description: Add a received header into the email messages transferred by proxy
+        required: false
+      domain_name:
+        type: string
+        description: Fix a domain name into added receive line. add_received_header must be true
+        required: false
+      tls_passthrough:
+        type: boolean
+        description: Change to passthrough mode
+        required: false
+      extensions:
+        type: list
+        description: Allowed ESMTP extensions, indexed by extension verb
+        required: false
+      require_crlf:
+        type: boolean
+        description: Specify whether proxy should enforce valid CRLF line terminations
+        required: false
+      timeout:
+        type: integer
+        description: Timeout in ms - if no packet arrives, connection is dropped
+        required: false
+      max_request_length:
+        type: integer
+        description: Maximum allowed line length of client requests
+        required: false
+      permit_unknown_command:
+        type: boolean
+        description: Enable unknown commands
+        required: false
+
+  tosca.policies.Security.MiCADO.Network.HttpProxy:
+    derived_from: tosca.policies.Security.MiCADO.Network.L7Proxy
+    description: Enforce HTTP protocol, can provide TLS control
+    properties:
+      max_keepalive_requests:
+        type: integer
+        description: Max number of requests allowed in a single session
+        required: false
+      permit_proxy_requests:
+        type: boolean
+        description: Allow proxy type requests in transparent mode
+        required: false
+      reset_on_close:
+        type: boolean
+        description: If connection is terminated without a proxy generated error, send an RST instead of a normal close
+        required: false
+      permit_unicode_url:
+        type: boolean
+        description: Allow unicode characters in URLs encoded as u'
+        required: false
+      permit_server_requests:
+        type: boolean
+        description: Allow server type requests in non transparent mode
+        required: false
+      max_hostname_length:
+        type: integer
+        description: Maximum allowed length of hostname field in URLs
+        required: false
+      parent_proxy:
+        type: string
+        description: Address or hostname of parent proxy to be connected
+        required: false
+      permit_ftp_over_http:
+        type: boolean
+        description: Allow processing FTP URLs in non transparent mode
+        required: false
+      parent_proxy_port:
+        type: integer
+        description: Port of parent proxy to be connected
+        required: false
+      permit_http09_responses:
+        type: boolean
+        description: Allow server responses to use limited HTTP 0 9 protocol
+        required: false
+      rewrite_host_header:
+        type: boolean
+        description: Rewrite host header in requests when URL redirection occurs
+        required: false
+      max_line_length:
+        type: integer
+        description: Maximum allowed length of lines in requests and responses
+        required: false
+      max_chunk_length:
+        type: integer
+        description: Maximum allowed length of a single chunk when using chunked transer encoding
+        required: false
+      strict_header_checking_action:
+        type: string
+        description: Specify Zorb action if non rfc or unknown header in communication
+        constraints:
+          - valid_values: ["accept", "drop", "abort"]
+        required: false
+      non_transparent_ports:
+        type: list
+        description: List of ports that non transparent requests may use
+        required: false
+      strict_header_checking:
+        type: boolean
+        description: Require RFC conformant HTTP headers
+        required: false
+      max_auth_time:
+        type: integer
+        description: Force new auth request from client browser after time in seconds
+        required: false
+      max_url_length:
+        type: integer
+        description: Maximum allowed length of URL in a request
+        required: false
+      timeout_request:
+        type: integer
+        description: Time to wait for a request to arrive from client
+        required: false
+      rerequest_attempts:
+        type: integer
+        description: Control number of attempts proxy takes to send request to server
+        required: false
+      error_status:
+        type: integer
+        description: On error, Zorp uses this as status code of HTTP response
+        required: false
+      keep_persistent:
+        type: boolean
+        description: Try to keep connection to client persistent, even if unsupported
+        required: false
+      error_files_directory:
+        type: string
+        description: Location of HTTP error messages
+        required: false
+      max_header_lines:
+        type: integer
+        description: Maximum number of eader lines allowed in requests and responses
+        required: false
+      use_canonicalized_urls:
+        type: boolean
+        description: Enable canonicalization - converts URLs to canonical form
+        required: false
+      max_body_length:
+        type: integer
+        description: Maximum allowed length of HTTP request or response body
+        required: false
+      require_host_header:
+        type: boolean
+        description: Require presence of host header
+        required: false
+      buffer_size:
+        type: integer
+        description: Size of I O buffer used to transfer entity bodies
+        required: false
+      permitted_responses:
+        type: list
+        description: Normative policy hash for HTTP responses indexed by HTTP method and response code
+        entry_schema:
+          description: dictionary (string/int)
+          type: map
+        required: false
+      transparent_mode:
+        type: boolean
+        description: Enable transparent mode for the proxy
+        required: false
+      permit_null_response:
+        type: boolean
+        description: Permit RFC incompliant responses with headers not terminated by CRLF, and not containing entity body
+        required: false
+      language:
+        type: string
+        description: Specify language of HTTP error pages displayed to client
+        required: false
+        default: English
+      error_silent:
+        type: boolean
+        description: Turns off verbose error reporting to HTTP client, making firewall fingerprinting more difficult
+        required: false
+      permitted_requests:
+        type: list
+        description: List of permitted HTTP methods indexed by verb
+        required: false
+      use_default_port_in_transparent_mode:
+        type: boolean
+        description: Enable use of default port in transparent mode
+        required: false
+      timeout_response:
+        type: integer
+        description: Time to wait for the HTTP status line to arrive from the server
+        required: false
+      permit_invalid_hex_escape:
+        type: boolean
+        description: Allow invalid hexadecimal escaping in URLs
+        required: false
+      auth_cache_time:
+        type: integer
+        description: Caching authentication information time in seconds
+        required: false
+      timeout:
+        type: integer
+        description: General I O timeout in ms
+        required: false
+      default_port:
+        type: integer
+        description: Used in non transparent mode when URL does not contain a port number
+        required: false
+        default: 80
+
+  tosca.policies.Security.MiCADO.Network.HttpURIFilterProxy:
+    derived_from: tosca.policies.Security.MiCADO.Network.HttpProxy
+    description: Enforce HTTP protocol with regex URL filtering capabilities
+    properties:
+      matcher_whitelist:
+        type: list
+        description: List of regex determining permitted access to a URL (precedence)
+        required: true
+      matcher_blacklist:
+        type: list
+        description: List of regex determining prohibited access to a URL
+        required: true
+
+  tosca.policies.Security.MiCADO.Network.HttpWebdavProxy:
+    derived_from: tosca.policies.Security.MiCADO.Network.HttpProxy
+    description: Enforce HTTP protocol with request methods for WebDAV
+
+  tosca.policies.Security.MiCADO.Secret.KubernetesSecretDistribution:
+    derived_from: tosca.policies.Root
+    description: distributes secrets to services
+    properties:
+      file_secrets:
+        type: map
+      text_secrets:
+        type: map
