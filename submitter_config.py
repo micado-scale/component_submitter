@@ -175,53 +175,31 @@ class SubmitterConfig:
 
     def _find_get_input(self, tpl, template):
         for key, value in tpl.items():
-            if isinstance(value, dict):
-                logger.debug(
-                    'sub dictionary found, look through this to find "get_input"'
-                )
+            if key == "get_input":
+                return value
+            elif isinstance(value, dict):
                 result = self._find_get_input(value, template)
-                if result is not None:
+                if result:
                     tpl[key] = self._get_input_value(result, template)
             elif isinstance(value, list):
                 for i in value:
-                    if isinstance(i, dict):
-                        result = self._find_get_input(i, template)
-                        if result is not None:
-                            tpl[key][i] = self._get_input_value(
-                                result, template
-                            )
-                    else:
-                        logger.debug(
-                            "this list doesn't contain any dictionary"
-                        )
-            elif isinstance(value, GetInput):
-                logger.debug("GetInput object found, replace it with value")
-                tpl[key] = self._get_input_value(value.input_name, template)
-
-            elif "get_input" in key:
-                return value
+                    if not isinstance(i, dict):
+                        continue
+                    result = self._find_get_input(i, template)
+                    if result:
+                        tpl[key][i] = self._get_input_value(result, template)
 
     def _get_input_value(self, key, template):
         try:
-            if isinstance(template.parsed_params, dict):
-                if template.parsed_params[key]:
-                    return template.parsed_params[key]
-        except KeyError as j:
-            logger.error("{} no {} in parsed_params".format(j, key))
+            return template.parsed_params[key]
+        except (KeyError, TypeError):
+            logger.debug(f"Input '{key}' not given, using default")
 
         try:
-            logger.debug("ready to get the result")
-            result = self._contains_inputs(
-                template.inputs, lambda x: x.name == key
-            )
-            return result.default
-        except TypeError as e:
-            logger.error("{}".format(e))
-
-    def _contains_inputs(self, list_object, filter):
-        logger.debug("check if inputs is in list")
-        for i in list_object:
-            if filter(i):
-                return i
-        return False
+            return [
+                param.default for param
+                in template.inputs
+                if param.name == key][0]
+        except IndexError:
+            logger.error(f"Input '{key}' has no default")
 
