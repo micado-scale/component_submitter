@@ -4,16 +4,11 @@ MiCADO Submitter Engine Submitter Config
 A module allowing the configuration of the whole submitter
 """
 import ruamel.yaml as yaml
-import re
-import collections
-import utils
+import logging
 from os import path
 
 basepath = path.dirname(__file__)
 CONFIG_FILE = "{}/system/key_config.yml".format(basepath)
-from toscaparser.functions import GetInput
-
-import logging
 
 logger = logging.getLogger("submitter." + __name__)
 
@@ -22,24 +17,21 @@ class SubmitterConfig:
     """
         This is the SubmitterConfig,
         in charge of the configuration of the whole submitter.
-        It has ``__init__()``, ``get_list_adaptors()``, ``_retrieve_custom_type()``,
-        ``_reading_config()``, ``_check_re()``, ``_list_for_re()``, ``mapping()``,
-        ``_look_through_template()``, ``_find_get_input()``, ``_contains_inputs()``,
+        It has ``__init__()``, ``get_list_adaptors()``,
+        ``_reading_config()``, ``_find_get_input()``,
         ``get_SubmitterConfig()``, ``get_dict()`` and ``get_node_from_type()``.
 
-        Optional testing parameter can be passed to __init__ to define which key_config files
-        to take for test purposes.
+        Optional testing parameter can be passed to __init__
+        to define which key_config files to take for test purposes.
 
         
   """
 
     def __init__(self, testing=None):
         logger.debug("initialisation of SubmitterConfig class")
-        if testing:
-            self.config_path = testing
-        else:
-            self.config_path = CONFIG_FILE
+        self.config_path = testing or CONFIG_FILE
         config = self._reading_config()
+        
         self.main_config = config["main_config"]
         self.step_config = config["step"]
         self.logging_config = config["logging"]
