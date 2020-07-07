@@ -66,7 +66,10 @@ class SubmitterConfig:
 
     def resolve_inputs(self, template):
         self._find_get_input(template.tpl, template)
-        
+        # Update nodetemplate properties
+        for node in template.nodetemplates:
+            node._properties = node._create_properties()
+
     def _find_get_input(self, tpl, template):
         for key, value in tpl.items():
             if key == "get_input":
