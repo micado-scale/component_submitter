@@ -110,8 +110,8 @@ topology_template:
     busydata:
       type: tosca.nodes.MiCADO.Volume.Docker
 
-  outputs:
-    ip_address:
-      value: { get_attribute: [ db, ip_address ]}
-    port:
-      value: { get_attribute: [ db, port ]}
+  # outputs:
+  #   ip_address:
+  #     value: { get_attribute: [ db, ip_address ]}
+  #   port:
+  #     value: { get_attribute: [ db, port ]}

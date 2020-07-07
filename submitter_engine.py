@@ -1,4 +1,4 @@
-from micado_parser import MiCADOParser
+import micado_parser
 from plugins_gestion import PluginsGestion
 import sys
 from micado_validator import MultiError
@@ -155,6 +155,7 @@ class SubmitterEngine(object):
         """
         # MiCADO Validation
         logger.info("****** Starting the validation process of {} *****".format(path_to_file))
+        template = micado_parser.set_template(path_to_file, parsed_params)
         self.object_config.resolve_inputs(template)
         #if validate is True:
         #    dry_run = True
@@ -209,14 +210,6 @@ class SubmitterEngine(object):
             logger.info("The deployment wasn't successful...")
             logger.info("*******************")
             raise
-
-    def _micado_parser_upload(self, path, parsed_params):
-        """ Parse the file and retrieve the object """
-        logger.debug("Instantiation of the submitter and retrieving the template")
-        parser = MiCADOParser()
-        template= parser.set_template(path=path, parsed_params=parsed_params)
-        logger.info("Valid & Compatible TOSCA template")
-        return template
 
 
     def _get_adaptors_class(self):
