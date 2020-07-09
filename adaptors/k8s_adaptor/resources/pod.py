@@ -173,9 +173,12 @@ def _get_path_on_disk(inputs, properties):
     disk_path = ""
 
     for search in inputs.values():
-        if "path" in search and isinstance(search.get("path"), str):
-            disk_path = search.get("path")
-            break
+        try:
+            if isinstance(search["path"], str):
+                disk_path = search["path"]
+                break
+        except (KeyError, TypeError):
+            pass
     else:
         disk_path = properties.get("path", "")
 
