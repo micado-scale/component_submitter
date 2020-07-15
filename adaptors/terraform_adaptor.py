@@ -872,11 +872,11 @@ class TerraformAdaptor(abco.Adaptor):
 
         shutil.copyfile(self.auth_oci, self.oci_auth_key)
 
-        credential = self._get_credential_info("oci") 
-        if credential["user_ocid"]:
-            use_ipa = "false"
-        else:
-            use_ipa = "true"       
+        credential = self._get_credential_info("oci")
+        use_ipa = True
+        if credential.get("user_ocid"):
+            use_ipa = False
+
         region = properties["region"]
         self.tf_json.add_provider("oci", get_provider(use_ipa))
 
