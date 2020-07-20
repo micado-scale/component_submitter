@@ -4,8 +4,8 @@ import pkgutil
 import inspect
 import logging
 
-from abstracts import Adaptor
-import adaptors
+from submitter.abstracts import Adaptor
+from submitter import adaptors
 
 logger = logging.getLogger("submitter." + __name__)
 

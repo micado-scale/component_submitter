@@ -8,18 +8,14 @@ import json
 import pykube
 import kubernetes_validate
 
-from .tosca import Prefix
-from .tosca import NodeType
-from .tosca import Interface
-from .tosca import NetworkProxy
-
 from toscaparser.tosca_template import ToscaTemplate
-import utils
 
-from abstracts import base_adaptor
-from abstracts.exceptions import AdaptorCritical, TranslateError
+from submitter import utils
+from submitter.abstracts import base_adaptor
+from submitter.abstracts.exceptions import AdaptorCritical, TranslateError
 from .zorp import ZorpManifests
 from .translator import get_translator
+from .tosca import Prefix, NodeType, Interface, NetworkProxy
 
 logger = logging.getLogger("adaptors.k8s_adaptor")
 

@@ -2,12 +2,13 @@ import os
 import filecmp
 import logging
 import requests
-from toscaparser.tosca_template import ToscaTemplate
-from abstracts import base_adaptor as abco
-from abstracts.exceptions import AdaptorCritical
-import ruamel.yaml as yaml
 
-import utils
+import ruamel.yaml as yaml
+from toscaparser.tosca_template import ToscaTemplate
+
+from submitter.abstracts import base_adaptor as abco
+from submitter.abstracts.exceptions import AdaptorCritical
+from submitter import utils
 
 logger = logging.getLogger("adaptor."+__name__)
 

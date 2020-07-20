@@ -1,17 +1,20 @@
-import micado_parser
-from plugins_gestion import PluginsGestion
+
 import sys
-from micado_validator import MultiError
-from abstracts.exceptions import AdaptorCritical, AdaptorError
-import utils
 import json
-import ruamel.yaml as yaml
 import os
 import time
 from random import randint
-from submitter_config import SubmitterConfig
 import logging
 import logging.config
+
+import ruamel.yaml as yaml
+
+from submitter import micado_parser
+from submitter import utils
+from submitter.plugins_gestion import PluginsGestion
+from submitter.micado_validator import MultiError
+from submitter.abstracts.exceptions import AdaptorCritical, AdaptorError
+from submitter.submitter_config import SubmitterConfig
 """ set up of Logging """
 config = SubmitterConfig()
 logging.config.dictConfig(config.logging_config)

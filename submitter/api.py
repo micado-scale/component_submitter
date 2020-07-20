@@ -1,18 +1,23 @@
-from flask import request, url_for, Flask, jsonify, render_template, flash, redirect
-from submitter_engine import SubmitterEngine
-from toscaparser.common.exception import *
+
 import os
-app = Flask(__name__)
-app.url_map.strict_slashes = False
 import logging
 import ast
-import utils
-import yaml
 import threading
 import queue
 import time
 import urllib.request
 import json
+
+import yaml
+
+from flask import request, url_for, Flask, jsonify, render_template, flash, redirect
+from toscaparser.common.exception import *
+
+from submitter import utils
+from submitter.submitter_engine import SubmitterEngine
+
+app = Flask(__name__)
+app.url_map.strict_slashes = False
 
 JSON_FILE = "system/ids.json"
 

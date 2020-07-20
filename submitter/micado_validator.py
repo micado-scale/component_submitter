@@ -10,10 +10,11 @@ set out by the OpenStack ToscaParser. Currently validation checks exist for
 repositories and the requirements and relationships of custom defined types.
 """
 
+import logging
 
 from toscaparser.tosca_template import ToscaTemplate
-import utils
-import logging
+
+from submitter import utils
 
 logger=logging.getLogger("adaptor."+__name__)
 
