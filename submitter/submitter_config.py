@@ -3,9 +3,10 @@ MiCADO Submitter Engine Submitter Config
 ----------------------------------------
 A module allowing the configuration of the whole submitter
 """
-import ruamel.yaml as yaml
 import logging
 from os import path
+
+import ruamel.yaml as yaml
 
 basepath = path.dirname(__file__)
 CONFIG_FILE = "{}/system/key_config.yml".format(basepath)

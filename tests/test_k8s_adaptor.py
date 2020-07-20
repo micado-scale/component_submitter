@@ -3,8 +3,10 @@ from unittest.mock import Mock, patch
 from collections import namedtuple
 
 from toscaparser.tosca_template import ToscaTemplate
-from adaptors.k8s_adaptor.k8s_adaptor import KubernetesAdaptor
-from adaptors.k8s_adaptor.resources import (
+
+from submitter.adaptors.k8s_adaptor.k8s_adaptor import KubernetesAdaptor
+from submitter.adaptors.k8s_adaptor.resources import pod, container, service
+from submitter.adaptors.k8s_adaptor.resources import (
     Resource,
     Workload,
     Pod,
@@ -14,7 +16,6 @@ from adaptors.k8s_adaptor.resources import (
     Service,
     ConfigMap,
 )
-from adaptors.k8s_adaptor.resources import pod, container, service
 
 VER_LABEL = "app.kubernetes.io/version"
 
@@ -368,7 +369,7 @@ class TestPod(unittest.TestCase):
     def test_get_volume_spec_with_volumes(self):
         mount_type = "volumes"
         with patch(
-            "adaptors.k8s_adaptor.resources.pod._inline_volume_check"
+            "submitter.adaptors.k8s_adaptor.resources.pod._inline_volume_check"
         ) as mock:
             pod._get_volume_spec(mount_type, "", {}, "")
             self.assertEqual(mock.call_count, 1)

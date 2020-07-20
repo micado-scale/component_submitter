@@ -5,12 +5,14 @@ MiCADO Submitter Engine Security Policy Manager Adaptor
 A TOSCA to Security Policy Manager adaptor.
 """
 
-from toscaparser.tosca_template import ToscaTemplate
-
-from abstracts import base_adaptor as abco
-from abstracts.exceptions import AdaptorCritical
 import logging
 import requests
+
+from toscaparser.tosca_template import ToscaTemplate
+
+from submitter.abstracts import base_adaptor as abco
+from submitter.abstracts.exceptions import AdaptorCritical
+
 SECRET_TYPE = "tosca.policies.Security.MiCADO.Secret.KubernetesSecretDistribution"
 
 logger = logging.getLogger("adaptors."+__name__)

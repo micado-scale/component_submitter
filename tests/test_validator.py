@@ -2,8 +2,8 @@ import unittest
 
 from toscaparser.tosca_template import ToscaTemplate
 
-from micado_validator import MultiError
-import micado_validator as validator
+from submitter.micado_validator import MultiError
+from submitter import micado_validator as validator
 
 class TestValidation(unittest.TestCase):
     """ UnitTests for micado_validator """

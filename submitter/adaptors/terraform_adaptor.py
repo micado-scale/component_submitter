@@ -10,11 +10,11 @@ import docker
 import ruamel.yaml as yaml
 import json
 import jinja2
-
-import utils
-from abstracts import base_adaptor as abco
-from abstracts.exceptions import AdaptorCritical
 from toscaparser.tosca_template import ToscaTemplate
+
+from submitter import utils
+from submitter.abstracts import base_adaptor as abco
+from submitter.abstracts.exceptions import AdaptorCritical
 
 logger = logging.getLogger("adaptor." + __name__)
 

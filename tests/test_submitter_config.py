@@ -2,8 +2,8 @@ import unittest
 
 from toscaparser.tosca_template import ToscaTemplate
 
-from micado_validator import MultiError
-from submitter_config import SubmitterConfig as SubConfig
+from submitter.micado_validator import MultiError
+from submitter.submitter_config import SubmitterConfig as SubConfig
 
 class TestSubmitterConfig(unittest.TestCase):
     """ UnitTests for micado_validator """

@@ -1,6 +1,7 @@
 from collections import namedtuple
 from enum import Enum
-import utils
+
+from submitter import utils
 
 
 class Interface:

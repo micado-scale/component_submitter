@@ -1,14 +1,15 @@
-#!/usr/bin/python
-from toscaparser.tosca_template import ToscaTemplate
-from toscaparser.common.exception import ValidationError
 import os
-import toscaparser.utils.urlutils
 import sys
 import logging
-import micado_validator as Validator
-
 import inspect
 import traceback
+
+import toscaparser.utils.urlutils
+from toscaparser.tosca_template import ToscaTemplate
+from toscaparser.common.exception import ValidationError
+
+from submitter import micado_validator as Validator
+
 
 logger = logging.getLogger("submitter." + __name__)
 

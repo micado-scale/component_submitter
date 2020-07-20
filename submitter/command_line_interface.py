@@ -8,9 +8,9 @@ to launch, update, undeploy the application
 """
 
 import argparse
-from submitter_engine import SubmitterEngine
 import ast
 
+from submitter.submitter_engine import SubmitterEngine
 
 
 if __name__=="__main__":
