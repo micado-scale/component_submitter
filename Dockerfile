@@ -1,12 +1,15 @@
 FROM python:3.6-slim
 
-WORKDIR /var/lib/submitter
+COPY requirements.txt /requirements.txt
 
-COPY . .
+RUN pip3 install -r /requirements.txt \
+&& rm -rf /root/.cache \
+&& rm /requirements.txt
 
-RUN pip3 install -r requirements.txt \
-&& rm requirements.txt
+WORKDIR /var/lib/micado/submitter
 
-ENV LC_ALL=C.UTF-8 LANG=C.UTF-8 PYTHONPATH=/var/lib/submitter FLASK_APP=api.py
+COPY submitter .
+
+ENV LC_ALL=C.UTF-8 LANG=C.UTF-8 PYTHONPATH=/var/lib/micado FLASK_APP=api.py
 
 ENTRYPOINT ["flask", "run"]
