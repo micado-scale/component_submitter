@@ -24,7 +24,7 @@ LOG_SUFFIX = (
     ' do printf "%s %s\n" "$(date "+[%Y-%m-%d %H:%M:%S]")" "$line";'
     " done | tee /proc/1/fd/1"
 )
-SUPPORTED_CLOUDS = ("ec2", "nova", "azure", "gce")
+SUPPORTED_CLOUDS = ("ec2", "nova", "azure", "gce", "oci")
 RUNCMD_PLACEHOLDER = "echo micado runcmd placeholder"
 
 
@@ -119,10 +119,12 @@ class TerraformAdaptor(abco.Adaptor):
         self.vars_file = "{}terraform.tfvars.json".format(self.volume)
         self.vars_file_tmp = "{}terraform.tfvars.json.tmp".format(self.volume)
         self.account_file = "{}accounts.json".format(self.volume)
+        self.oci_auth_key = "{}oci_api_key.pem".format(self.volume)
 
         self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
         self.auth_data_file = "/var/lib/submitter/auth/auth_data.yaml"
         self.auth_gce = "/var/lib/submitter/gce-auth/accounts.json"
+        self.auth_oci = "/var/lib/submitter/oci-auth/oci_api_key.pem"
         self.master_cert = "/var/lib/submitter/system/master.pem"
 
         self.tf_json = TerraformDict()
@@ -181,6 +183,9 @@ class TerraformAdaptor(abco.Adaptor):
             elif cloud_type == "gce":
                 logger.debug("GCE resource detected")
                 self._add_terraform_gce(properties)
+            elif cloud_type == "oci":
+                logger.debug("OCI resource detected")
+                self._add_terraform_oci(properties)
 
         if not self.tf_json.provider:
             logger.info("No nodes to orchestrate with Terraform. Skipping...")
@@ -247,6 +252,7 @@ class TerraformAdaptor(abco.Adaptor):
             self.tf_file,
             self.vars_file,
             self.account_file,
+            self.oci_auth_key,
             self.volume + "terraform.tfstate",
             self.volume + "terraform.tfstate.backup",
         ]
@@ -815,6 +821,75 @@ class TerraformAdaptor(abco.Adaptor):
         ssh_keys = properties["ssh-keys"]
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
         self.tf_json.add_resource("google_compute_instance", get_virtual_machine())
+
+    def _add_terraform_oci(self, properties):
+        """ Write Terraform template files for OCI in JSON"""
+
+        def get_provider(use_ipa):
+            provider = {"version": "~> 3.78.0"}
+            provider["region"] = region
+            if use_ipa:
+                provider["auth"] = "InstancePrincipal"
+            else:
+                provider.update(
+                    {
+                        "tenancy_ocid": credential["tenancy_ocid"],
+                        "user_ocid": credential["user_ocid"],
+                        "fingerprint": credential["fingerprint"],
+                        "private_key_path": "%s" % self.oci_auth_key,
+                    }
+                )
+            return provider
+
+        def get_virtual_machine():
+            return {
+                instance_name: {
+                    "display_name": "%s${each.key}" % instance_name,
+                    "availability_domain": availability_domain,
+                    "compartment_id": compartment_id,
+                    "shape": shape,
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                    "create_vnic_details": {
+                        "subnet_id": subnet_id,
+                        "display_name": network_interface_name,
+                        "nsg_ids": ["%s" % nsg_ids],
+                    },
+                    "source_details": {
+                        "source_type": "image",
+                        "source_id": source_id,
+                    },
+                    "metadata": {
+                        "ssh_authorized_keys": "%s" % ssh_keys,
+                        "user_data": '${filebase64("${path.module}/%s")}'
+                        % cloud_init_file_name,
+                    },
+                }
+            }
+
+        instance_name = self.node_name
+
+        self.tf_json.add_instance_variable(instance_name, self.min_instances)
+
+        shutil.copyfile(self.auth_oci, self.oci_auth_key)
+
+        credential = self._get_credential_info("oci")
+        use_ipa = True
+        if credential.get("user_ocid"):
+            use_ipa = False
+
+        region = properties["region"]
+        self.tf_json.add_provider("oci", get_provider(use_ipa))
+
+        availability_domain = properties["availability_domain"]
+        compartment_id = properties["compartment_id"]
+        shape = properties["shape"]
+        subnet_id = properties["subnet_id"]
+        nsg_ids = properties["network_security_group"]
+        source_id = properties["source_id"]
+        ssh_keys = properties["ssh_keys"]
+        network_interface_name = "{}-vnic".format(instance_name)
+        cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
+        self.tf_json.add_resource("oci_core_instance", get_virtual_machine())
 
     def _config_file_exists(self):
         """ Check if config file was generated during translation """
