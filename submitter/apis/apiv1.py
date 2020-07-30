@@ -22,6 +22,7 @@ from flask import (
 from toscaparser.common.exception import *
 
 from submitter import utils
+from submitter import api
 from submitter.submitter_engine import SubmitterEngine
 
 apiv1 = Blueprint('apiv1', __name__)
@@ -186,7 +187,7 @@ def launch():
 
     if template:
         template.save(
-            "{}/files/templates/{}.yaml".format(apiv1.root_path, id_app)
+            "{}/files/templates/{}.yaml".format(api.app.root_path, id_app)
         )
         path_to_file = "files/templates/{}.yaml".format(id_app)
 
