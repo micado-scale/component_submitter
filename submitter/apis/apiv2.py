@@ -3,7 +3,7 @@ from flask_restx import Api, Resource
 from webargs import flaskparser, fields, core
 from webargs.flaskparser import use_kwargs
 
-from submitter.apis.core import Applications
+from submitter.apis.core import Applications, literal_params
 
 v2blueprint = Blueprint("apiv2", __name__)
 api = Api(
@@ -15,7 +15,11 @@ api = Api(
 
 appsDAO = Applications(api)
 
-form_args = {"input": fields.Str(), "params": fields.Str()}
+form_args = {
+    "url": fields.Str(),
+    "params": fields.Str(),
+    "dryrun": fields.Bool(),
+}
 file_args = {"file": fields.Field()}
 
 
@@ -41,10 +45,11 @@ class ApplicationList(Resource):
     @api.doc("create_application")
     @use_kwargs(file_args, location="files")
     @use_kwargs(form_args, location="form")
-    def post(self, file=None, input=None, params=None):
+    def post(self, file=None, url=None, params=None, dryrun=False):
         """
         Create a new application with a generated ID
         """
+        params = literal_params(params)
 
 
 @api.route("/application/<app_id>/")
@@ -60,17 +65,19 @@ class Application(Resource):
 
     @use_kwargs(file_args, location="files")
     @use_kwargs(form_args, location="form")
-    def post(self, app_id, file=None, input=None, params=None):
+    def post(self, app_id, file=None, url=None, params=None, dryrun=False):
         """
         Create a new application with a given ID
         """
+        params = literal_params(params)
 
     @use_kwargs(file_args, location="files")
     @use_kwargs(form_args, location="form")
-    def put(self, app_id, file=None, input=None, params=None):
+    def put(self, app_id, file=None, url=None, params=None, dryrun=False):
         """
         Update the application matching the given ID
         """
+        params = literal_params(params)
 
     def delete(self, app_id):
         """
