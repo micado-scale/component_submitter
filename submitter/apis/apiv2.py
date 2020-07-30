@@ -1,5 +1,7 @@
 from flask import Blueprint
 from flask_restx import Api, Resource
+from webargs import flaskparser, fields, core
+from webargs.flaskparser import use_kwargs
 
 
 v2blueprint = Blueprint("apiv2", __name__)
@@ -9,6 +11,18 @@ api = Api(
     version="2.0",
     description="An API for applications in MiCADO",
 )
+
+form_args = {"input": fields.Str(), "params": fields.Str()}
+file_args = {"file": fields.Field()}
+
+
+@flaskparser.parser.error_handler
+def webargs_fix(error, req, schema, *, error_status_code, error_headers):
+    flaskparser.abort(
+        error_status_code or core.DEFAULT_VALIDATION_STATUS,
+        exc=error,
+        messages=error.messages,
+    )
 
 
 @api.route("/application/")
@@ -21,6 +35,8 @@ class ApplicationList(Resource):
         """
 
     @api.doc("create_application")
+    @use_kwargs(file_args, location="files")
+    @use_kwargs(form_args, location="form")
     def post(self, file=None, input=None, params=None):
         """
         Create a new application with a generated ID
@@ -37,11 +53,15 @@ class Application(Resource):
         Fetch the application matching the given ID
         """
 
+    @use_kwargs(file_args, location="files")
+    @use_kwargs(form_args, location="form")
     def post(self, app_id, file=None, input=None, params=None):
         """
         Create a new application with a given ID
         """
 
+    @use_kwargs(file_args, location="files")
+    @use_kwargs(form_args, location="form")
     def put(self, app_id, file=None, input=None, params=None):
         """
         Update the application matching the given ID
