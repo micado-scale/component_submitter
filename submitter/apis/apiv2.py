@@ -3,6 +3,7 @@ from flask_restx import Api, Resource
 from webargs import flaskparser, fields, core
 from webargs.flaskparser import use_kwargs
 
+from submitter.apis.core import Applications
 
 v2blueprint = Blueprint("apiv2", __name__)
 api = Api(
@@ -11,6 +12,8 @@ api = Api(
     version="2.0",
     description="An API for applications in MiCADO",
 )
+
+appsDAO = Applications(api)
 
 form_args = {"input": fields.Str(), "params": fields.Str()}
 file_args = {"file": fields.Field()}
@@ -33,6 +36,7 @@ class ApplicationList(Resource):
         """
         Return a list of deployed applications
         """
+        return appsDAO.get()
 
     @api.doc("create_application")
     @use_kwargs(file_args, location="files")
@@ -52,6 +56,7 @@ class Application(Resource):
         """
         Fetch the application matching the given ID
         """
+        return appsDAO.get(app_id)
 
     @use_kwargs(file_args, location="files")
     @use_kwargs(form_args, location="form")
