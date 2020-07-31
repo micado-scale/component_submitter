@@ -3,7 +3,8 @@ from flask_restx import Api, Resource
 from webargs import flaskparser, fields, core
 from webargs.flaskparser import use_kwargs
 
-from submitter.apis.core import Applications, literal_params
+from submitter.apis.core import Applications
+from submitter.utils import id_generator
 
 v2blueprint = Blueprint("apiv2", __name__)
 api = Api(
@@ -49,7 +50,8 @@ class ApplicationList(Resource):
         """
         Create a new application with a generated ID
         """
-        params = literal_params(params)
+        app_id = id_generator()
+        return appsDAO.create(app_id, file, url, params, dryrun)
 
 
 @api.route("/application/<app_id>/")
@@ -69,7 +71,7 @@ class Application(Resource):
         """
         Create a new application with a given ID
         """
-        params = literal_params(params)
+        return appsDAO.create(app_id, file, url, params, dryrun)
 
     @use_kwargs(file_args, location="files")
     @use_kwargs(form_args, location="form")
@@ -77,7 +79,6 @@ class Application(Resource):
         """
         Update the application matching the given ID
         """
-        params = literal_params(params)
 
     def delete(self, app_id):
         """
