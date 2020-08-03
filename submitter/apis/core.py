@@ -9,7 +9,7 @@ from submitter import api as flask
 from submitter import utils
 
 
-SAVE_PATH = "files/templates/"
+SAVE_PATH = flask.app.root_path + "/" + "files/templates/"
 
 _engine = submitter_engine.SubmitterEngine()
 
@@ -83,6 +83,7 @@ class Applications:
             self.engine.undeploy(app_id, force)
         except Exception as error:
             abort(500, f"Error while deleting: {error}")
+        _delete_template(app_id)
 
         return {"message": f"Application {app_id} successfully deleted"}
 
@@ -114,7 +115,7 @@ def _save_template(app_id, adt):
     if not adt:
         abort(400, "No ADT data was included in the request")
 
-    path = flask.app.root_path + "/" + SAVE_PATH + str(app_id) + ".yaml"
+    path = SAVE_PATH + str(app_id) + ".yaml"
     if not os.path.exists(os.path.dirname(path)):
         abort(500, f"Path {path} is not valid")
 
@@ -126,6 +127,17 @@ def _save_template(app_id, adt):
         except AttributeError:
             abort(400, "ADT data must be YAML file or dict")
     return path
+
+
+def _delete_template(app_id):
+    """
+    Attempts to delete any template file for this application
+    """
+    path = SAVE_PATH + str(app_id) + ".yaml"
+    try:
+        os.remove(path)
+    except Exception:
+        pass
 
 
 def _literal_params(params):
