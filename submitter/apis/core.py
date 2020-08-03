@@ -64,6 +64,25 @@ class Applications:
         except Exception as error:
             abort(500, f"Error while deploying: {error}")
 
+
+    def delete(self, app_id, force=False):
+        """Deletes a running application
+
+        Args:
+            app_id (str): The application identifier
+        """
+        if not self._id_exists(app_id):
+            abort(404, f"Application with ID {app_id} does not exist")
+        elif not self.engine.app_list:
+            abort(404, "There are no currently running applications")
+
+        try:
+            self.engine.undeploy(app_id, force)
+        except Exception as error:
+            abort(500, f"Error while deleting: {error}")
+
+        return {"message": f"Application {app_id} successfully deleted"}
+
     def _validate(self, app_id, path, params, dryrun):
         """
         Call the engine validate method

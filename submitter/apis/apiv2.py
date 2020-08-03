@@ -86,10 +86,12 @@ class Application(Resource):
         Update the application matching the given ID
         """
 
-    def delete(self, app_id):
+    @use_kwargs({"force": fields.Bool()}, location="form")
+    def delete(self, app_id, force=False):
         """
         Delete the application matching the given ID
         """
+        return appsDAO.delete(app_id, force)
 
 
 @api.route("/application/<app_id>/status")
