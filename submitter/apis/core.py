@@ -1,5 +1,5 @@
 from ast import literal_eval
-from flask_restx import abort
+from flask import abort
 
 
 from submitter import submitter_engine
@@ -15,14 +15,11 @@ class Applications:
     """Class to access the Submitter engine object
     """
 
-    def __init__(self, api):
-        """Constructor
-
-        Args:
-            api (flask_restx api Object): The api calling the submitter
+    def __init__(self):
+        """
+        Constructor
         """
         self.engine = _engine
-        self.api = api
 
     def get(self, app_id=None):
         """Gets application information

@@ -1,7 +1,8 @@
-from flask import Blueprint
+from flask import Blueprint, abort
 from flask_restx import Api, Resource
 from webargs import flaskparser, fields, core
 from webargs.flaskparser import use_kwargs
+from werkzeug.exceptions import HTTPException
 
 from submitter.apis.core import Applications
 from submitter.utils import id_generator
@@ -24,12 +25,17 @@ form_args = {
 file_args = {"file": fields.Field()}
 
 
+@api.errorhandler(HTTPException)
+def internal_error_handler(error):
+    """Re-raise all HTTPExceptions for Flask errorhandler """
+    raise error
+
+
 @flaskparser.parser.error_handler
 def webargs_fix(error, req, schema, *, error_status_code, error_headers):
-    flaskparser.abort(
+    abort(
         error_status_code or core.DEFAULT_VALIDATION_STATUS,
-        exc=error,
-        messages=error.messages,
+        error.messages,
     )
 
 
