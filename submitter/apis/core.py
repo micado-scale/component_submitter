@@ -1,9 +1,12 @@
 from ast import literal_eval
+import os.path
+
 from flask import abort
 
 
 from submitter import submitter_engine
 from submitter import api as flask
+from submitter import utils
 
 
 SAVE_PATH = "files/templates/"
@@ -38,17 +41,17 @@ class Applications:
         except KeyError:
             abort(404, f"Application {app_id} does not exist")
 
-    def create(self, app_id, file=None, url=None, params=None, dryrun=False):
+    def create(self, app_id, adt=None, url=None, params=None, dryrun=False):
         """Deploys a new application in MiCADO
 
         Args:
             app_id (str): ID of the application
-            file (flask.FileStorage, optional): ADT of the application.
-                Required if no URL provided. Defaults to None.
+            adt (flask.FileStorage OR dict, optional): ADT of the application.
+                Ignored if URL provided, required if no URL. Defaults to None.
             url (str, optional): URL of the ADT for the application.
                 Required if no file provided. Defaults to None.
-            params (str, optional): String repr of the map (dict) of input
-                params. Defaults to None.
+            params (str repr OR dict, optional): Key-value pair mapping for
+                TOSCA inputs. Defaults to None.
             dryrun (bool, optional): Dry run flag. Defaults to False.
         """
         if self._id_exists(app_id):
@@ -56,7 +59,7 @@ class Applications:
         elif self.engine.app_list:
             abort(400, "Multiple applications are not supported")
 
-        path = _resolve_template_path(app_id, file, url)
+        path = url if url else _save_template(app_id, adt)
         tpl, adaps = self._validate(app_id, path, params, dryrun)
         try:
             self.engine.launch(tpl, adaps, app_id, dryrun)
@@ -104,20 +107,24 @@ class Applications:
         return app_id in self.engine.app_list
 
 
-def _resolve_template_path(app_id, file, url):
+def _save_template(app_id, adt):
     """
-    Saves the template and returns the path, or returns the URL
+    Saves the template and returns the path
     """
-    path = SAVE_PATH + str(app_id) + ".yaml"
-    try:
-        file.save(flask.app.root_path + "/" + path)
-    except FileNotFoundError:
-        abort(500, f"Could not save template to {path}")
-    except AttributeError:
-        path = url
-
-    if not path:
+    if not adt:
         abort(400, "No ADT data was included in the request")
+
+    path = flask.app.root_path + "/" + SAVE_PATH + str(app_id) + ".yaml"
+    if not os.path.exists(os.path.dirname(path)):
+        abort(500, f"Path {path} is not valid")
+
+    if isinstance(adt, dict):
+        utils.dump_order_yaml(adt, path)
+    else:
+        try:
+            adt.save(path)
+        except AttributeError:
+            abort(400, "ADT data must be YAML file or dict")
     return path
 
 
@@ -125,6 +132,9 @@ def _literal_params(params):
     """
     Converts string parsed-params into a dicitionary
     """
+    if isinstance(params, dict):
+        return params
+
     params = literal_eval(params) if params else {}
     if not isinstance(params, dict):
         abort(400, "Parsed params are not a valid map (dict)")

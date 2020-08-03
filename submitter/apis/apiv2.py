@@ -17,12 +17,18 @@ api = Api(
 
 apps = Applications()
 
+json_args = {
+    "adt": fields.Dict(),
+    "url": fields.Str(),
+    "params": fields.Dict(),
+    "dryrun": fields.Bool(),
+}
 form_args = {
     "url": fields.Str(),
     "params": fields.Str(),
     "dryrun": fields.Bool(),
 }
-file_args = {"file": fields.Field()}
+file_args = {"adt": fields.Field()}
 
 
 @api.errorhandler(HTTPException)
@@ -50,14 +56,15 @@ class ApplicationList(Resource):
         return apps.get()
 
     @api.doc("create_application")
+    @use_kwargs(json_args, location="json")
     @use_kwargs(file_args, location="files")
     @use_kwargs(form_args, location="form")
-    def post(self, file=None, url=None, params=None, dryrun=False):
+    def post(self, adt=None, url=None, params=None, dryrun=False):
         """
         Create a new application with a generated ID
         """
         app_id = id_generator()
-        return apps.create(app_id, file, url, params, dryrun)
+        return apps.create(app_id, adt, url, params, dryrun)
 
 
 @api.route("/application/<app_id>/")
@@ -71,17 +78,19 @@ class Application(Resource):
         """
         return apps.get(app_id)
 
+    @use_kwargs(json_args, location="json")
     @use_kwargs(file_args, location="files")
     @use_kwargs(form_args, location="form")
-    def post(self, app_id, file=None, url=None, params=None, dryrun=False):
+    def post(self, app_id, adt=None, url=None, params=None, dryrun=False):
         """
         Create a new application with a given ID
         """
-        return apps.create(app_id, file, url, params, dryrun)
+        return apps.create(app_id, adt, url, params, dryrun)
 
+    @use_kwargs(json_args, location="json")
     @use_kwargs(file_args, location="files")
     @use_kwargs(form_args, location="form")
-    def put(self, app_id, file=None, url=None, params=None, dryrun=False):
+    def put(self, app_id, adt=None, url=None, params=None, dryrun=False):
         """
         Update the application matching the given ID
         """
