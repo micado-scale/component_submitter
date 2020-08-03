@@ -44,11 +44,11 @@ class Applications:
         Args:
             app_id (str): ID of the application
             file (flask.FileStorage, optional): ADT of the application.
-                Defaults to None.
-            url (str, optional): URL of the ADT for the application. Defaults
-                to None.
+                Required if no URL provided. Defaults to None.
+            url (str, optional): URL of the ADT for the application.
+                Required if no file provided. Defaults to None.
             params (str, optional): String repr of the map (dict) of input
-                params. Defaults to "{}".
+                params. Defaults to None.
             dryrun (bool, optional): Dry run flag. Defaults to False.
         """
         if self._id_exists(app_id):
@@ -57,13 +57,13 @@ class Applications:
             abort(400, "Multiple applications are not supported")
 
         path = _resolve_template_path(app_id, file, url)
-        params = _literal_params(params)
         tpl, adaps = self._validate(app_id, path, params, dryrun)
         try:
             self.engine.launch(tpl, adaps, app_id, dryrun)
         except Exception as error:
             abort(500, f"Error while deploying: {error}")
 
+        return {"message": f"Application {app_id} successfully deployed"}
 
     def delete(self, app_id, force=False):
         """Deletes a running application
@@ -87,6 +87,7 @@ class Applications:
         """
         Call the engine validate method
         """
+        params = _literal_params(params)
         try:
             template, adaptors = self.engine._validate(
                 path, dryrun, False, app_id, params

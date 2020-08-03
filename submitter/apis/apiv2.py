@@ -15,7 +15,7 @@ api = Api(
     description="An API for applications in MiCADO",
 )
 
-appsDAO = Applications(api)
+apps = Applications()
 
 form_args = {
     "url": fields.Str(),
@@ -47,7 +47,7 @@ class ApplicationList(Resource):
         """
         Return a list of deployed applications
         """
-        return appsDAO.get()
+        return apps.get()
 
     @api.doc("create_application")
     @use_kwargs(file_args, location="files")
@@ -57,7 +57,7 @@ class ApplicationList(Resource):
         Create a new application with a generated ID
         """
         app_id = id_generator()
-        return appsDAO.create(app_id, file, url, params, dryrun)
+        return apps.create(app_id, file, url, params, dryrun)
 
 
 @api.route("/application/<app_id>/")
@@ -69,7 +69,7 @@ class Application(Resource):
         """
         Fetch the application matching the given ID
         """
-        return appsDAO.get(app_id)
+        return apps.get(app_id)
 
     @use_kwargs(file_args, location="files")
     @use_kwargs(form_args, location="form")
@@ -77,7 +77,7 @@ class Application(Resource):
         """
         Create a new application with a given ID
         """
-        return appsDAO.create(app_id, file, url, params, dryrun)
+        return apps.create(app_id, file, url, params, dryrun)
 
     @use_kwargs(file_args, location="files")
     @use_kwargs(form_args, location="form")
@@ -91,7 +91,7 @@ class Application(Resource):
         """
         Delete the application matching the given ID
         """
-        return appsDAO.delete(app_id, force)
+        return apps.delete(app_id, force)
 
 
 @api.route("/application/<app_id>/status")
