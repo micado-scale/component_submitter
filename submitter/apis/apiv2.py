@@ -15,8 +15,6 @@ api = Api(
     description="An API for applications in MiCADO",
 )
 
-apps = Applications()
-
 json_args = {
     "adt": fields.Dict(),
     "url": fields.Str(),
@@ -53,7 +51,7 @@ class ApplicationList(Resource):
         """
         Return a list of deployed applications
         """
-        return apps.get()
+        return Applications().get()
 
     @api.doc("create_application")
     @use_kwargs(json_args, location="json")
@@ -64,7 +62,7 @@ class ApplicationList(Resource):
         Create a new application with a generated ID
         """
         app_id = id_generator()
-        return apps.create(app_id, adt, url, params, dryrun)
+        return Applications(app_id).create(adt, url, params, dryrun)
 
 
 @api.route("/application/<app_id>/")
@@ -76,7 +74,7 @@ class Application(Resource):
         """
         Fetch the application matching the given ID
         """
-        return apps.get(app_id)
+        return Applications(app_id).get()
 
     @use_kwargs(json_args, location="json")
     @use_kwargs(file_args, location="files")
@@ -85,7 +83,7 @@ class Application(Resource):
         """
         Create a new application with a given ID
         """
-        return apps.create(app_id, adt, url, params, dryrun)
+        return Applications(app_id).create(adt, url, params, dryrun)
 
     @use_kwargs(json_args, location="json")
     @use_kwargs(file_args, location="files")
@@ -100,7 +98,7 @@ class Application(Resource):
         """
         Delete the application matching the given ID
         """
-        return apps.delete(app_id, force)
+        return Applications(app_id).delete(force)
 
 
 @api.route("/application/<app_id>/status")

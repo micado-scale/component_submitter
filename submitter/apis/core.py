@@ -13,39 +13,38 @@ SAVE_PATH = flask.app.root_path + "/" + "files/templates/"
 
 _engine = submitter_engine.SubmitterEngine()
 
-
 class Applications:
     """Class to access the Submitter engine object
     """
 
-    def __init__(self):
+    def __init__(self, app_id=None):
         """
         Constructor
-        """
-        self.engine = _engine
-
-    def get(self, app_id=None):
-        """Gets application information
 
         Args:
             app_id (str, optional): App ID. If ommitted, the full app list
                 will be returned. Defaults to None.
+        """
+        self.engine = _engine
+        self.app_id = app_id
+
+    def get(self):
+        """Gets application information
 
         Returns:
             dict: Information on the requested application(s)
         """
-        if not app_id:
+        if not self.app_id:
             return self.engine.app_list
         try:
-            return self.engine.app_list[app_id]
+            return self.engine.app_list[self.app_id]
         except KeyError:
-            abort(404, f"Application {app_id} does not exist")
+            abort(404, f"Application {self.app_id} does not exist")
 
-    def create(self, app_id, adt=None, url=None, params=None, dryrun=False):
+    def create(self, adt=None, url=None, params=None, dryrun=False):
         """Deploys a new application in MiCADO
 
         Args:
-            app_id (str): ID of the application
             adt (flask.FileStorage OR dict, optional): ADT of the application.
                 Ignored if URL provided, required if no URL. Defaults to None.
             url (str, optional): URL of the ADT for the application.
@@ -54,90 +53,88 @@ class Applications:
                 TOSCA inputs. Defaults to None.
             dryrun (bool, optional): Dry run flag. Defaults to False.
         """
-        if self._id_exists(app_id):
+        if self._id_exists():
             abort(400, "The application ID already exists")
         elif self.engine.app_list:
             abort(400, "Multiple applications are not supported")
 
-        path = url if url else _save_template(app_id, adt)
-        tpl, adaps = self._validate(app_id, path, params, dryrun)
+        path = url if url else self._save_template(adt)
+        tpl, adaps = self._validate(path, params, dryrun)
         try:
-            self.engine.launch(tpl, adaps, app_id, dryrun)
+            self.engine.launch(tpl, adaps, self.app_id, dryrun)
         except Exception as error:
             abort(500, f"Error while deploying: {error}")
 
-        return {"message": f"Application {app_id} successfully deployed"}
+        return {"message": f"Application {self.app_id} successfully deployed"}
 
-    def delete(self, app_id, force=False):
+    def delete(self, force=False):
         """Deletes a running application
 
         Args:
-            app_id (str): The application identifier
+            force (bool): Flag to force deletion
         """
-        if not self._id_exists(app_id):
-            abort(404, f"Application with ID {app_id} does not exist")
+        if not self._id_exists():
+            abort(404, f"Application with ID {self.app_id} does not exist")
         elif not self.engine.app_list:
             abort(404, "There are no currently running applications")
 
         try:
-            self.engine.undeploy(app_id, force)
+            self.engine.undeploy(self.app_id, force)
         except Exception as error:
             abort(500, f"Error while deleting: {error}")
-        _delete_template(app_id)
+        self._delete_template()
 
-        return {"message": f"Application {app_id} successfully deleted"}
+        return {"message": f"Application {self.app_id} successfully deleted"}
 
-    def _validate(self, app_id, path, params, dryrun):
+    def _validate(self, path, params, dryrun):
         """
         Call the engine validate method
         """
         params = _literal_params(params)
         try:
             template, adaptors = self.engine._validate(
-                path, dryrun, False, app_id, params
+                path, dryrun, False, self.app_id, params
             )
         except Exception as error:
             abort(500, f"Error while validating: {error}")
 
         return template, adaptors
 
-    def _id_exists(self, app_id):
+    def _id_exists(self):
         """
         Returns True if the app_id exists on the server
         """
-        return app_id in self.engine.app_list
+        return self.app_id in self.engine.app_list
 
+    def _save_template(self, adt):
+        """
+        Saves the template and returns the path
+        """
+        if not adt:
+            abort(400, "No ADT data was included in the request")
 
-def _save_template(app_id, adt):
-    """
-    Saves the template and returns the path
-    """
-    if not adt:
-        abort(400, "No ADT data was included in the request")
+        path = SAVE_PATH + str(self.app_id) + ".yaml"
+        if not os.path.exists(os.path.dirname(path)):
+            abort(500, f"Path {path} is not valid")
 
-    path = SAVE_PATH + str(app_id) + ".yaml"
-    if not os.path.exists(os.path.dirname(path)):
-        abort(500, f"Path {path} is not valid")
+        if isinstance(adt, dict):
+            utils.dump_order_yaml(adt, path)
+        else:
+            try:
+                adt.save(path)
+            except AttributeError:
+                abort(400, "ADT data must be YAML file or dict")
+        return path
 
-    if isinstance(adt, dict):
-        utils.dump_order_yaml(adt, path)
-    else:
+    def _delete_template(self):
+        """
+        Attempts to delete any template file for this application
+        """
+        path = SAVE_PATH + str(self.app_id) + ".yaml"
         try:
-            adt.save(path)
-        except AttributeError:
-            abort(400, "ADT data must be YAML file or dict")
-    return path
-
-
-def _delete_template(app_id):
-    """
-    Attempts to delete any template file for this application
-    """
-    path = SAVE_PATH + str(app_id) + ".yaml"
-    try:
-        os.remove(path)
-    except Exception:
-        pass
+            os.remove(path)
+        except Exception:
+            pass
 
 
 def _literal_params(params):
