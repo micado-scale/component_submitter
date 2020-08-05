@@ -8,10 +8,8 @@ from submitter import submitter_engine
 from submitter import api as flask
 from submitter import utils
 
-
-SAVE_PATH = flask.app.root_path + "/" + "files/templates/"
-
 _engine = submitter_engine.SubmitterEngine()
+
 
 class Applications:
     """Class to access the Submitter engine object
@@ -58,7 +56,8 @@ class Applications:
         elif self.engine.app_list:
             abort(400, "Multiple applications are not supported")
 
-        path = url if url else self._save_template(adt)
+        path = url if url else TemplateHandler(self.app_id).save_template(adt)
+
         tpl, adaps = self._validate(path, params, dryrun)
         try:
             self.engine.launch(tpl, adaps, self.app_id, dryrun)
@@ -82,7 +81,8 @@ class Applications:
             self.engine.undeploy(self.app_id, force)
         except Exception as error:
             abort(500, f"Error while deleting: {error}")
-        self._delete_template()
+
+        TemplateHandler(self.app_id).delete_template()
 
         return {"message": f"Application {self.app_id} successfully deleted"}
 
@@ -106,33 +106,45 @@ class Applications:
         """
         return self.app_id in self.engine.app_list
 
-    def _save_template(self, adt):
+
+class TemplateHandler:
+    """
+    Handles saving and deleting templates
+    """
+
+    def __init__(self, app_id):
+        """Constructor, creates the template path
+
+        Args:
+            app_id (str): Application identifier
+        """
+        base_path = flask.app.root_path + "/" + "files/templates/"
+        self.path = base_path + str(app_id) + ".yaml"
+
+    def save_template(self, adt):
         """
         Saves the template and returns the path
         """
         if not adt:
             abort(400, "No ADT data was included in the request")
-
-        path = SAVE_PATH + str(self.app_id) + ".yaml"
-        if not os.path.exists(os.path.dirname(path)):
-            abort(500, f"Path {path} is not valid")
+        if not os.path.exists(os.path.dirname(self.path)):
+            abort(500, f"Path {self.path} is not valid")
 
         if isinstance(adt, dict):
-            utils.dump_order_yaml(adt, path)
+            utils.dump_order_yaml(adt, self.path)
         else:
             try:
-                adt.save(path)
+                adt.save(self.path)
             except AttributeError:
                 abort(400, "ADT data must be YAML file or dict")
-        return path
+        return self.path
 
-    def _delete_template(self):
+    def delete_template(self):
         """
         Attempts to delete any template file for this application
         """
-        path = SAVE_PATH + str(self.app_id) + ".yaml"
         try:
-            os.remove(path)
+            os.remove(self.path)
         except Exception:
             pass
 
