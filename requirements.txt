@@ -5,5 +5,4 @@ requests==2.24.0
 ruamel.yaml==0.16.10
 tosca-parser==2.1.0
 kubernetes-validate==1.18.0
-flask-restx==0.2.0
 webargs==6.1.0
