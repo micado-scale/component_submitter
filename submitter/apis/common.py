@@ -3,7 +3,6 @@ import os.path
 
 from flask import abort
 
-
 from submitter import submitter_engine
 from submitter import api as flask
 from submitter import utils

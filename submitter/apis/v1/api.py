@@ -22,10 +22,10 @@ from flask import (
 from toscaparser.common.exception import *
 
 from submitter import utils
-from submitter import api
+from submitter import api as flask
 from submitter.submitter_engine import SubmitterEngine
 
-apiv1 = Blueprint('apiv1', __name__)
+v1blueprint = Blueprint('apiv1', __name__)
 
 JSON_FILE = "system/ids.json"
 
@@ -105,7 +105,7 @@ def keyboardInterrupt():
         logger.info("Infrastructure left running: {}".format(i))
 
 
-@apiv1.errorhandler(Exception)
+@v1blueprint.errorhandler(Exception)
 def unhandle_request_error(error):
     import traceback as tb
 
@@ -115,14 +115,14 @@ def unhandle_request_error(error):
     return response
 
 
-@apiv1.errorhandler(RequestError)
+@v1blueprint.errorhandler(RequestError)
 def handle_request_error(error):
     logger.error("an exception occured {}".format(error))
     response = jsonify(error.to_dict())
     return response
 
 
-@apiv1.route("/v1.0/app/launch/", methods=["POST"])
+@v1blueprint.route("/v1.0/app/launch/", methods=["POST"])
 def launch():
     """ API functions to launch a application
 
@@ -225,7 +225,7 @@ def launch():
     return jsonify(response)
 
 
-@apiv1.route("/v1.0/app/validate/", methods=["POST"])
+@v1blueprint.route("/v1.0/app/validate/", methods=["POST"])
 def validate():
     """ API functions to validate a TOSCA template provided by the user
 
@@ -262,7 +262,7 @@ def validate():
         return jsonify(response)
 
     if template:
-        template.save("{}/files/templates/template.yaml".format(apiv1.root_path))
+        template.save("{}/files/templates/template.yaml".format(flask.app.root_path))
         path_to_file = "files/templates/template.yaml"
 
     submitter._validate(path_to_file, validate=True)
@@ -272,7 +272,7 @@ def validate():
     return jsonify(response)
 
 
-@apiv1.route("/v1.0/app/undeploy/<id_app>", methods=["DELETE"])
+@v1blueprint.route("/v1.0/app/undeploy/<id_app>", methods=["DELETE"])
 def undeploy(id_app):
     """ API function to undeploy the application with a specific ID
     """
@@ -345,7 +345,7 @@ def undeploy(id_app):
     return jsonify(response)
 
 
-@apiv1.route("/v1.0/app/update/<id_app>", methods=["PUT"])
+@v1blueprint.route("/v1.0/app/update/<id_app>", methods=["PUT"])
 def update(id_app):
     """ API function to update the application with a specific ID"""
 
@@ -391,7 +391,7 @@ def update(id_app):
 
     if template:
         template.save(
-            "{}/files/templates/{}.yaml".format(apiv1.root_path, id_app)
+            "{}/files/templates/{}.yaml".format(flask.app.root_path, id_app)
         )
         path_to_file = "files/templates/{}.yaml".format(id_app)
     try:
@@ -429,7 +429,7 @@ def update(id_app):
         return jsonify(response)
 
 
-@apiv1.route("/v1.0/app/<id_app>/status", methods=["GET"])
+@v1blueprint.route("/v1.0/app/<id_app>/status", methods=["GET"])
 def info_app(id_app):
     """ API function to get the information on a given id """
     response = dict(status_code="", message="", data=[])
@@ -462,15 +462,15 @@ def info_app(id_app):
         response["data"] = dict(
             type="application",
             id=id_app,
-            outputs=this_apiv1.get("output"),
-            components=this_apiv1.get("components"),
+            outputs=this_app.get("output"),
+            components=this_app.get("components"),
             status=this_app_status,
         )
 
         return jsonify(response)
 
 
-@apiv1.route("/v1.0/app/query/<id_app>", methods=["GET"])
+@v1blueprint.route("/v1.0/app/query/<id_app>", methods=["GET"])
 def query(id_app):
     """ API call to query running services """
     query = request.form["query"]
@@ -482,7 +482,7 @@ def query(id_app):
     return jsonify(response)
 
 
-@apiv1.route("/v1.0/info_threads")
+@v1blueprint.route("/v1.0/info_threads")
 def list_thread():
     """ API call to query the info on the thread being executed"""
     response = dict(status_code=200, message="Info on Thread", data=[])
@@ -501,7 +501,7 @@ def list_thread():
     return jsonify(response)
 
 
-@apiv1.route("/v1.0/list_app", methods=["GET"])
+@v1blueprint.route("/v1.0/list_app", methods=["GET"])
 def list_app():
     """ API function to list all the running aplications"""
     response = dict(
