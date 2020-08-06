@@ -3,7 +3,7 @@ from webargs.flaskparser import use_kwargs
 
 from submitter.apis.common import Applications
 from submitter.utils import id_generator
-from .models import ReqArgs
+from .models import ReqArgs, AppSchema, AppListSchema
 
 
 class Application(MethodView):
@@ -11,7 +11,10 @@ class Application(MethodView):
         """
         Fetch the application matching the given ID
         """
-        return Applications(app_id).get()
+        if app_id:
+            return AppSchema().dump(Applications(app_id).get())
+        else:
+            return AppListSchema().dump(Applications().get())
 
     @use_kwargs(ReqArgs.json, location="json")
     @use_kwargs(ReqArgs.file, location="files")
