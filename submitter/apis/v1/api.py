@@ -39,6 +39,7 @@ def __init__():
     queue_exception = queue.Queue()
     queue_threading = queue.Queue()
     thread = threading.Thread(target=threads_management)
+    thread.daemon = True
     thread.start()
 
 
