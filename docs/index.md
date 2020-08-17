@@ -9,6 +9,10 @@
 > ADTs are always TOSCA...  
 > but TOSCA is not always an ADT
 
+## The API
+
+- #### [Swagger Documentation](swagger.html)
+
 ## The Adaptors
 
 - #### [The Kubernetes Adaptor](k8s.md)
