@@ -122,10 +122,10 @@ class TerraformAdaptor(abco.Adaptor):
         self.oci_auth_key = "{}oci_api_key.pem".format(self.volume)
 
         self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
-        self.auth_data_file = "/var/lib/submitter/auth/auth_data.yaml"
-        self.auth_gce = "/var/lib/submitter/gce-auth/accounts.json"
-        self.auth_oci = "/var/lib/submitter/oci-auth/oci_api_key.pem"
-        self.master_cert = "/var/lib/submitter/system/master.pem"
+        self.auth_data_file = "/var/lib/micado/submitter/auth/auth_data.yaml"
+        self.auth_gce = "/var/lib/micado/submitter/gce-auth/accounts.json"
+        self.auth_oci = "/var/lib/micado/submitter/oci-auth/oci_api_key.pem"
+        self.master_cert = "/var/lib/micado/submitter/system/master.pem"
 
         self.tf_json = TerraformDict()
 
