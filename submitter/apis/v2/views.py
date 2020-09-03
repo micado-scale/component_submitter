@@ -30,10 +30,11 @@ class Application(MethodView):
     @use_kwargs(ReqArgs.json, location="json")
     @use_kwargs(ReqArgs.file, location="files")
     @use_kwargs(ReqArgs.form, location="form")
-    def put(self, app_id, adt=None, url=None, params=None, dryrun=False):
+    def put(self, app_id, adt=None, url=None, params=None):
         """
         Update the application matching the given ID
         """
+        return Applications(app_id).update(adt, url, params)
 
     @use_kwargs(ReqArgs.force, location="form")
     def delete(self, app_id, force=False):
