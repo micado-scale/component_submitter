@@ -55,8 +55,7 @@ class Applications:
         elif self.engine.app_list:
             abort(400, "Multiple applications are not supported")
 
-        path = url if url else TemplateHandler(self.app_id).save_template(adt)
-
+        path = self._get_path(adt, url)
         tpl, adaps = self._validate(path, params, dryrun)
         try:
             self.engine.launch(tpl, adaps, self.app_id, dryrun)
@@ -64,6 +63,31 @@ class Applications:
             abort(500, f"Error while deploying: {error}")
 
         return {"message": f"Application {self.app_id} successfully deployed"}
+
+    def update(self, adt=None, url=None, params=None):
+        """Updates an existing application in MiCADO
+
+        Args:
+            adt (flask.FileStorage OR dict, optional): Modified ADT.
+                Ignored if URL provided, required if no URL. Defaults to None.
+            url (str, optional): URL of the modified ADT.
+                Required if no file provided. Defaults to None.
+            params (str repr OR dict, optional): Key-value pair mapping for
+                TOSCA inputs. Defaults to None.
+        """
+        if not self._id_exists():
+            abort(404, f"Application with ID {self.app_id} does not exist")
+        elif not self.engine.app_list:
+            abort(404, "There are no currently running applications")
+
+        path = self._get_path(adt, url)
+        tpl, adaps = self._validate(path, params, validate_only=True)
+        try:
+            self.engine.update(self.app_id, tpl, adaps)
+        except Exception as error:
+            abort(500, f"Error while updating: {error}")
+
+        return {"message": f"Application {self.app_id} successfully updated"}
 
     def delete(self, force=False):
         """Deletes a running application
@@ -85,19 +109,22 @@ class Applications:
 
         return {"message": f"Application {self.app_id} successfully deleted"}
 
-    def _validate(self, path, params, dryrun):
+    def _validate(self, path, params, dryrun=False, validate_only=False):
         """
         Call the engine validate method
         """
         params = _literal_params(params)
         try:
             template, adaptors = self.engine._validate(
-                path, dryrun, False, self.app_id, params
+                path, dryrun, validate_only, self.app_id, params
             )
         except Exception as error:
             abort(500, f"Error while validating: {error}")
 
         return template, adaptors
+
+    def _get_path(self, adt, url):
+        return url if url else TemplateHandler(self.app_id).save_template(adt)
 
     def _id_exists(self):
         """
