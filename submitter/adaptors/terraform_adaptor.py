@@ -164,7 +164,7 @@ class TerraformAdaptor(abco.Adaptor):
             properties = self._get_properties_values(node)
             properties.update(tf_options)
 
-            context = properties.get("context", {})
+            context = properties.pop("context", {})
             cloud_init = self._node_data_get_context_section(context)
             self.cloud_inits.add(cloud_init)
 
