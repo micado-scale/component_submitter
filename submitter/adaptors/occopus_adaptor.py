@@ -46,7 +46,7 @@ class OccopusAdaptor(abco.Adaptor):
         self.max_instances = 1
         self.ID = adaptor_id
         self.template = template
-        self.auth_data_submitter = "/var/lib/submitter/auth/auth_data.yaml"
+        self.auth_data_submitter = "/var/lib/micado/submitter/auth/auth_data.yaml"
         self.node_path = "{}{}.yaml".format(self.config['volume'], self.ID)
         self.node_path_tmp = "{}tmp_{}.yaml".format(self.config['volume'], self.ID)
         self.infra_def_path_output = "{}{}-infra.yaml".format(self.config['volume'], self.ID)

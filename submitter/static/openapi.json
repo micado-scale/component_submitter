@@ -1,0 +1,367 @@
+{
+  "openapi": "3.0.0",
+  "servers": [
+    {
+      "url": "/toscasubmitter/v2.0/"
+    },
+    {
+      "url": "http://localhost:5000/v2.0/"
+    }
+  ],
+  "info": {
+    "description": "Welcome to the MiCADO Submitter API.  For more about MiCADO see [micado-scale.eu](https://micado-scale.eu).",
+    "version": "2.0",
+    "title": "MiCADO Submitter",
+    "contact": {
+      "name": "Contact MiCADOScale",
+      "url": "https://micado-scale.eu/contact/"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "tags": [
+    {
+      "name": "applications",
+      "description": "Handle applications in MiCADO",
+      "externalDocs": {
+        "description": "Find out more",
+        "url": "https://micado-scale.readthedocs.io/en/latest/application_description.html"
+      }
+    }
+  ],
+  "paths": {
+    "/applications/": {
+      "get": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "List all running applications",
+        "description": "Returns a list of application IDs",
+        "operationId": "getAllApps",
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "500": {
+            "description": "Improperly configured MiCADO"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Deploy an application",
+        "description": "Submits a new application to MiCADO, with a generated ID if one is not provided.",
+        "operationId": "addApp",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Application"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationForm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": "{\"message\": \"Success\"}"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "500": {
+            "description": "Improperly configured MiCADO"
+          }
+        }
+      }
+    },
+    "/applications/{app_id}/": {
+      "get": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Retrieve application by ID",
+        "description": "Returns application info",
+        "operationId": "getAppById",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "description": "ID of the application to return",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": "{\"message\": \"Success\"}"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Deploy a new application in MiCADO with an ID",
+        "description": "",
+        "operationId": "addAppWithID",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "app_id",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the application to deploy",
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationWithID"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationForm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": "{\"message\": \"Success\"}"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Invalid input"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Updates an existing application",
+        "description": "",
+        "operationId": "updateApp",
+        "parameters": [
+          {
+            "name": "app_id",
+            "in": "path",
+            "description": "ID of the application to return",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationWithID"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplicationForm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "example": "{\"message\": \"Success\"}"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Application not found"
+          },
+          "500": {
+            "description": "Badly configured MiCADO"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Deletes an application",
+        "description": "Undeploys and removes an application running in MiCADO",
+        "operationId": "deleteApp",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "app_id",
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the application to deploy",
+            "required": true
+          },
+          {
+            "in": "formData",
+            "name": "force",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Flag to force delete on errors."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application deleted successfully"
+          },
+          "404": {
+            "description": "Application not found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Application": {
+        "type": "object",
+        "properties": {
+          "app_id": {
+            "type": "string",
+            "example": "my-app-id"
+          },
+          "url": {
+            "type": "string",
+            "example": "link.to/myadt.yaml"
+          },
+          "adt": {
+            "type": "object",
+            "example": "{\"yaml\": \"dictionary\"}"
+          },
+          "params": {
+            "type": "object",
+            "example": "{\"my_input\": \"myvalue\"}"
+          },
+          "dryrun": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "ApplicationWithID": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "example": "link.to/myadt.yaml",
+            "description": "URL of the ADT to submit. Required if ADT is not provided."
+          },
+          "adt": {
+            "type": "object",
+            "example": "{\"yaml\": \"dictionary\"}",
+            "description": "Read-to-load YAML data of the ADT to submit. Required if URL is not provided."
+          },
+          "params": {
+            "type": "object",
+            "example": "{\"my_input\": \"myvalue\"}",
+            "description": "Parsed params for TOSCA inputs"
+          },
+          "dryrun": {
+            "type": "boolean",
+            "example": false,
+            "description": "Flag to force a dry-run of Submitter components."
+          }
+        }
+      },
+      "ApplicationForm": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL of the ADT to submit. Required if ADT is not provided."
+          },
+          "adt": {
+            "type": "file",
+            "example": "myfile.yaml",
+            "description": "YAML file of the ADT to submit. Required if URL is not provided."
+          },
+          "params": {
+            "type": "string",
+            "example": "{\"my_input\": \"myvalue\"}",
+            "description": "Parsed params for TOSCA inputs"
+          },
+          "dryrun": {
+            "type": "boolean",
+            "description": "Flag to force a dry-run of Submitter components."
+          }
+        }
+      },
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "type": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "externalDocs": {
+    "description": "Read the MiCADO Documentation",
+    "url": "https://micado-scale.readthedocs.io"
+  }
+}
