@@ -10,7 +10,7 @@ class Interface:
 
 class Affinity:
     COMPUTE_MATCH = "micado.eu/node_type"
-    EDGE_MATCH = "name"
+    EDGE_MATCH = "kubernetes.io/hostname"
 
 
 class Prefix:
