@@ -1,4 +1,4 @@
-FROM python:3.6-slim
+FROM python:3.8-slim
 
 COPY requirements.txt /requirements.txt
 
@@ -10,6 +10,6 @@ WORKDIR /var/lib/micado/submitter
 
 COPY submitter .
 
-ENV LC_ALL=C.UTF-8 LANG=C.UTF-8 PYTHONPATH=/var/lib/micado FLASK_APP=api.py
+ENV LC_ALL=C.UTF-8 LANG=C.UTF-8 PYTHONPATH=/var/lib/micado
 
-ENTRYPOINT ["flask", "run"]
+ENTRYPOINT ["gunicorn", "submitter.api:app", "--timeout", "600", "--workers", "1"]
