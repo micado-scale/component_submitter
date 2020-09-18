@@ -836,7 +836,7 @@ class TerraformAdaptor(abco.Adaptor):
                         "tenancy_ocid": credential["tenancy_ocid"],
                         "user_ocid": credential["user_ocid"],
                         "fingerprint": credential["fingerprint"],
-                        "private_key_path": "%s" % self.oci_auth_key,
+                        "private_key_path": "oci_api_key.pem",
                     }
                 )
             return provider
