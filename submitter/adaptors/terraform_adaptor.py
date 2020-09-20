@@ -852,6 +852,7 @@ class TerraformAdaptor(abco.Adaptor):
                     "create_vnic_details": {
                         "subnet_id": subnet_id,
                         "display_name": network_interface_name,
+                        "skip_source_dest_check": "true",
                         "nsg_ids": ["%s" % nsg_ids],
                     },
                     "source_details": {
