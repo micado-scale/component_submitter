@@ -9,6 +9,7 @@ from toscaparser.tosca_template import ToscaTemplate
 from toscaparser.common.exception import ValidationError
 
 from submitter import micado_validator as Validator
+from submitter.utils import resolve_get_inputs
 
 
 logger = logging.getLogger("submitter." + __name__)
@@ -51,6 +52,7 @@ def set_template(path, parsed_params=None):
         ) from None
 
     Validator.validation(template)
+    _find_other_inputs(template)
     return template
 
 
@@ -66,3 +68,26 @@ def _isfile_check(path):
     except Exception as e:
         logger.error("the input file doesn't exist or cannot be reached")
         raise Exception("Cannot find input file {}".format(e))
+
+
+def _find_other_inputs(template):
+    resolve_get_inputs(
+        template.tpl, _get_input_value, lambda x: x is not None, template
+    )
+    # Update nodetemplate properties
+    for node in template.nodetemplates:
+        node._properties = node._create_properties()
+
+
+def _get_input_value(key, template):
+    try:
+        return template.parsed_params[key]
+    except (KeyError, TypeError):
+        logger.debug(f"Input '{key}' not given, using default")
+
+    try:
+        return [
+            param.default for param in template.inputs if param.name == key
+        ][0]
+    except IndexError:
+        logger.error(f"Input '{key}' has no default")
