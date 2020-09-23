@@ -3,7 +3,10 @@ import sys
 import logging
 import inspect
 import traceback
+import urllib
+import copy
 
+import ruamel.yaml as yaml
 import toscaparser.utils.urlutils
 from toscaparser.tosca_template import ToscaTemplate
 from toscaparser.common.exception import ValidationError
@@ -11,12 +14,11 @@ from toscaparser.common.exception import ValidationError
 from submitter import micado_validator as Validator
 from submitter.utils import resolve_get_inputs
 
-
 logger = logging.getLogger("submitter." + __name__)
 
 
 def set_template(path, parsed_params=None):
-    """ the method that will parse the YAML and return ToscaTemplate
+    """the method that will parse the YAML and return ToscaTemplate
     object topology object.
 
     :params: path, parsed_params
@@ -27,10 +29,13 @@ def set_template(path, parsed_params=None):
     | parsed_params: dictionary containing the input to change
     | path: local or remote path to the file to parse
     """
-    isfile = _isfile_check(path)
+    yaml_dict = _get_dict(path)
+    _resolve_occurrences(yaml_dict, parsed_params)
 
     try:
-        template = ToscaTemplate(path, parsed_params, isfile)
+        template = ToscaTemplate(
+            parsed_params=parsed_params, yaml_dict_tpl=yaml_dict
+        )
     except ValidationError as e:
         message = [
             line
@@ -56,18 +61,92 @@ def set_template(path, parsed_params=None):
     return template
 
 
-def _isfile_check(path):
+def _get_dict(path):
+    """
+    Return the YAML dictionary
+    """
     if os.path.isfile(path):
-        logger.debug("check if the input file is local")
-        return True
+        with open(path, "r") as f:
+            return yaml.safe_load(f)
 
-    logger.debug("checking if the input is a valid url")
     try:
-        toscaparser.utils.urlutils.UrlUtils.validate_url(path)
-        return False
-    except Exception as e:
+        f = urllib.request.urlopen(path)
+        return yaml.safe_load(f)
+    except urllib.error.URLError as e:
         logger.error("the input file doesn't exist or cannot be reached")
         raise Exception("Cannot find input file {}".format(e))
+
+
+def _determine_inputs(tpl_dict, parsed_params):
+    """
+    Store input values from parsed_params or defaults
+    """
+    params = parsed_params if parsed_params else {}
+    inputs = tpl_dict.get("topology_template", {}).get("inputs", {})
+    values = {}
+    for key, value in inputs.items():
+        values[key] = params.get(key) or value["default"]
+    return values
+
+
+def _resolve_occurrences(tpl_dict, parsed_params):
+    """
+    Handle TOSCA v1.3 occurrences feature, for now
+    """
+    nodes = tpl_dict.get("topology_template", {}).get("node_templates")
+    inputs = _determine_inputs(tpl_dict, parsed_params)
+    nodes_with_occurrences = [
+        node for node in nodes if "occurrences" in nodes[node]
+    ]
+    print(nodes_with_occurrences)
+    for node in nodes_with_occurrences:
+        new_nodes = _create_occurrences(node, nodes.pop(node), inputs)
+        nodes.update(new_nodes)
+
+
+def _create_occurrences(name, node, inputs):
+    """
+    Create and return a dictionary of new occurrences
+    """
+    occurrences = node.pop("occurrences")
+    count = node.pop("instance_count", occurrences[0])
+    if isinstance(count, str):
+        count = int(count)
+    elif isinstance(count, dict):
+        try:
+            count = int(inputs[count["get_input"]])
+        except (KeyError, TypeError):
+            raise KeyError("Could not resolve instance_count")
+
+    new_nodes = {}
+    for i in range(count):
+        new_name = f"{name}-{i+1}"
+        new_node = copy.deepcopy(node)
+        resolve_get_inputs(
+            new_node,
+            _set_indexed_input,
+            lambda x: isinstance(x, list),
+            inputs,
+            i,
+        )
+
+        new_nodes[new_name] = new_node
+
+    return new_nodes
+
+
+def _set_indexed_input(result, inputs, index):
+    """
+    Set the value of indexed inputs
+    """
+    if result[1] != "INDEX":
+        raise TypeError("Unrecognised get_input format")
+    try:
+        return inputs[result[0]][index]
+    except IndexError:
+        raise IndexError(
+            f"Input '{result[0]}' does not match node occurrences!"
+        ) from None
 
 
 def _find_other_inputs(template):
