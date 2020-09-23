@@ -159,7 +159,7 @@ class SubmitterEngine(object):
         # MiCADO Validation
         logger.info("****** Starting the validation process of {} *****".format(path_to_file))
         template = micado_parser.set_template(path_to_file, parsed_params)
-        self.object_config.resolve_inputs(template)
+        
         #if validate is True:
         #    dry_run = True
         # Adaptors instantiation

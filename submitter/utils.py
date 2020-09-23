@@ -216,3 +216,25 @@ def get_cloud_config(
                 default_cloud_config[x] = y
 
     return default_cloud_config
+
+
+def resolve_get_inputs(search, get_func, test, *args):
+    """
+    Recursively search for get_inputs requiring an index
+    """
+    for key, value in search.items():
+        if key == "get_input":
+            return value
+
+        elif isinstance(value, dict):
+            result = resolve_get_inputs(value, get_func, test, *args)
+            if test(result):
+                search[key] = get_func(result, *args)
+
+        elif isinstance(value, list):
+            for i in value:
+                if not isinstance(i, dict):
+                    continue
+                result = resolve_get_inputs(i, get_func, test, *args)
+                if test(result):
+                    search[key][i] = get_func(result, *args)
