@@ -317,21 +317,25 @@ class TerraformAdaptor(abco.Adaptor):
         Create the cloud-init config file
         """
         cloud_config = context.get("cloud_config")
+        suffix = context.get("suffix", "")
+        base_cloud_init = suffix.join(
+            os.path.splitext(self.cloud_init_template)
+        )
         if not context:
             logger.debug("The adaptor will use a default cloud-config")
-            node_init = self._get_cloud_init(None)
+            node_init = self._get_cloud_init(None, base_cloud_init)
         elif not cloud_config:
             logger.debug("No cloud-config provided... using default cloud-config")
-            node_init = self._get_cloud_init(None)
+            node_init = self._get_cloud_init(None, base_cloud_init)
         elif context.get("insert"):
             logger.debug("Insert the TOSCA cloud-config in the default config")
-            node_init = self._get_cloud_init(cloud_config, "insert")
+            node_init = self._get_cloud_init(cloud_config, base_cloud_init, "insert")
         elif context.get("append"):
             logger.debug("Append the TOSCA cloud-config to the default config")
-            node_init = self._get_cloud_init(cloud_config, "append")
+            node_init = self._get_cloud_init(cloud_config, base_cloud_init, "append")
         else:
             logger.debug("Overwrite the default cloud-config")
-            node_init = self._get_cloud_init(cloud_config, "overwrite")
+            node_init = self._get_cloud_init(cloud_config, base_cloud_init, "overwrite")
 
         cloud_init_file_name = "{}-cloud-init.yaml".format(self.node_name)
         cloud_init_path = "{}{}".format(self.volume, cloud_init_file_name)
@@ -350,7 +354,7 @@ class TerraformAdaptor(abco.Adaptor):
             security_groups = properties.pop("security_group_ids")
             properties["vpc_security_group_ids"] = security_groups
 
-    def _get_cloud_init(self, tosca_cloud_config, insert_mode=None):
+    def _get_cloud_init(self, tosca_cloud_config, base_cloud_init, insert_mode=None):
         """
         Get cloud-config from MiCADO cloud-init template
         """
@@ -363,7 +367,7 @@ class TerraformAdaptor(abco.Adaptor):
             logger.warning("No CA Cert found for IPSec on worker node")
             master_file = ""
         try:
-            with open(self.cloud_init_template, "r") as f:
+            with open(base_cloud_init, "r") as f:
                 template = jinja2.Template(f.read())
                 rendered = template.render(
                     worker_name=self.node_name, master_pem=master_file
