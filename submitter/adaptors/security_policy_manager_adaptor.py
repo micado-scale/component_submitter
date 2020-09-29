@@ -82,7 +82,7 @@ class SecurityPolicyManagerAdaptor(abco.Adaptor):
                     else:
                         data_keys = {'name':key, 'value':value}
                         logger.info("launch secret")
-                        response = requests.post("{}/v1.0/appsecrets".format(self.endpoint), data = data_keys)
+                        response = requests.post("{}/v1.0/appsecrets".format(self.endpoint), json = data_keys)
         self.status = "executed"
 
     def undeploy(self):
