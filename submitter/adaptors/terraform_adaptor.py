@@ -966,7 +966,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         def get_floatingip_associate():
             return {
-                network_security_assoc_name: {
+                "fip": {
                     "for_each": "${toset(var.%s)}" % instance_name,
                     "floating_ip": "openstack_networking_floatingip_v2.public_ip[each.key].address",
                     "instance_id": "openstack_compute_instance_v2.%s[each.key].id" % instance_name,
