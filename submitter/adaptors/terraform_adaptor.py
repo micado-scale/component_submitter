@@ -940,7 +940,7 @@ class TerraformAdaptor(abco.Adaptor):
                     "flavor_name": flavor_name,
                     "key_pair": "micado",
                     "security_groups": ["%s" % security_groups],
-                    "user_data": 'file("${path.module}/%s")' % cloud_init_file_name,
+                    "user_data": '${file("${path.module}/%s")}' % cloud_init_file_name,
                     "for_each": "${toset(var.%s)}" % instance_name,
                     "network": {
                         "name": network_name,
@@ -968,8 +968,8 @@ class TerraformAdaptor(abco.Adaptor):
             return {
                 "fip": {
                     "for_each": "${toset(var.%s)}" % instance_name,
-                    "floating_ip": "openstack_networking_floatingip_v2.public_ip[each.key].address",
-                    "instance_id": "openstack_compute_instance_v2.%s[each.key].id" % instance_name,
+                    "floating_ip": "${openstack_networking_floatingip_v2.public_ip[each.key].address}",
+                    "instance_id": "${openstack_compute_instance_v2.%s[each.key].id}" % instance_name,
                 }
             }
 
@@ -1098,7 +1098,7 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _terraform_init(self):
         """ Run terraform init in the container """
-        command = ["sh", "-c", "terraform init -no-color" + LOG_SUFFIX]
+        command = ["sh", "-cl", "terraform init -no-color" + LOG_SUFFIX]
         exec_output = self._terraform_exec(command)
         if "successfully initialized" in exec_output:
             logger.debug("Terraform initialization has been successful")
@@ -1107,7 +1107,7 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _terraform_apply(self, lock_timeout):
         """ Run terraform apply in the container """
-        command = ["sh", "-c", "terraform apply -auto-approve -no-color" + LOG_SUFFIX]
+        command = ["sh", "-cl", "terraform apply -auto-approve -no-color" + LOG_SUFFIX]
         exec_output = self._terraform_exec(command, lock_timeout)
         if "Apply complete" in exec_output:
             logger.debug("Terraform apply has been successful")
@@ -1118,7 +1118,7 @@ class TerraformAdaptor(abco.Adaptor):
         """ Run terraform destroy in the container """
         command = [
             "sh",
-            "-c",
+            "-cl",
             "terraform destroy -auto-approve -no-color" + LOG_SUFFIX,
         ]
         exec_output = self._terraform_exec(command, lock_timeout=600)
@@ -1132,11 +1132,9 @@ class TerraformAdaptor(abco.Adaptor):
         """ Customise the terraform container """
         command = ["sh", "-c", "apk update" + LOG_SUFFIX]
         self._terraform_exec(command)
-        command = ["sh", "-c", "apk add python3" + LOG_SUFFIX]
+        command = ["sh", "-c", "apk -e info python3 || apk add python3" + LOG_SUFFIX]
         self._terraform_exec(command)
-        command = ["sh", "-c", "apk add py3-pip" + LOG_SUFFIX]
+        command = ["sh", "-c", "apk -e info py3-pip || apk add py3-pip && pip3 install PyJWT" + LOG_SUFFIX]
         self._terraform_exec(command)
-        command = ["sh", "-c", "pip3 install PyJWT" + LOG_SUFFIX]
-        self._terraform_exec(command)
-        command = ["sh", "-c", "echo '. /var/lib/micado/terraform/submitter/configure' >> /root/.ashrc" + LOG_SUFFIX]
+        command = ["sh", "-c", "ls /root/.profile || echo '. /var/lib/micado/terraform/submitter/configure' >> /root/.profile" + LOG_SUFFIX]
         self._terraform_exec(command)
