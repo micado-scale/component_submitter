@@ -24,7 +24,7 @@ LOG_SUFFIX = (
     ' do printf "%s %s\n" "$(date "+[%Y-%m-%d %H:%M:%S]")" "$line";'
     " done | tee /proc/1/fd/1"
 )
-SUPPORTED_CLOUDS = ("ec2", "nova", "azure", "gce", "oci")
+SUPPORTED_CLOUDS = ("ec2", "nova", "azure", "gce", "oci", "egi")
 RUNCMD_PLACEHOLDER = "echo micado runcmd placeholder"
 
 
@@ -120,8 +120,12 @@ class TerraformAdaptor(abco.Adaptor):
         self.vars_file_tmp = "{}terraform.tfvars.json.tmp".format(self.volume)
         self.account_file = "{}accounts.json".format(self.volume)
         self.oci_auth_key = "{}oci_api_key.pem".format(self.volume)
+        self.configure_file = "{}configure".format(self.volume)
+        self.token_file = "{}pyGetScopedToken.py".format(self.volume)
 
         self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
+        self.configure_template = "./system/configure"
+        self.token_template = "./system/pyGetScopedToken.py"
         self.auth_data_file = "/var/lib/micado/submitter/auth/auth_data.yaml"
         self.auth_gce = "/var/lib/micado/submitter/gce-auth/accounts.json"
         self.auth_oci = "/var/lib/micado/submitter/oci-auth/oci_api_key.pem"
@@ -130,6 +134,7 @@ class TerraformAdaptor(abco.Adaptor):
         self.tf_json = TerraformDict()
 
         self.created = False
+        self.customise = False
         self.terraform = None
         self.cloud_inits = set()
         if not self.dryrun:
@@ -186,6 +191,12 @@ class TerraformAdaptor(abco.Adaptor):
             elif cloud_type == "oci":
                 logger.debug("OCI resource detected")
                 self._add_terraform_oci(properties)
+            elif cloud_type == "egi":
+                logger.debug("EGI resource detected")
+                if not self.customise:
+                    self._terraform_customise()
+                    self.customise = True
+                self._add_terraform_egi(properties)
 
         if not self.tf_json.provider:
             logger.info("No nodes to orchestrate with Terraform. Skipping...")
@@ -253,6 +264,8 @@ class TerraformAdaptor(abco.Adaptor):
             self.vars_file,
             self.account_file,
             self.oci_auth_key,
+            self.configure_file,
+            self.token_file,
             self.volume + "terraform.tfstate",
             self.volume + "terraform.tfstate.backup",
         ]
@@ -339,6 +352,25 @@ class TerraformAdaptor(abco.Adaptor):
 
         utils.dump_order_yaml(node_init, cloud_init_path_tmp)
         return cloud_init_path
+
+    def _egi_render_configure(self, credential):
+        """
+        Render the egi configure file
+        """
+        try:
+            with open(self.configure_template, "r") as f:
+                template = jinja2.Template(f.read())
+                rendered = template.render(
+                    egi_site=credential["egi_site"], project_id=credential["os_project_id"], client_id=credential["client_id"], client_secret=credential["client_secret"], refresh_token=credential["refresh_token"]
+                )
+        except OSError as e:
+            logger.error(e)
+
+        try:
+            with open(self.configure_file, "w") as p:
+                p.write(rendered)
+        except OSError as e:
+            logger.error(e)
 
     def _rename_ec2_properties(self, properties):
         """
@@ -891,6 +923,78 @@ class TerraformAdaptor(abco.Adaptor):
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
         self.tf_json.add_resource("oci_core_instance", get_virtual_machine())
 
+    def _add_terraform_egi(self, properties):
+        """ Write Terraform template files for egi in JSON"""
+
+        def get_provider():
+            return {
+                "version": "~> 1.32.0",
+                "auth_url": auth_url,
+            }
+
+        def get_virtual_machine():
+            return {
+                instance_name: {
+                    "name": "%s${each.key}" % instance_name,
+                    "image_id": image_id,
+                    "flavor_name": flavor_name,
+                    "key_pair": "micado",
+                    "security_groups": ["%s" % security_groups],
+                    "user_data": '${file("${path.module}/%s")}' % cloud_init_file_name,
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                    "network": {
+                        "name": network_name,
+                    },
+                }
+            }
+
+        def get_keypair():
+            return {
+                "micado": {
+                    "name": "micado",
+                    "public_key": public_key,
+                }
+            }
+
+        def get_floating_ip():
+            return {
+                "public_ip": {
+                    "pool": ip_pool,
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                }
+            }
+
+        def get_floatingip_associate():
+            return {
+                "fip": {
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                    "floating_ip": "${openstack_networking_floatingip_v2.public_ip[each.key].address}",
+                    "instance_id": "${openstack_compute_instance_v2.%s[each.key].id}" % instance_name,
+                }
+            }
+
+        instance_name = self.node_name
+        self.tf_json.add_instance_variable(instance_name, self.min_instances)
+
+        credential = self._get_credential_info("egi")
+        shutil.copyfile(self.token_template, self.token_file)
+        self._egi_render_configure(credential)
+
+        auth_url = properties["auth_url"]
+        self.tf_json.add_provider("openstack", get_provider())
+
+        image_id = properties["image_id"]
+        flavor_name = properties["flavor_name"]
+        network_name = properties["network_name"]
+        security_groups = properties["security_groups"]
+        ip_pool = properties["ip_pool"]
+        public_key = properties["public_key"]
+        cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
+        self.tf_json.add_resource("openstack_compute_keypair_v2", get_keypair())
+        self.tf_json.add_resource("openstack_compute_instance_v2", get_virtual_machine())
+        self.tf_json.add_resource("openstack_networking_floatingip_v2", get_floating_ip())
+        self.tf_json.add_resource("openstack_compute_floatingip_associate_v2", get_floatingip_associate())
+
     def _config_file_exists(self):
         """ Check if config file was generated during translation """
         return os.path.exists(self.tf_file)
@@ -994,7 +1098,7 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _terraform_init(self):
         """ Run terraform init in the container """
-        command = ["sh", "-c", "terraform init -no-color" + LOG_SUFFIX]
+        command = ["sh", "-cl", "terraform init -no-color" + LOG_SUFFIX]
         exec_output = self._terraform_exec(command)
         if "successfully initialized" in exec_output:
             logger.debug("Terraform initialization has been successful")
@@ -1003,7 +1107,7 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _terraform_apply(self, lock_timeout):
         """ Run terraform apply in the container """
-        command = ["sh", "-c", "terraform apply -auto-approve -no-color" + LOG_SUFFIX]
+        command = ["sh", "-cl", "terraform apply -auto-approve -no-color" + LOG_SUFFIX]
         exec_output = self._terraform_exec(command, lock_timeout)
         if "Apply complete" in exec_output:
             logger.debug("Terraform apply has been successful")
@@ -1014,7 +1118,7 @@ class TerraformAdaptor(abco.Adaptor):
         """ Run terraform destroy in the container """
         command = [
             "sh",
-            "-c",
+            "-cl",
             "terraform destroy -auto-approve -no-color" + LOG_SUFFIX,
         ]
         exec_output = self._terraform_exec(command, lock_timeout=600)
@@ -1023,3 +1127,14 @@ class TerraformAdaptor(abco.Adaptor):
             self.status = "undeployed"
         else:
             raise AdaptorCritical("Undeploy failed: {}".format(exec_output))
+
+    def _terraform_customise(self):
+        """ Customise the terraform container """
+        command = ["sh", "-c", "apk update" + LOG_SUFFIX]
+        self._terraform_exec(command)
+        command = ["sh", "-c", "apk -e info python3 || apk add python3" + LOG_SUFFIX]
+        self._terraform_exec(command)
+        command = ["sh", "-c", "apk -e info py3-pip || apk add py3-pip && pip3 install PyJWT" + LOG_SUFFIX]
+        self._terraform_exec(command)
+        command = ["sh", "-c", "ls /root/.profile || echo '. /var/lib/micado/terraform/submitter/configure' >> /root/.profile" + LOG_SUFFIX]
+        self._terraform_exec(command)
