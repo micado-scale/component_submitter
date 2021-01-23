@@ -357,11 +357,18 @@ class TerraformAdaptor(abco.Adaptor):
         """
         Render the egi configure file
         """
+        access = credential["access_token"]
         try:
             with open(self.configure_template, "r") as f:
                 template = jinja2.Template(f.read())
                 rendered = template.render(
-                    egi_site=credential["egi_site"], project_id=credential["os_project_id"], client_id=credential["client_id"], client_secret=credential["client_secret"], refresh_token=credential["refresh_token"]
+                    identity_provider=credential["identity_provider"],
+                    auth_url=credential["auth_url"],
+                    project_id=credential["project_id"],
+                    oidc_url=access["url"],
+                    client_id=access["client_id"],
+                    client_secret=access["client_secret"],
+                    refresh_token=access["refresh_token"],
                 )
         except OSError as e:
             logger.error(e)
@@ -976,7 +983,9 @@ class TerraformAdaptor(abco.Adaptor):
         instance_name = self.node_name
         self.tf_json.add_instance_variable(instance_name, self.min_instances)
 
-        credential = self._get_credential_info("egi")
+        credential = self._get_credential_info("nova")
+        credential["project_id"] = properties["project_id"]
+        credential["auth_url"] = properties["auth_url"]
         shutil.copyfile(self.token_template, self.token_file)
         self._egi_render_configure(credential)
 
