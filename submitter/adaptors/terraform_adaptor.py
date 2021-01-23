@@ -357,11 +357,18 @@ class TerraformAdaptor(abco.Adaptor):
         """
         Render the egi configure file
         """
+        access = credential["access_token"]
         try:
             with open(self.configure_template, "r") as f:
                 template = jinja2.Template(f.read())
                 rendered = template.render(
-                    egi_site=credential["egi_site"], project_id=credential["os_project_id"], client_id=credential["client_id"], client_secret=credential["client_secret"], refresh_token=credential["refresh_token"]
+                    identity_provider=credential["identity_provider"],
+                    auth_url=credential["auth_url"],
+                    project_id=credential["project_id"],
+                    oidc_url=access["url"],
+                    client_id=access["client_id"],
+                    client_secret=access["client_secret"],
+                    refresh_token=access["refresh_token"],
                 )
         except OSError as e:
             logger.error(e)
@@ -976,7 +983,9 @@ class TerraformAdaptor(abco.Adaptor):
         instance_name = self.node_name
         self.tf_json.add_instance_variable(instance_name, self.min_instances)
 
-        credential = self._get_credential_info("egi")
+        credential = self._get_credential_info("nova")
+        credential["project_id"] = properties["project_id"]
+        credential["auth_url"] = properties["auth_url"]
         shutil.copyfile(self.token_template, self.token_file)
         self._egi_render_configure(credential)
 
@@ -987,13 +996,23 @@ class TerraformAdaptor(abco.Adaptor):
         flavor_name = properties["flavor_name"]
         network_name = properties["network_name"]
         security_groups = properties["security_groups"]
-        ip_pool = properties["ip_pool"]
+        ip_pool = properties.get("ip_pool")
         public_key = properties["public_key"]
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
-        self.tf_json.add_resource("openstack_compute_keypair_v2", get_keypair())
-        self.tf_json.add_resource("openstack_compute_instance_v2", get_virtual_machine())
-        self.tf_json.add_resource("openstack_networking_floatingip_v2", get_floating_ip())
-        self.tf_json.add_resource("openstack_compute_floatingip_associate_v2", get_floatingip_associate())
+        self.tf_json.add_resource(
+            "openstack_compute_keypair_v2", get_keypair()
+        )
+        self.tf_json.add_resource(
+            "openstack_compute_instance_v2", get_virtual_machine()
+        )
+        if ip_pool:
+            self.tf_json.add_resource(
+                "openstack_networking_floatingip_v2", get_floating_ip()
+            )
+            self.tf_json.add_resource(
+                "openstack_compute_floatingip_associate_v2",
+                get_floatingip_associate(),
+            )
 
     def _config_file_exists(self):
         """ Check if config file was generated during translation """
