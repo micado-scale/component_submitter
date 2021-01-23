@@ -996,13 +996,23 @@ class TerraformAdaptor(abco.Adaptor):
         flavor_name = properties["flavor_name"]
         network_name = properties["network_name"]
         security_groups = properties["security_groups"]
-        ip_pool = properties["ip_pool"]
+        ip_pool = properties.get("ip_pool")
         public_key = properties["public_key"]
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
-        self.tf_json.add_resource("openstack_compute_keypair_v2", get_keypair())
-        self.tf_json.add_resource("openstack_compute_instance_v2", get_virtual_machine())
-        self.tf_json.add_resource("openstack_networking_floatingip_v2", get_floating_ip())
-        self.tf_json.add_resource("openstack_compute_floatingip_associate_v2", get_floatingip_associate())
+        self.tf_json.add_resource(
+            "openstack_compute_keypair_v2", get_keypair()
+        )
+        self.tf_json.add_resource(
+            "openstack_compute_instance_v2", get_virtual_machine()
+        )
+        if ip_pool:
+            self.tf_json.add_resource(
+                "openstack_networking_floatingip_v2", get_floating_ip()
+            )
+            self.tf_json.add_resource(
+                "openstack_compute_floatingip_associate_v2",
+                get_floatingip_associate(),
+            )
 
     def _config_file_exists(self):
         """ Check if config file was generated during translation """
