@@ -37,7 +37,6 @@ class Resource:
             "apiVersion": "",
             "kind": "",
             "metadata": {},
-            "spec": {},
         }
 
     def build(self, validate=True):

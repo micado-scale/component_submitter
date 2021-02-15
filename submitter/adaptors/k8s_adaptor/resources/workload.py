@@ -25,6 +25,16 @@ class Workload(Resource):
         if not self.manifest.get("kind"):
             self.manifest["kind"] = "Deployment"
 
+    @staticmethod
+    def _default_manifest():
+        """ Returns the default structure of the given resource """
+        return {
+            "apiVersion": "",
+            "kind": "",
+            "metadata": {},
+            "spec": {},
+        }
+
     def add_pod(self, pod):
         """Adds the pod to the manifest
 

@@ -31,7 +31,6 @@ DEFAULT_RESOURCE = {
             VER_LABEL: "",
         },
     },
-    "spec": {},
 }
 
 APP = "app-name"
@@ -222,7 +221,8 @@ class TestPod(unittest.TestCase):
         self.mock_pod.configure_mock(spec={})
 
     def test_pod_clear_keys(self):
-        compare = list(DEFAULT_RESOURCE.keys())[2:]
+        pod_resource = {"metadata": {}, "spec": {}}
+        compare = list(pod_resource.keys())
         self.assertEqual(compare, list(self.pod.manifest.keys()))
         self.assertNotIn("name", self.pod.manifest["metadata"])
 
