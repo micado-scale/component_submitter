@@ -127,6 +127,7 @@ class TerraformAdaptor(abco.Adaptor):
         self.configure_file = "{}configure.py".format(self.volume)
         self.token_file = "{}pyGetScopedToken.py".format(self.volume)
         self.preprocess_file = "{}preprocess.py".format(self.volume)
+        self.token_temp_file = "{}token.txt".format(self.volume)
 
         self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
         self.configure_template = "./system/configure"
@@ -272,6 +273,7 @@ class TerraformAdaptor(abco.Adaptor):
             self.oci_auth_key,
             self.configure_file,
             self.preprocess_file,
+            self.token_temp_file,
             self.token_file,
             self.volume + "terraform.tfstate",
             self.volume + "terraform.tfstate.backup",
