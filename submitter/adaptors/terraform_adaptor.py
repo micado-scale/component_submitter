@@ -80,6 +80,10 @@ class TerraformDict(dict):
             node_list.append(str(i))
         self.tfvars[name] = node_list
 
+    def add_normal_variable(self, name, value):
+        self.add_variable(name, {})
+        self.tfvars[name] = value
+
     def update_instance_vars(self, old_node_list):
         new_counts = {}
         for node_name, new_node_list in self.tfvars.items():
@@ -120,12 +124,14 @@ class TerraformAdaptor(abco.Adaptor):
         self.vars_file_tmp = "{}terraform.tfvars.json.tmp".format(self.volume)
         self.account_file = "{}accounts.json".format(self.volume)
         self.oci_auth_key = "{}oci_api_key.pem".format(self.volume)
-        self.configure_file = "{}configure".format(self.volume)
+        self.configure_file = "{}configure.py".format(self.volume)
         self.token_file = "{}pyGetScopedToken.py".format(self.volume)
+        self.preprocess_file = "{}preprocess.py".format(self.volume)
 
         self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
         self.configure_template = "./system/configure"
         self.token_template = "./system/pyGetScopedToken.py"
+        self.preprocess_template = "./system/preprocess.py"
         self.auth_data_file = "/var/lib/micado/submitter/auth/auth_data.yaml"
         self.auth_gce = "/var/lib/micado/submitter/gce-auth/accounts.json"
         self.auth_oci = "/var/lib/micado/submitter/oci-auth/oci_api_key.pem"
@@ -265,6 +271,7 @@ class TerraformAdaptor(abco.Adaptor):
             self.account_file,
             self.oci_auth_key,
             self.configure_file,
+            self.preprocess_file,
             self.token_file,
             self.volume + "terraform.tfstate",
             self.volume + "terraform.tfstate.backup",
@@ -937,6 +944,8 @@ class TerraformAdaptor(abco.Adaptor):
             return {
                 "version": "~> 1.32.0",
                 "auth_url": auth_url,
+                "tenant_id": tenant_id,
+                "token": "${var.ostoken}"
             }
 
         def get_virtual_machine():
@@ -981,15 +990,20 @@ class TerraformAdaptor(abco.Adaptor):
             }
 
         instance_name = self.node_name
-        self.tf_json.add_instance_variable(instance_name, self.min_instances)
-
         credential = self._get_credential_info("nova")
+        cloud_flag = credential["identity_provider"]
+        self.tf_json.add_normal_variable("preprocess", cloud_flag)
+        self.tf_json.add_normal_variable("ostoken", "temp_token")
+        self.tf_json.add_instance_variable(instance_name, self.min_instances)
+        
         credential["project_id"] = properties["project_id"]
         credential["auth_url"] = properties["auth_url"]
         shutil.copyfile(self.token_template, self.token_file)
+        shutil.copyfile(self.preprocess_template, self.preprocess_file)
         self._egi_render_configure(credential)
 
         auth_url = properties["auth_url"]
+        tenant_id = properties["project_id"]
         self.tf_json.add_provider("openstack", get_provider())
 
         image_id = properties["image_id"]
@@ -1117,7 +1131,7 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _terraform_init(self):
         """ Run terraform init in the container """
-        command = ["sh", "-cl", "terraform init -no-color" + LOG_SUFFIX]
+        command = ["sh", "-c", "terraform init -no-color" + LOG_SUFFIX]
         exec_output = self._terraform_exec(command)
         if "successfully initialized" in exec_output:
             logger.debug("Terraform initialization has been successful")
@@ -1126,7 +1140,7 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _terraform_apply(self, lock_timeout):
         """ Run terraform apply in the container """
-        command = ["sh", "-cl", "terraform apply -auto-approve -no-color" + LOG_SUFFIX]
+        command = ["sh", "-c", "terraform apply -auto-approve -no-color" + LOG_SUFFIX]
         exec_output = self._terraform_exec(command, lock_timeout)
         if "Apply complete" in exec_output:
             logger.debug("Terraform apply has been successful")
@@ -1137,7 +1151,7 @@ class TerraformAdaptor(abco.Adaptor):
         """ Run terraform destroy in the container """
         command = [
             "sh",
-            "-cl",
+            "-c",
             "terraform destroy -auto-approve -no-color" + LOG_SUFFIX,
         ]
         exec_output = self._terraform_exec(command, lock_timeout=600)
@@ -1154,6 +1168,4 @@ class TerraformAdaptor(abco.Adaptor):
         command = ["sh", "-c", "apk -e info python3 || apk add python3" + LOG_SUFFIX]
         self._terraform_exec(command)
         command = ["sh", "-c", "apk -e info py3-pip || apk add py3-pip && pip3 install PyJWT" + LOG_SUFFIX]
-        self._terraform_exec(command)
-        command = ["sh", "-c", "ls /root/.profile || echo '. /var/lib/micado/terraform/submitter/configure' >> /root/.profile" + LOG_SUFFIX]
         self._terraform_exec(command)
