@@ -945,8 +945,8 @@ class TerraformAdaptor(abco.Adaptor):
                     "name": "%s${each.key}" % instance_name,
                     "image_id": image_id,
                     "flavor_name": flavor_name,
-                    "key_pair": "micado",
-                    "security_groups": ["%s" % security_groups],
+                    "key_pair": keypair_name,
+                    "security_groups": security_groups,
                     "user_data": '${file("${path.module}/%s")}' % cloud_init_file_name,
                     "for_each": "${toset(var.%s)}" % instance_name,
                     "network": {
@@ -957,15 +957,15 @@ class TerraformAdaptor(abco.Adaptor):
 
         def get_keypair():
             return {
-                "micado": {
-                    "name": "micado",
+                keypair_name: {
+                    "name": keypair_name,
                     "public_key": public_key,
                 }
             }
 
         def get_floating_ip():
             return {
-                "public_ip": {
+                floating_ip_name: {
                     "pool": ip_pool,
                     "for_each": "${toset(var.%s)}" % instance_name,
                 }
@@ -973,7 +973,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         def get_floatingip_associate():
             return {
-                "fip": {
+                fip_assoc_name: {
                     "for_each": "${toset(var.%s)}" % instance_name,
                     "floating_ip": "${openstack_networking_floatingip_v2.public_ip[each.key].address}",
                     "instance_id": "${openstack_compute_instance_v2.%s[each.key].id}" % instance_name,
@@ -999,6 +999,9 @@ class TerraformAdaptor(abco.Adaptor):
         ip_pool = properties.get("ip_pool")
         public_key = properties["public_key"]
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
+        keypair_name = "{}-key".format(instance_name)
+        floating_ip_name = "{}-fip".format(instance_name)
+        fip_assoc_name = "{}-fip-assoc".format(instance_name)
         self.tf_json.add_resource(
             "openstack_compute_keypair_v2", get_keypair()
         )
