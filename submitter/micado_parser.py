@@ -5,7 +5,7 @@ import inspect
 import traceback
 import urllib
 import copy
-import tempfile
+from pathlib import Path
 
 import ruamel.yaml as yaml
 import toscaparser.utils.urlutils
@@ -16,6 +16,28 @@ from submitter import micado_validator as Validator
 from submitter.utils import resolve_get_inputs
 
 logger = logging.getLogger("submitter." + __name__)
+
+
+class TemplateLoader:
+    def __init__(self, path):
+        self.parent_dir = None
+        self.dict = self._get_tpl(path)
+
+    def _get_tpl(self, path):
+        """ Return the template dictionary """
+        file_path = Path(path)
+        if file_path.is_file():
+            self.parent_dir = file_path.parent
+            with open(file_path, "r") as f:
+                return yaml.safe_load(f)
+
+        # Otherwise try as a URL
+        try:
+            f = urllib.request.urlopen(path)
+            return yaml.safe_load(f)
+        except urllib.error.URLError as e:
+            logger.error("the input file doesn't exist or cannot be reached")
+            raise FileNotFoundError("Cannot find input file {}".format(e))
 
 
 def set_template(path, parsed_params=None):
@@ -30,7 +52,8 @@ def set_template(path, parsed_params=None):
     | parsed_params: dictionary containing the input to change
     | path: local or remote path to the file to parse
     """
-    yaml_dict = _get_dict(path)
+    tpl = TemplateLoader(path)
+    yaml_dict = tpl.dict
     _resolve_occurrences(yaml_dict, parsed_params)
 
     template = get_template(parsed_params, yaml_dict)
@@ -65,22 +88,6 @@ def get_template(parsed_params, yaml_dict):
             "exist, or that the import section is correct."
         ) from None
     return template
-
-
-def _get_dict(path):
-    """
-    Return the YAML dictionary
-    """
-    if os.path.isfile(path):
-        with open(path, "r") as f:
-            return yaml.safe_load(f)
-
-    try:
-        f = urllib.request.urlopen(path)
-        return yaml.safe_load(f)
-    except urllib.error.URLError as e:
-        logger.error("the input file doesn't exist or cannot be reached")
-        raise Exception("Cannot find input file {}".format(e))
 
 
 def _determine_inputs(tpl_dict, parsed_params):
