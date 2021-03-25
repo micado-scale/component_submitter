@@ -5,6 +5,7 @@ import inspect
 import traceback
 import urllib
 import copy
+import tempfile
 
 import ruamel.yaml as yaml
 import toscaparser.utils.urlutils
@@ -32,6 +33,14 @@ def set_template(path, parsed_params=None):
     yaml_dict = _get_dict(path)
     _resolve_occurrences(yaml_dict, parsed_params)
 
+    template = get_template(parsed_params, yaml_dict)
+
+    Validator.validation(template)
+    _find_other_inputs(template)
+    return template
+
+
+def get_template(parsed_params, yaml_dict):
     try:
         template = ToscaTemplate(
             parsed_params=parsed_params, yaml_dict_tpl=yaml_dict
@@ -55,9 +64,6 @@ def set_template(path, parsed_params=None):
             "wrong type in the TOSCA template, check if all the types "
             "exist, or that the import section is correct."
         ) from None
-
-    Validator.validation(template)
-    _find_other_inputs(template)
     return template
 
 
