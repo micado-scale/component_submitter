@@ -1,35 +1,90 @@
-import os
-import sys
 import logging
-import inspect
-import traceback
+import urllib
+from tempfile import NamedTemporaryFile
+from pathlib import Path
 
-import toscaparser.utils.urlutils
+import ruamel.yaml as yaml
 from toscaparser.tosca_template import ToscaTemplate
 from toscaparser.common.exception import ValidationError
 
 from submitter import micado_validator as Validator
-
+from submitter.utils import dump_order_yaml, resolve_get_inputs
+from submitter.handle_extra_tosca import resolve_occurrences
 
 logger = logging.getLogger("submitter." + __name__)
 
 
+class TemplateLoader:
+    """ Load a template from file or URL
+
+    Provides attributes for the YAML dict object and
+    if a file path, the parent directory of the file
+    """
+    def __init__(self, path):
+        self.parent_dir = None
+        self.dict = self._get_tpl(path)
+
+    def _get_tpl(self, path):
+        """ Return the template dictionary """
+        file_path = Path(path)
+        if file_path.is_file():
+            self.parent_dir = file_path.parent
+            with open(file_path, "r") as f:
+                return yaml.safe_load(f)
+
+        # Otherwise try as a URL
+        try:
+            f = urllib.request.urlopen(path)
+            return yaml.safe_load(f)
+        except ValueError:
+            logger.error(f"Could not find the ADT at {path}")
+            raise FileNotFoundError(f"Could not find the ADT at {path}")
+        except urllib.error.URLError as e:
+            logger.error(f"Could not reach URL {e}")
+            raise FileNotFoundError(f"Could not reach URL {e}")
+
+
 def set_template(path, parsed_params=None):
-    """ the method that will parse the YAML and return ToscaTemplate
+    """the method that will parse the YAML and return ToscaTemplate
     object topology object.
 
     :params: path, parsed_params
     :type: string, dictionary
     :return: template
-    :raises: Exception
 
     | parsed_params: dictionary containing the input to change
     | path: local or remote path to the file to parse
     """
-    isfile = _isfile_check(path)
+    tpl = TemplateLoader(path)
+    resolve_occurrences(tpl.dict, parsed_params)
+
+    with NamedTemporaryFile(dir=tpl.parent_dir, suffix=".yaml") as temp_tpl:
+        dump_order_yaml(tpl.dict, temp_tpl.name)
+        template = get_template(temp_tpl.name, parsed_params)
+
+    Validator.validation(template)
+    _find_other_inputs(template)
+    return template
+
+
+def get_template(path, parsed_params):
+    """Return a ToscaTemplate object
+
+    Args:
+        path (string): path to the saved ADT
+        parsed_params (dict): tosca inputs
+
+    Raises:
+        ValueError: If the tosca-parser has trouble parsing
+
+    Returns:
+        ToscaTemplate: Parsed template object
+    """
 
     try:
-        template = ToscaTemplate(path, parsed_params, isfile)
+        template = ToscaTemplate(
+            path=path, parsed_params=parsed_params, a_file=True
+        )
     except ValidationError as e:
         message = [
             line
@@ -37,32 +92,41 @@ def set_template(path, parsed_params=None):
             if not line.startswith("\t\t")
         ]
         message = "\n".join(message)
-        raise Exception(message) from None
+        raise ValueError(message) from None
     except AttributeError as e:
         logger.error(
             f"error happened: {e}, This might be due to the wrong type in "
             "the TOSCA template, check if all the type exist or that the "
             "import section is correct."
         )
-        raise Exception(
+        raise ValueError(
             "An error occured while parsing, This might be due to the a "
             "wrong type in the TOSCA template, check if all the types "
             "exist, or that the import section is correct."
         ) from None
-
-    Validator.validation(template)
     return template
 
 
-def _isfile_check(path):
-    if os.path.isfile(path):
-        logger.debug("check if the input file is local")
-        return True
+def _find_other_inputs(template):
+    """ Find `get_input` tags in the template, then resolve and update """
+    resolve_get_inputs(
+        template.tpl, _get_input_value, lambda x: x is not None, template
+    )
+    # Update nodetemplate properties
+    for node in template.nodetemplates:
+        node._properties = node._create_properties()
 
-    logger.debug("checking if the input is a valid url")
+
+def _get_input_value(key, template):
+    """ Custom get_input resolution using parsed_params """
     try:
-        toscaparser.utils.urlutils.UrlUtils.validate_url(path)
-        return False
-    except Exception as e:
-        logger.error("the input file doesn't exist or cannot be reached")
-        raise Exception("Cannot find input file {}".format(e))
+        return template.parsed_params[key]
+    except (KeyError, TypeError):
+        logger.debug(f"Input '{key}' not given, using default")
+
+    try:
+        return [
+            param.default for param in template.inputs if param.name == key
+        ][0]
+    except IndexError:
+        logger.error(f"Input '{key}' has no default")

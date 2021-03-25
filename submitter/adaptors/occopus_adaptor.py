@@ -304,31 +304,32 @@ class OccopusAdaptor(abco.Adaptor):
             "type", "cloudinit"
         )
         context = properties.get("context", {})
+        base_cloud_init = context.get("path") or self.cloudinit_path
         cloud_config = context.get("cloud_config")
         if not context:
             logger.debug("The adaptor will use a default cloud-config")
             self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(None)
+                "context_template", self._get_cloud_init(None, base_cloud_init)
             )
         elif not cloud_config:
             logger.debug("No cloud-config provided... using default cloud-config")
             self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(None)
+                "context_template", self._get_cloud_init(None, base_cloud_init)
             )
         elif context.get("insert"):
             logger.debug("Insert the TOSCA cloud-config in the default config")
             self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(cloud_config, "insert")
+                "context_template", self._get_cloud_init(cloud_config, base_cloud_init, "insert")
             )
         elif context.get("append"):
             logger.debug("Append the TOSCA cloud-config to the default config")
             self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(cloud_config, "append")
+                "context_template", self._get_cloud_init(cloud_config, base_cloud_init, "append")
             )
         else:
             logger.debug("Overwrite the default cloud-config")
             self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(cloud_config, "overwrite")
+                "context_template", self._get_cloud_init(cloud_config, base_cloud_init, "overwrite")
             )
 
     def _node_data_get_cloudsigma_host_properties(self, node, key):
@@ -452,14 +453,14 @@ class OccopusAdaptor(abco.Adaptor):
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
 
-    def _get_cloud_init(self,tosca_cloud_config,insert_mode=None):
+    def _get_cloud_init(self,tosca_cloud_config, base_cloud_init, insert_mode=None):
         """
         Get cloud-config from MiCADO cloud-init template
         """
         yaml.default_flow_style = False
         default_cloud_config = {}
         try:
-            with open(self.cloudinit_path, 'r') as f:
+            with open(base_cloud_init, 'r') as f:
                 template = jinja2.Template(f.read())
                 rendered = template.render(worker_name=self.node_name)
                 default_cloud_config = yaml.round_trip_load(rendered, preserve_quotes=True)

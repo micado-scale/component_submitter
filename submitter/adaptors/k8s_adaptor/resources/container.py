@@ -81,7 +81,11 @@ class Container:
         self.spec.setdefault("name", self.spec.pop("container_name", self.name))
         self.spec.setdefault("command", shlex.split(self.spec.pop("entrypoint", "")))
         self.spec.setdefault("args", shlex.split(self.spec.pop("cmd", "")))
+        
         self.spec.setdefault("env", _make_env(self.spec.pop("environment", {})))
+        for env in self.spec.get("env", []):
+            env["value"] = str(env["value"])
+
         self.spec.setdefault("stdin", self.spec.pop("stdin_open", None))
         self.spec.setdefault("workingDir", self.spec.pop("working_dir", None))
 
