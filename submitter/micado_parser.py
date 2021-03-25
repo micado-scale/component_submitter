@@ -5,6 +5,7 @@ import inspect
 import traceback
 import urllib
 import copy
+from tempfile import NamedTemporaryFile
 from pathlib import Path
 
 import ruamel.yaml as yaml
@@ -13,7 +14,7 @@ from toscaparser.tosca_template import ToscaTemplate
 from toscaparser.common.exception import ValidationError
 
 from submitter import micado_validator as Validator
-from submitter.utils import resolve_get_inputs
+from submitter.utils import resolve_get_inputs, dump_order_yaml
 
 logger = logging.getLogger("submitter." + __name__)
 
@@ -53,20 +54,21 @@ def set_template(path, parsed_params=None):
     | path: local or remote path to the file to parse
     """
     tpl = TemplateLoader(path)
-    yaml_dict = tpl.dict
-    _resolve_occurrences(yaml_dict, parsed_params)
+    _resolve_occurrences(tpl.dict, parsed_params)
 
-    template = get_template(parsed_params, yaml_dict)
+    with NamedTemporaryFile(dir=tpl.parent_dir, suffix=".yaml") as temp_tpl:
+        dump_order_yaml(tpl.dict, temp_tpl.name)
+        template = get_template(temp_tpl.name, parsed_params)
 
     Validator.validation(template)
     _find_other_inputs(template)
     return template
 
 
-def get_template(parsed_params, yaml_dict):
+def get_template(path, parsed_params):
     try:
         template = ToscaTemplate(
-            parsed_params=parsed_params, yaml_dict_tpl=yaml_dict
+            path=path, parsed_params=parsed_params, a_file=True
         )
     except ValidationError as e:
         message = [
