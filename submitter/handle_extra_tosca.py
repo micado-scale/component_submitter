@@ -12,7 +12,6 @@ def resolve_occurrences(tpl_dict, parsed_params):
     nodes_with_occurrences = [
         node for node in nodes if "occurrences" in nodes[node]
     ]
-    print(nodes_with_occurrences)
     for node in nodes_with_occurrences:
         new_nodes = _create_occurrences(node, nodes.pop(node), inputs)
         nodes.update(new_nodes)
