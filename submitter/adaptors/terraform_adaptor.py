@@ -572,7 +572,7 @@ class TerraformAdaptor(abco.Adaptor):
             or properties.get("endpoint")
             or properties.get("endpoint_cloud")
         )
-        tenant_id = properties["project_id"]
+        tenant_id = properties.get("project_id")
 
         provider = get_provider()
         app_cred_id = credential.get("application_credential_id")
@@ -598,23 +598,23 @@ class TerraformAdaptor(abco.Adaptor):
 
         self.tf_json.add_provider("openstack", provider)
 
-        image_id = properties["image_id"]
-        flavor_id = properties["flavor_id"]
-        flavor_name = properties["flavor_name"]
+        image_id = properties.get("image_id")
+        flavor_id = properties.get("flavor_id")
+        flavor_name = properties.get("flavor_name")
 
         network = {}
         network["name"] = properties["network_name"]
-        uuid = properties["network_id"]
+        uuid = properties.get("network_id")
         if uuid:
             network["uuid"] = properties.get("network_id")
         network = {x: y for x, y in network.items() if y}
 
-        key_pair = properties["key_name"]
+        key_pair = properties.get("key_name")
         security_groups = properties["security_groups"]
         config_drive = properties.get("config_drive")
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
 
-        public_key = properties["public_key"]
+        public_key = properties.get("public_key")
         ip_pool = properties.get("floating_ip_pool")
         if public_key:
             key_pair = "{}-key".format(instance_name)
