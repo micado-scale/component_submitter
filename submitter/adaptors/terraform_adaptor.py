@@ -591,7 +591,6 @@ class TerraformAdaptor(abco.Adaptor):
         identity_provider = credential["identity_provider"]
         if identity_provider:
             if identity_provider == "egi.eu":
-                self._terraform_customise()
                 credential["project_id"] = properties["project_id"]
                 credential["auth_url"] = properties["auth_url"]
                 provider["token"] = "${var.ostoken}"
