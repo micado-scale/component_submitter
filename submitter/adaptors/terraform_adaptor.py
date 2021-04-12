@@ -80,6 +80,10 @@ class TerraformDict(dict):
             node_list.append(str(i))
         self.tfvars[name] = node_list
 
+    def add_normal_variable(self, name, value):
+        self.add_variable(name, {})
+        self.tfvars[name] = value
+
     def update_instance_vars(self, old_node_list):
         new_counts = {}
         for node_name, new_node_list in self.tfvars.items():
@@ -120,12 +124,10 @@ class TerraformAdaptor(abco.Adaptor):
         self.vars_file_tmp = "{}terraform.tfvars.json.tmp".format(self.volume)
         self.account_file = "{}accounts.json".format(self.volume)
         self.oci_auth_key = "{}oci_api_key.pem".format(self.volume)
-        self.configure_file = "{}configure".format(self.volume)
-        self.token_file = "{}pyGetScopedToken.py".format(self.volume)
 
         self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
-        self.configure_template = "./system/configure"
-        self.token_template = "./system/pyGetScopedToken.py"
+        self.configure_template = "./system/configure_tf"
+        self.configure_file = "/var/lib/micado/submitter/preprocess/egi/configure.py"
         self.auth_data_file = "/var/lib/micado/submitter/auth/auth_data.yaml"
         self.auth_gce = "/var/lib/micado/submitter/gce-auth/accounts.json"
         self.auth_oci = "/var/lib/micado/submitter/oci-auth/oci_api_key.pem"
@@ -258,7 +260,6 @@ class TerraformAdaptor(abco.Adaptor):
             self.account_file,
             self.oci_auth_key,
             self.configure_file,
-            self.token_file,
             self.volume + "terraform.tfstate",
             self.volume + "terraform.tfstate.backup",
         ]
@@ -593,7 +594,9 @@ class TerraformAdaptor(abco.Adaptor):
                 self._terraform_customise()
                 credential["project_id"] = properties["project_id"]
                 credential["auth_url"] = properties["auth_url"]
-                shutil.copyfile(self.token_template, self.token_file)
+                provider["token"] = "${var.ostoken}"
+                self.tf_json.add_normal_variable("preprocess", identity_provider)
+                self.tf_json.add_normal_variable("ostoken", "temp_token")
                 self._egi_render_configure(credential)
 
         self.tf_json.add_provider("openstack", provider)
@@ -1090,7 +1093,7 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _terraform_init(self):
         """ Run terraform init in the container """
-        command = ["sh", "-cl", "terraform init -no-color" + LOG_SUFFIX]
+        command = ["sh", "-c", "terraform init -no-color" + LOG_SUFFIX]
         exec_output = self._terraform_exec(command)
         if "successfully initialized" in exec_output:
             logger.debug("Terraform initialization has been successful")
@@ -1099,7 +1102,7 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _terraform_apply(self, lock_timeout):
         """ Run terraform apply in the container """
-        command = ["sh", "-cl", "terraform apply -auto-approve -no-color" + LOG_SUFFIX]
+        command = ["sh", "-c", "terraform apply -auto-approve -no-color" + LOG_SUFFIX]
         exec_output = self._terraform_exec(command, lock_timeout)
         if "Apply complete" in exec_output:
             logger.debug("Terraform apply has been successful")
@@ -1110,7 +1113,7 @@ class TerraformAdaptor(abco.Adaptor):
         """ Run terraform destroy in the container """
         command = [
             "sh",
-            "-cl",
+            "-c",
             "terraform destroy -auto-approve -no-color" + LOG_SUFFIX,
         ]
         exec_output = self._terraform_exec(command, lock_timeout=600)
@@ -1119,8 +1122,3 @@ class TerraformAdaptor(abco.Adaptor):
             self.status = "undeployed"
         else:
             raise AdaptorCritical("Undeploy failed: {}".format(exec_output))
-
-    def _terraform_customise(self):
-        """ Customise the terraform container """
-        command = ["sh", "-c", "ls /root/.profile || echo '. /var/lib/micado/terraform/submitter/configure' >> /root/.profile" + LOG_SUFFIX]
-        self._terraform_exec(command)
