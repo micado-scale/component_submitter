@@ -559,7 +559,7 @@ class TerraformAdaptor(abco.Adaptor):
             return {
                 fip_assoc_name: {
                     "for_each": "${toset(var.%s)}" % instance_name,
-                    "floating_ip": "${openstack_networking_floatingip_v2.public_ip[each.key].address}",
+                    "floating_ip": "${openstack_networking_floatingip_v2.%s[each.key].address}" % floating_ip_name,
                     "instance_id": "${openstack_compute_instance_v2.%s[each.key].id}" % instance_name,
                 }
             }
@@ -588,6 +588,10 @@ class TerraformAdaptor(abco.Adaptor):
             provider["user_name"] = username
             provider["password"] = password
 
+        domain_name = credential.get("domain_name")
+        if domain_name:
+            provider["domain_name"] = domain_name
+
         identity_provider = credential["identity_provider"]
         if identity_provider:
             if identity_provider == "egi.eu":
@@ -605,10 +609,8 @@ class TerraformAdaptor(abco.Adaptor):
         flavor_name = properties.get("flavor_name")
 
         network = {}
-        network["name"] = properties["network_name"]
-        uuid = properties.get("network_id")
-        if uuid:
-            network["uuid"] = properties.get("network_id")
+        network["name"] = properties.get("network_name")
+        network["uuid"] = properties.get("network_id")
         network = {x: y for x, y in network.items() if y}
 
         key_pair = properties.get("key_name")
@@ -617,7 +619,6 @@ class TerraformAdaptor(abco.Adaptor):
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
 
         public_key = properties.get("public_key")
-        ip_pool = properties.get("floating_ip_pool")
         if public_key:
             key_pair = "{}-key".format(instance_name)
             self.tf_json.add_resource(
@@ -628,15 +629,22 @@ class TerraformAdaptor(abco.Adaptor):
             "openstack_compute_instance_v2", get_virtual_machine()
         )
 
-        if ip_pool:
-            floating_ip_name = "{}-fip".format(instance_name)
-            fip_assoc_name = "{}-fip-assoc".format(instance_name)
+        ip_pool = properties.get("floating_ip_pool")
+        floating_ip = properties.get("floating_ip")
+        floating_ip_name = "{}-fip".format(instance_name)
+        fip_assoc_name = "{}-fip-assoc".format(instance_name)
+        fip_assoc_resource = get_floatingip_associate()
+        if floating_ip:
+            fip_assoc_resource[fip_assoc_name]["floating_ip"] = floating_ip
+        elif ip_pool:
             self.tf_json.add_resource(
                 "openstack_networking_floatingip_v2", get_floating_ip()
             )
+        
+        if floating_ip or ip_pool:
             self.tf_json.add_resource(
                 "openstack_compute_floatingip_associate_v2",
-                get_floatingip_associate(),
+                fip_assoc_resource,
             )
 
     def _add_terraform_azure(self, properties):
