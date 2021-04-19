@@ -588,6 +588,10 @@ class TerraformAdaptor(abco.Adaptor):
             provider["user_name"] = username
             provider["password"] = password
 
+        domain_name = credential.get("domain_name")
+        if domain_name:
+            provider["domain_name"] = domain_name
+
         identity_provider = credential["identity_provider"]
         if identity_provider:
             if identity_provider == "egi.eu":
