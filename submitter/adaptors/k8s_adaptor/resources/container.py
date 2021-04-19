@@ -84,7 +84,8 @@ class Container:
         
         self.spec.setdefault("env", _make_env(self.spec.pop("environment", {})))
         for env in self.spec.get("env", []):
-            env["value"] = str(env["value"])
+            if "value" in env:
+                env["value"] = str(env["value"])
 
         self.spec.setdefault("stdin", self.spec.pop("stdin_open", None))
         self.spec.setdefault("workingDir", self.spec.pop("working_dir", None))
