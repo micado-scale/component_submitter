@@ -609,10 +609,8 @@ class TerraformAdaptor(abco.Adaptor):
         flavor_name = properties.get("flavor_name")
 
         network = {}
-        network["name"] = properties["network_name"]
-        uuid = properties.get("network_id")
-        if uuid:
-            network["uuid"] = properties.get("network_id")
+        network["name"] = properties.get("network_name")
+        network["uuid"] = properties.get("network_id")
         network = {x: y for x, y in network.items() if y}
 
         key_pair = properties.get("key_name")
