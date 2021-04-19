@@ -559,7 +559,7 @@ class TerraformAdaptor(abco.Adaptor):
             return {
                 fip_assoc_name: {
                     "for_each": "${toset(var.%s)}" % instance_name,
-                    "floating_ip": "${openstack_networking_floatingip_v2.public_ip[each.key].address}",
+                    "floating_ip": "${openstack_networking_floatingip_v2.%s[each.key].address}" % floating_ip_name,
                     "instance_id": "${openstack_compute_instance_v2.%s[each.key].id}" % instance_name,
                 }
             }
