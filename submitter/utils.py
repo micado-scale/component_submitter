@@ -218,23 +218,40 @@ def get_cloud_config(
     return default_cloud_config
 
 
-def resolve_get_inputs(search, get_func, test, *args):
+def resolve_get_functions(
+    dict_to_search, key_to_find, test_result_fn, resolve_result_fn, *args
+):
+    """Recursively update a dict with TOSCA 'get' functions
+
+    Args:
+        dict_to_search (dict): Dictionary to iterate through
+        key_to_find (str): 'get' function to search for (eg 'get_input')
+        test_result_fn (func): Function to test the result
+        resolve_result_fn (func): Function to resolve the result
+        args (*): Extra args to pass to resolve_result_fn
+
+    Returns:
+        None: Modifies the dictionary in place
     """
-    Recursively search for get_inputs requiring an index
-    """
-    for key, value in search.items():
-        if key == "get_input":
+    for key, value in dict_to_search.items():
+        if key == key_to_find:
             return value
 
         elif isinstance(value, dict):
-            result = resolve_get_inputs(value, get_func, test, *args)
-            if test(result):
-                search[key] = get_func(result, *args)
+            result = resolve_get_functions(
+                value, key_to_find, test_result_fn, resolve_result_fn, *args
+            )
+            if test_result_fn(result):
+                dict_to_search[key] = resolve_result_fn(result, *args)
 
         elif isinstance(value, list):
-            for i in value:
-                if not isinstance(i, dict):
+            for index, item in enumerate(value):
+                if not isinstance(item, dict):
                     continue
-                result = resolve_get_inputs(i, get_func, test, *args)
-                if test(result):
-                    search[key][i] = get_func(result, *args)
+                result = resolve_get_functions(
+                    item, key_to_find, test_result_fn, resolve_result_fn, *args
+                )
+                if test_result_fn(result):
+                    dict_to_search[key][index] = resolve_result_fn(
+                        result, *args
+                    )
