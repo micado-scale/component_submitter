@@ -8,7 +8,7 @@ from toscaparser.tosca_template import ToscaTemplate
 from toscaparser.common.exception import ValidationError
 
 from submitter import micado_validator as Validator
-from submitter.utils import dump_order_yaml, resolve_get_inputs
+from submitter.utils import dump_order_yaml, resolve_get_functions
 from submitter.handle_extra_tosca import resolve_occurrences
 
 logger = logging.getLogger("submitter." + __name__)
@@ -108,9 +108,13 @@ def get_template(path, parsed_params):
 
 
 def _find_other_inputs(template):
-    """ Find `get_input` tags in the template, then resolve and update """
-    resolve_get_inputs(
-        template.tpl, _get_input_value, lambda x: x is not None, template
+    """Find `get_input` tags in the template, then resolve and update"""
+    resolve_get_functions(
+        template.tpl,
+        "get_input",
+        lambda x: x is not None,
+        _get_input_value,
+        template,
     )
     # Update nodetemplate properties
     for node in template.nodetemplates:

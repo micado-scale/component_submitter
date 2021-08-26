@@ -69,7 +69,7 @@ class OccopusAdaptor(abco.Adaptor):
         self.occo_infra_path = "/var/lib/micado/occopus/submitter/{}-infra.yaml".format(self.ID)
         logger.info("Occopus Adaptor initialised")
 
-    def translate(self, tmp=False):
+    def translate(self, tmp=False, to_dict=False):
         """
         Translate the self.tpl subset to Occopus node definition and infrastructure format
         The adaptor create a mapping between TOSCA and Occopus template descriptor.
@@ -89,8 +89,8 @@ class OccopusAdaptor(abco.Adaptor):
             occo_interface = self._node_data_get_interface(node)
             if not occo_interface:
                 continue
-
-            self._node_resolve_interface_data(node, occo_interface, "resource")
+            
+            self._node_resolve_interface_data(occo_interface, "resource")
             cloud_type = utils.get_cloud_type(node, SUPPORTED_CLOUDS)
 
             if cloud_type == "cloudsigma":
@@ -112,12 +112,20 @@ class OccopusAdaptor(abco.Adaptor):
             node_type = self.node_prefix + self.node_name
             self.node_def.setdefault(node_type, [])
             self.node_def[node_type].append(self.node_data)
-        if self.node_def:
-            if tmp:
-                utils.dump_order_yaml(self.node_def, self.node_path_tmp)
-            elif self.validate is False:
+
+        if not self.node_def:
+            self.status = "no occopus nodes found"
+            return
+
+        if to_dict:
+            return self.node_def
+
+        if tmp:
+            utils.dump_order_yaml(self.node_def, self.node_path_tmp)
+        elif self.validate is False:
+            if not self.dryrun:
                 self.prepare_auth_file()
-                utils.dump_order_yaml(self.node_def, self.node_path)
+            utils.dump_order_yaml(self.node_def, self.node_path)
 
         self.status = "translated"
 
@@ -283,16 +291,13 @@ class OccopusAdaptor(abco.Adaptor):
             logger.debug("No interface for Occopus in {}".format(node.name))
         return interfaces
 
-    def _node_resolve_interface_data(self, node, interfaces, key):
+    def _node_resolve_interface_data(self, interfaces, key):
         """
         Get cloud relevant information from tosca
         """
-        cloud_inputs = utils.resolve_get_property(node, interfaces.get("create"))
-        
-        # DEPRECATE 'interface_cloud' to read cloud from TOSCA type
-        #self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
+        cloud_inputs = interfaces.get("create")
 
-        # DEPRECATE 'endpoint_cloud' in favour of 'endpoint'
+        # TODO DEPRECATE 'endpoint_cloud' in favour of 'endpoint'
         endpoint = cloud_inputs.get("endpoint", cloud_inputs.get("endpoint_cloud"))
         self.node_data.setdefault(key, {}).setdefault("endpoint", endpoint)
 

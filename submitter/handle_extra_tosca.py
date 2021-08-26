@@ -1,6 +1,6 @@
 import copy
 
-from submitter.utils import resolve_get_inputs
+from submitter.utils import resolve_get_functions
 
 
 def resolve_occurrences(tpl_dict, parsed_params):
@@ -47,10 +47,11 @@ def _create_occurrences(name, node, inputs):
     for i in range(count):
         new_name = f"{name}-{i+1}"
         new_node = copy.deepcopy(node)
-        resolve_get_inputs(
+        resolve_get_functions(
             new_node,
-            _set_indexed_input,
+            'get_input',            
             lambda x: isinstance(x, list),
+            _set_indexed_input,
             inputs,
             i,
         )
