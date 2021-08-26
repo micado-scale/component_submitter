@@ -95,10 +95,13 @@ def get_lifecycle(node, interface_type):
     for stage in interfaces:
         _update_parent_spec(lifecycle, stage)
 
-    for inputs in lifecycle.values():
-        _update_get_property([inputs], properties)
-        _update_get_property(inputs.values(), properties)
-        _update_get_property(inputs.get("spec", {}).values(), properties)
+    resolve_get_functions(
+        lifecycle,
+        "get_property",
+        lambda x: isinstance(x, list),
+        lambda x, y: y.get(x[1]),
+        properties,
+    )
 
     return lifecycle
 
@@ -153,19 +156,6 @@ def get_cloud_type(node, supported_clouds):
     for cloud in supported_clouds:
         if any(cloud in x for x in generate_parents(node)):
             return cloud
-
-def _update_get_property(list_of_dict, properties):
-    for field in list_of_dict:
-        try:
-            field.update(
-                {
-                    key: properties.get(value["get_property"][1])
-                    for key, value in field.items()
-                    if "get_property" in value
-                }
-            )
-        except (TypeError, AttributeError):
-            pass
 
 
 def get_cloud_config(

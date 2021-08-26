@@ -952,6 +952,41 @@ node_types:
               hostPath:
                 path: { get_property: [ SELF, path ] }
 
+  tosca.nodes.MiCADO.Container.Volume.Local:
+    description: An abstraction of the volume node for Kubernetes Local volumes
+    derived_from: tosca.nodes.MiCADO.Container.Volume
+    description: description of a Kubernetes Local Volume
+    properties:
+      path:
+        type: string
+        description: path on node
+        required: true
+      node:
+        type: string
+        description: name of node for affinity
+        required: true
+    capabilities:
+      volume:
+        type: tosca.capabilities.Attachment
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+        create:
+          inputs:
+            spec:
+              volumeMode: Filesystem
+              local:
+                path: { get_property: [ SELF, path ] }
+              nodeAffinity:
+                required:
+                  nodeSelectorTerms:
+                  - matchExpressions:
+                    - key: manual_node
+                      operator: In
+                      values:
+                      - static-node
+                      - { get_property: [ SELF, node ] }
+
   tosca.nodes.MiCADO.Container.Volume.NFS:
     description: An abstraction of the volume node for Kubernetes NFS volumes
     derived_from: tosca.nodes.MiCADO.Container.Volume
