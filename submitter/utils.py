@@ -154,26 +154,6 @@ def get_cloud_type(node, supported_clouds):
         if any(cloud in x for x in generate_parents(node)):
             return cloud
 
-
-def resolve_get_property(node, cloud_inputs):
-    """Resolve get property and return resolved inputs
-
-    Returns:
-        dict: resolved interface inputs
-    """
-    for field, value in cloud_inputs.items():
-        if isinstance(value, GetProperty):
-            cloud_inputs[field] = value.result()
-            continue
-        elif not isinstance(value, dict) or "get_property" not in value:
-            continue
-        cloud_inputs[field] = node.get_property_value(
-            value.get("get_property")[-1]
-        )
-
-    return cloud_inputs
-
-
 def _update_get_property(list_of_dict, properties):
     for field in list_of_dict:
         try:
