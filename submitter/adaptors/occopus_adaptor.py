@@ -69,7 +69,7 @@ class OccopusAdaptor(abco.Adaptor):
         self.occo_infra_path = "/var/lib/micado/occopus/submitter/{}-infra.yaml".format(self.ID)
         logger.info("Occopus Adaptor initialised")
 
-    def translate(self, tmp=False):
+    def translate(self, tmp=False, to_dict=False):
         """
         Translate the self.tpl subset to Occopus node definition and infrastructure format
         The adaptor create a mapping between TOSCA and Occopus template descriptor.
@@ -112,12 +112,20 @@ class OccopusAdaptor(abco.Adaptor):
             node_type = self.node_prefix + self.node_name
             self.node_def.setdefault(node_type, [])
             self.node_def[node_type].append(self.node_data)
-        if self.node_def:
-            if tmp:
-                utils.dump_order_yaml(self.node_def, self.node_path_tmp)
-            elif self.validate is False:
+
+        if not self.node_def:
+            self.status = "no occopus nodes found"
+            return
+
+        if to_dict:
+            return self.node_def
+
+        if tmp:
+            utils.dump_order_yaml(self.node_def, self.node_path_tmp)
+        elif self.validate is False:
+            if not self.dryrun:
                 self.prepare_auth_file()
-                utils.dump_order_yaml(self.node_def, self.node_path)
+            utils.dump_order_yaml(self.node_def, self.node_path)
 
         self.status = "translated"
 

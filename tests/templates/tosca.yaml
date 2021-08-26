@@ -121,13 +121,16 @@ topology_template:
             inputs: *endpoint_properties
       
     cq-server:
-      type: tosca.nodes.MiCADO.EC2.Compute
-      properties: *compute_properties
-      interfaces:
-        # TERRAFORM: Change key to Terraform
-        Occopus:
-          create:
-            inputs: *endpoint_properties
+      type: tosca.nodes.MiCADO.EC2.Compute.Occo
+      properties:
+        <<: *compute_properties
+        endpoint: https://mycloud.net/api/v2
+
+    terra-server:
+      type: tosca.nodes.MiCADO.EC2.Compute.Terra
+      properties:
+        <<: *compute_properties
+        endpoint: https://mycloud.net/api/terra/v2
       
   policies:
     - scalability:

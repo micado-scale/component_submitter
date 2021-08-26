@@ -143,7 +143,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         logger.info("Terraform adaptor initialised")
 
-    def translate(self, update=False):
+    def translate(self, update=False, to_dict=False):
         """
         Translate the self.tpl subset to Terraform node infrastructure format
         This fuction creates a mapping between TOSCA and Terraform template descriptor.
@@ -197,6 +197,9 @@ class TerraformAdaptor(abco.Adaptor):
             logger.info("No nodes to orchestrate with Terraform. Skipping...")
             self.status = "Skipped"
             return
+
+        if to_dict:
+            return self.tf_json
 
         if update:
             logger.debug("Creating temp files")
@@ -1055,6 +1058,11 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _get_credential_info(self, provider):
         """ Return credential info from file """
+
+        # Currently only works for an AWS dryrun
+        if self.dryrun:
+            return {"accesskey":"CPC", "secretkey":"123"}
+
         with open(self.auth_data_file, "r") as stream:
             temp = yaml.safe_load(stream)
         resources = temp.get("resource", {})
