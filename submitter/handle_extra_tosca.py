@@ -23,11 +23,18 @@ def resolve_occurrences(tpl_dict, parsed_params):
     """
     nodes = tpl_dict.get("topology_template", {}).get("node_templates")
     inputs = _determine_inputs(tpl_dict, parsed_params)
-    nodes_with_occurrences = [
-        node for node in nodes if "occurrences" in nodes[node]
-    ]
-    for node in nodes_with_occurrences:
-        new_nodes = _create_occurrences(node, nodes.pop(node), inputs)
+
+    nodes_with_occurrences = {
+        name: node
+        for name, node in nodes.items()
+        if "occurrences" or "instance_count" in node
+    }
+
+    for name, node in nodes_with_occurrences.items():
+        count = _get_instance_count(node, inputs)
+        occurrences = node.pop("occurrences", None)
+        old_node = nodes.pop(name)
+        new_nodes = _create_occurrences(count, name, old_node, inputs)
         nodes.update(new_nodes)
 
 
@@ -43,19 +50,28 @@ def _determine_inputs(tpl_dict, parsed_params):
     return values
 
 
-def _create_occurrences(name, node, inputs):
+def _get_instance_count(node, inputs):
     """
-    Create and return a dictionary of new occurrences
+    Return the instance count
     """
-    occurrences = node.pop("occurrences")
-    count = node.pop("instance_count", occurrences[0])
+    count = node.pop("instance_count", None)
+    if not count:
+        return
+
     if isinstance(count, str):
         count = int(count)
     elif isinstance(count, dict):
         try:
             count = int(inputs[count["get_input"]])
         except (KeyError, TypeError):
-            raise KeyError("Could not resolve instance_count")
+            raise KeyError("Could not resolve instance_count input")
+    return count
+
+
+def _create_occurrences(count, name, node, inputs):
+    """
+    Remove occurrences and instance count keys
+    """
 
     new_nodes = {}
     for i in range(count):
