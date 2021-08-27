@@ -19,7 +19,11 @@ def fix_tosca_version(tpl):
 
 def resolve_occurrences(tpl_dict, parsed_params):
     """
-    Handle TOSCA v1.3 occurrences feature, for now
+    Handle TOSCA v1.3 occurrences feature, for multiple occurrences of
+    a node that require different properties pulled from a list of inputs
+
+    For occurrences where different properties are not required, store
+    the occurrences count in the node metadata
     """
     nodes = tpl_dict.get("topology_template", {}).get("node_templates")
     inputs = _determine_inputs(tpl_dict, parsed_params)
@@ -33,6 +37,10 @@ def resolve_occurrences(tpl_dict, parsed_params):
     for name, node in nodes_with_occurrences.items():
         count = _get_instance_count(node, inputs)
         occurrences = node.pop("occurrences", None)
+        if not count:
+            node.setdefault("metadata", {})["occurrences"] = occurrences
+            continue
+
         old_node = nodes.pop(name)
         new_nodes = _create_occurrences(count, name, old_node, inputs)
         nodes.update(new_nodes)
