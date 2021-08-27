@@ -37,6 +37,7 @@ def resolve_occurrences(tpl_dict, parsed_params):
     for name, node in nodes_with_occurrences.items():
         count = _get_instance_count(node, inputs)
         occurrences = node.pop("occurrences", None)
+        _validate_values(count, occurrences)
         if not count:
             node.setdefault("metadata", {})["occurrences"] = occurrences
             continue
@@ -44,6 +45,31 @@ def resolve_occurrences(tpl_dict, parsed_params):
         old_node = nodes.pop(name)
         new_nodes = _create_occurrences(count, name, old_node, inputs)
         nodes.update(new_nodes)
+
+
+def _validate_values(count, occurrences):
+    """
+    Validate instance_count and occurrences values
+    """
+    if occurrences and not all(
+        [
+            isinstance(occurrences, list),
+            len(occurrences) == 2,
+            isinstance(occurrences[0], int),
+        ]
+    ):
+        raise ValueError("occurrences should be a two-item list of integers")
+    elif (
+        count
+        and occurrences
+        and any(
+            [
+                str(count) > str(occurrences[1]),
+                count < occurrences[0],
+            ]
+        )
+    ):
+        raise ValueError("instance_count is out of bounds")
 
 
 def _determine_inputs(tpl_dict, parsed_params):
@@ -64,7 +90,7 @@ def _get_instance_count(node, inputs):
     """
     count = node.pop("instance_count", None)
     if not count:
-        return
+        return None
 
     if isinstance(count, str):
         count = int(count)
@@ -87,7 +113,7 @@ def _create_occurrences(count, name, node, inputs):
         new_node = copy.deepcopy(node)
         resolve_get_functions(
             new_node,
-            'get_input',            
+            "get_input",
             lambda x: isinstance(x, list),
             _set_indexed_input,
             inputs,
