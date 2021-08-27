@@ -1409,11 +1409,11 @@ policy_types:
         default: 100
         required: false
       min_instances:
-        type: integer
+        type: string
         required: true
         description: defines the min instances to scale to
       max_instances:
-        type: integer
+        type: string
         required: true
         description: defines the max instances to scale to
       scaling_rule:

@@ -154,7 +154,7 @@ topology_template:
           queries:
             REMAININGTIME: '{{DEADLINE}}-time()'
             ITEMS: 'rabbitmq_queue_messages_persistent{queue="machinery_tasks"}'
-          min_instances: 1
+          min_instances: '1'
           max_instances: '{{MAXNODES}}'
           scaling_rule: |
             reqnodes=0
@@ -173,7 +173,7 @@ topology_template:
         type: tosca.policies.Scaling.MiCADO
         targets: [ cqueue-worker ]
         properties:
-          min_instances: 1
+          min_instances: '1'
           max_instances: '{{MAXCONTAINERS}}'
           scaling_rule: |
             print "Length of queue:",ITEMS
