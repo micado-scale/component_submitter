@@ -9,7 +9,11 @@ from toscaparser.common.exception import ValidationError
 
 from submitter import micado_validator as Validator
 from submitter.utils import dump_order_yaml, resolve_get_functions
-from submitter.handle_extra_tosca import resolve_occurrences
+from submitter.handle_extra_tosca import (
+    resolve_occurrences,
+    is_tosca_v_1_3,
+    fix_tosca_version,
+)
 
 logger = logging.getLogger("submitter." + __name__)
 
@@ -56,7 +60,9 @@ def set_template(path, parsed_params=None):
     | path: local or remote path to the file to parse
     """
     tpl = TemplateLoader(path)
-    resolve_occurrences(tpl.dict, parsed_params)
+    if is_tosca_v_1_3(tpl.dict):
+        fix_tosca_version(tpl.dict)
+        resolve_occurrences(tpl.dict, parsed_params)
 
     with NamedTemporaryFile(dir=tpl.parent_dir, suffix=".yaml") as temp_tpl:
         dump_order_yaml(tpl.dict, temp_tpl.name)

@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock, patch
 from collections import namedtuple
 
-from toscaparser.tosca_template import ToscaTemplate
+from submitter.micado_parser import set_template
 
 from submitter.adaptors.k8s_adaptor.k8s_adaptor import KubernetesAdaptor
 from submitter.adaptors.k8s_adaptor.resources import pod, container, service
@@ -580,7 +580,7 @@ class TestLocalADT(unittest.TestCase):
     """ Tests for local ADTs """
 
     def test_local(self):
-        tpl = ToscaTemplate("tests/templates/tosca.yaml")
+        tpl = set_template("tests/templates/tosca.yaml")
         self.adaptor = KubernetesAdaptor(
             "local_K8sAdaptor",
             {"volume": "tests/output/"},
@@ -598,9 +598,9 @@ class TestMasterDemos(unittest.TestCase):
     WRITE = False
 
     def test_cqueue_demo(self):
-        tpl = ToscaTemplate(
+        tpl = set_template(
             f"https://raw.githubusercontent.com/micado-scale/ansible-micado/{self.BRANCH}/demos/cqueue/cqueue_ec2.yaml",
-            a_file=False,
+            {},
         )
         self.adaptor = KubernetesAdaptor(
             f"cqueue-{self.BRANCH}_K8sAdaptor",
@@ -612,9 +612,9 @@ class TestMasterDemos(unittest.TestCase):
         self.adaptor.translate(write_files=self.WRITE)
 
     def test_nginx_demo(self):
-        tpl = ToscaTemplate(
+        tpl = set_template(
             f"https://raw.githubusercontent.com/micado-scale/ansible-micado/{self.BRANCH}/demos/nginx/nginx_ec2.yaml",
-            a_file=False,
+            {},
         )
         self.adaptor = KubernetesAdaptor(
             f"nginx-{self.BRANCH}_K8sAdaptor",
@@ -626,9 +626,9 @@ class TestMasterDemos(unittest.TestCase):
         self.adaptor.translate(write_files=self.WRITE)
 
     def test_wordpress_demo(self):
-        tpl = ToscaTemplate(
+        tpl = set_template(
             f"https://raw.githubusercontent.com/micado-scale/ansible-micado/{self.BRANCH}/demos/wordpress/wordpress_ec2.yaml",
-            a_file=False,
+            {},
         )
         self.adaptor = KubernetesAdaptor(
             f"wordpress-{self.BRANCH}_K8sAdaptor",

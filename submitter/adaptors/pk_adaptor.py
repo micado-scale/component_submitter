@@ -59,12 +59,14 @@ class PkAdaptor(abco.Adaptor):
                 if utils.get_cloud_type(target, ["compute"]):
                     node_data = {"name": target.name, "orchestrator": get_interface(target)}
                     node_data.update(self._pk_scaling_properties(policy))
+                    node_data.update(get_occurrences(target))
                     self.pk_data.setdefault(SCALING, {}).setdefault(NODES, []).append(node_data)
                 else:
                     if self.pk_data[SCALING].get(SERVICES) is None:
                         self.pk_data[SCALING][SERVICES] = []
                     service = {"name": target.name, "hosts": relations.get(target.name, [])}
                     service.update(self._pk_scaling_properties(policy))
+                    service.update(get_occurrences(target))
                     self.pk_data[SCALING][SERVICES].append(service)
                 logger.info("Policy of {0} is translated".format(target.name))
 
@@ -192,3 +194,21 @@ def get_interface(node):
         return node.interfaces[0].type
     else:
         return list(node.type_definition.interfaces.keys())[0]
+
+def get_occurrences(node):
+    """
+    Get occurrences data from metadata if it exists
+    """
+
+    occurrences = node.entity_tpl.get("metadata", {}).get("occurrences")
+    if not isinstance(occurrences, list):
+        return {}
+
+    # Let's give MiCADO a default upper bound of 99 for now...
+    if occurrences[1] == "UNBOUNDED":
+        occurrences[1] = 99
+
+    return {
+        "min_instances": occurrences[0],
+        "max_instances": occurrences[1]
+    }

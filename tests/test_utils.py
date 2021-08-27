@@ -1,6 +1,6 @@
 import unittest
 
-from toscaparser.tosca_template import ToscaTemplate
+from submitter.micado_parser import set_template
 from submitter.adaptors.occopus_adaptor import OccopusAdaptor
 from submitter.adaptors.terraform_adaptor import TerraformAdaptor
 
@@ -9,7 +9,7 @@ class TestOccopusUtils(unittest.TestCase):
     """Tests for OccopusAdaptor usage of utils"""
 
     def setUp(self):
-        tpl = ToscaTemplate("tests/templates/tosca.yaml")
+        tpl = set_template("tests/templates/tosca.yaml", {})
         self.adaptor = OccopusAdaptor(
             "local_OccoAdaptor",
             {"volume": "tests/output/"},
@@ -30,7 +30,7 @@ class TestTerraUtils(unittest.TestCase):
     """Tests for TerraformAdaptor usage of utils"""
 
     def setUp(self):
-        tpl = ToscaTemplate("tests/templates/tosca.yaml")
+        tpl = set_template("tests/templates/tosca.yaml", {})
         self.adaptor = TerraformAdaptor(
             "local_TerraAdaptor",
             {"volume": "tests/output/"},
