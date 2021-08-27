@@ -3,6 +3,20 @@ import copy
 from submitter.utils import resolve_get_functions
 
 
+def is_tosca_v_1_3(tpl):
+    """
+    Check if template is of TOSCA v1.3
+    """
+    return tpl.get("tosca_definitions_version") == "tosca_simple_yaml_1_3"
+
+
+def fix_tosca_version(tpl):
+    """
+    Check if template is of TOSCA v1.3
+    """
+    tpl["tosca_definitions_version"] = "tosca_simple_yaml_1_2"
+
+
 def resolve_occurrences(tpl_dict, parsed_params):
     """
     Handle TOSCA v1.3 occurrences feature, for now
