@@ -23,7 +23,16 @@ class TestMicadoParser(unittest.TestCase):
     def test_tosca_occurences_no_indexed_properties(self):
         tpl = set_template("tests/templates/tosca.yaml")
         self.assertEqual(
-            tpl.nodetemplates[3].entity_tpl["metadata"]["occurrences"], [1,5]
+            tpl.nodetemplates[3].entity_tpl["metadata"]["occurrences"], [1, 5]
+        )
+
+    def test_parent_interfaces_unmodified(self):
+        tpl = set_template("tests/templates/tosca.yaml")
+        self.assertIn(
+            "get_property",
+            tpl.nodetemplates[6].type_definition.interfaces["Kubernetes"]["create"][
+                "inputs"
+            ]["spec"]["hostPath"]["path"],
         )
 
 

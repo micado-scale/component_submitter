@@ -4,6 +4,7 @@ import json
 from six.moves import urllib
 import codecs
 import logging
+import copy
 
 import ruamel.yaml as yaml
 from toscaparser.functions import GetProperty
@@ -110,6 +111,7 @@ def _get_parent_interfaces(node, interface_type):
     interfaces = {}
     try:
         parent_interfaces = node.type_definition.interfaces[interface_type]
+        parent_interfaces = copy.deepcopy(parent_interfaces)
     except (AttributeError, KeyError, TypeError):
         parent_interfaces = {}
 

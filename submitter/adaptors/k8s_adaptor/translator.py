@@ -137,7 +137,8 @@ class VolumeTranslator(Translator):
         Returns:
             list of dict: A list with generated manifests for PV and PVC
         """
-        if "emptyDir" in self.manifest_inputs.get("spec", {}):
+        volume_type = self.manifest_inputs.get("spec", {})
+        if "emptyDir" in volume_type or "hostPath" in volume_type:
             return []
         pv = PersistentVolume(
             self.app,
