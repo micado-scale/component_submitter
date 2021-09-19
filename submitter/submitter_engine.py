@@ -220,30 +220,15 @@ class SubmitterEngine(object):
 
         """
         adaptors = dict()
-        if template is not None:
-            for adaptor in self.adaptors_class_name:
-                logger.debug("instantiate {}, template".format(adaptor))
-                if app_id:
-                    adaptor_id="{}_{}".format(app_id, adaptor.__name__)
-                else:
-                    adaptor_id = adaptor.__name__
-                obj = adaptor(adaptor_id, self.object_config.adaptor_config[adaptor.__name__], dry_run, validate, template = template)
-                adaptors[adaptor.__name__] = obj
-            return adaptors
-
-        elif template is None:
-            for adaptor in self.adaptors_class_name:
-                logger.debug("instantiate {}, no template".format(adaptor))
-                if app_id:
-                    adaptor_id="{}_{}".format(app_id, adaptor.__name__)
-                else:
-                    adaptor_id = adaptor.__name__
-                obj = adaptor(adaptor_id,self.object_config.adaptor_config[adaptor.__name__], dry_run, validate)
-                adaptors[adaptor.__name__] = obj
-
-                logger.debug("done instntiation of {}".format(adaptor))
-
-            return adaptors
+        for adaptor in self.adaptors_class_name:
+            logger.debug("instantiate {}, template".format(adaptor))
+            if app_id:
+                adaptor_id="{}_{}".format(app_id, adaptor.__name__)
+            else:
+                adaptor_id = adaptor.__name__
+            obj = adaptor(adaptor_id, self.object_config.adaptor_config[adaptor.__name__], dry_run, validate, template = template)
+            adaptors[adaptor.__name__] = obj
+        return adaptors
 
 
     def _translate(self, adaptors):
