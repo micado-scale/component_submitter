@@ -1,16 +1,8 @@
-
-import sys
 import json
-import os
-import time
-from random import randint
 import logging
 import logging.config
 
-import ruamel.yaml as yaml
-
 from submitter import micado_parser
-from submitter import utils
 from submitter.plugins_gestion import PluginsGestion
 from submitter.micado_validator import MultiError
 from submitter.abstracts.exceptions import AdaptorCritical, AdaptorError
@@ -69,7 +61,7 @@ class SubmitterEngine(object):
         self._update_json()
         logger.debug("dictionnaty of id is: {}".format(self.app_list))
 
-        self._engine(dict_object_adaptors, template, id_app)
+        self._engine(dict_object_adaptors, id_app)
 
         logger.info("launched process done")
         logger.info("*********************")
@@ -175,7 +167,7 @@ class SubmitterEngine(object):
 
         return template, dict_object_adaptors
 
-    def _engine(self,adaptors, template, app_id):
+    def _engine(self,adaptors, app_id):
         """ Engine itself. Creates first an id, then parse the input file. Retreive the list of id created by the translate methods of the adaptors.
         Excute those id in their respective adaptor. Update the app_list and the json file.
         """
@@ -350,7 +342,7 @@ class SubmitterEngine(object):
         """
         data_to_save = dict()
         if isinstance(self.app_list, dict):
-            for key, value in self.app_list.items():
+            for key in self.app_list:
                 data_to_save.setdefault(key, {})
                 if isinstance(self.app_list[key], dict):
                     for k, v in self.app_list[key].items():
@@ -366,11 +358,3 @@ class SubmitterEngine(object):
                 json.dump(data_to_save, outfile)
         except Exception as e:
             logger.warning("{}".format(e))
-
-
-    def _save_file(self, id_app, path):
-        """ method called by the engine to dump the current template being treated to the files/templates directory, with as name
-        the ID of the app.
-        """
-        data = utils.get_yaml_data(path)
-        utils.dump_order_yaml(data, "files/templates/{}.yaml".format(id_app))
