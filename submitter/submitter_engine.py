@@ -7,6 +7,7 @@ from submitter.plugins_gestion import PluginsGestion
 from submitter.micado_validator import MultiError
 from submitter.abstracts.exceptions import AdaptorCritical, AdaptorError
 from submitter.submitter_config import SubmitterConfig
+from submitter import utils
 """ set up of Logging """
 config = SubmitterConfig()
 logging.config.dictConfig(config.logging_config)
@@ -339,7 +340,6 @@ class SubmitterEngine(object):
 
 
         try:
-            with open(JSON_FILE, 'w') as outfile:
-                json.dump(data_to_save, outfile)
+            utils.dump_json(data_to_save, JSON_FILE)
         except Exception as e:
             logger.warning("{}".format(e))
