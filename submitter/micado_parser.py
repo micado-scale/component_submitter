@@ -3,12 +3,15 @@ import urllib
 from tempfile import NamedTemporaryFile
 from pathlib import Path
 
-import ruamel.yaml as yaml
 from toscaparser.tosca_template import ToscaTemplate
 from toscaparser.common.exception import ValidationError
 
 from submitter import micado_validator as Validator
-from submitter.utils import dump_order_yaml, resolve_get_functions
+from submitter.utils import (
+    dump_order_yaml, 
+    resolve_get_functions, 
+    get_yaml_data,
+)
 from submitter.handle_extra_tosca import (
     resolve_occurrences,
     is_tosca_v_1_3,
@@ -33,13 +36,12 @@ class TemplateLoader:
         file_path = Path(path)
         if file_path.is_file():
             self.parent_dir = file_path.parent
-            with open(file_path, "r") as f:
-                return yaml.safe_load(f)
+            return get_yaml_data(file_path)
 
         # Otherwise try as a URL
         try:
             f = urllib.request.urlopen(path)
-            return yaml.safe_load(f)
+            return get_yaml_data(f, stream=True)
         except ValueError:
             logger.error(f"Could not find the ADT at {path}")
             raise FileNotFoundError(f"Could not find the ADT at {path}")
