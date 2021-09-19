@@ -49,7 +49,6 @@ class SubmitterEngine(object):
         self.executed_adaptors = {}
         
 
-    #def launch(self, path_to_file, id_app, dry_run=False, parsed_params=None):
     def launch(self, template, dict_object_adaptors, id_app, dry_run):
         """
         Launch method, that will call the in-method egine to execute the application
@@ -66,12 +65,6 @@ class SubmitterEngine(object):
         if self.app_list:
             raise Exception("An application is already running, MiCADO doesn't currently support multi applications")
         
-        #template = self._micado_parser_upload(path_to_file, parsed_params)
-        #template, dict_object_adaptors = self._validate(path_to_file, dry_run, False, id_app, parsed_params)
-    
-        #dict_object_adaptors = self._instantiate_adaptors(id_app, dryrun, template)
-        #logger.debug("list of objects adaptor: {}".format(dict_object_adaptors))
-        #self._save_file(id_app, path_to_file)
         self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys()), "adaptors_object": dict_object_adaptors, "dry_run":dry_run}})
         self._update_json()
         logger.debug("dictionnaty of id is: {}".format(self.app_list))
@@ -132,10 +125,8 @@ class SubmitterEngine(object):
 
         logger.info("****** proceding to the update of the application {}******".format(id_app))
 
-        #template = self._micado_parser_upload(path_to_file, parsed_params)
         dry_run = self.app_list[id_app]['dry_run']
         
-        #dict_object_adaptors = self._instantiate_adaptors(id_app, dry_run, False, template)
         logger.debug("list of adaptor created: {}".format(dict_object_adaptors))
         self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys()), "adaptors_object": dict_object_adaptors, "dry_run": dry_run}})
         self._update(dict_object_adaptors, id_app)
@@ -160,8 +151,6 @@ class SubmitterEngine(object):
         logger.info("****** Starting the validation process of {} *****".format(path_to_file))
         template = micado_parser.set_template(path_to_file, parsed_params)
         
-        #if validate is True:
-        #    dry_run = True
         # Adaptors instantiation
         logger.debug("Instantiating the required adaptors")
         dict_object_adaptors = self._instantiate_adaptors(app_id, dry_run, validate, template)
@@ -191,7 +180,6 @@ class SubmitterEngine(object):
         Excute those id in their respective adaptor. Update the app_list and the json file.
         """
         try:
-            #self._translate(adaptors)
             self._execute(app_id, adaptors)
             logger.debug(self.executed_adaptors)
 
@@ -249,7 +237,6 @@ class SubmitterEngine(object):
                     adaptor_id = adaptor.__name__
                 obj = adaptor(adaptor_id, self.object_config.adaptor_config[adaptor.__name__], dry_run, validate, template = template)
                 adaptors[adaptor.__name__] = obj
-                #adaptors.append(obj)
             return adaptors
 
         elif template is None:
@@ -260,7 +247,6 @@ class SubmitterEngine(object):
                 else:
                     adaptor_id = adaptor.__name__
                 obj = adaptor(adaptor_id,self.object_config.adaptor_config[adaptor.__name__], dry_run, validate)
-                #adaptors.append(obj)
                 adaptors[adaptor.__name__] = obj
 
                 logger.debug("done instntiation of {}".format(adaptor))
