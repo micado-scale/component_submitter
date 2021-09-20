@@ -7,6 +7,12 @@ import base64
 import json
 import pykube
 import kubernetes_validate
+from kubernetes_validate.utils import (
+    SchemaNotFoundError,
+    VersionNotSupportedError,
+    InvalidSchemaError,
+    ValidationError,
+)
 
 from toscaparser.tosca_template import ToscaTemplate
 
@@ -95,14 +101,26 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             self.status = "Skipped Translation"
             return
 
+        unvalidated_kinds = self.config.get("unvalidated_kinds", [])
+        k8s_version = self.config.get("k8s_version", "1.18.0")
         for manifest in self.manifests:
+            if manifest["kind"] in unvalidated_kinds:
+                continue
             try:
-                kubernetes_validate.validate(manifest, "1.18.0", strict=True)
-            except kubernetes_validate.ValidationError as err:
-                logger.error(f"K8s Validation: {err.message}")
-                raise AdaptorCritical(
-                    f"K8s Validation: {err.message}"
-                ) from None
+                kubernetes_validate.validate(manifest, k8s_version, strict=True)
+            except ValidationError as err:
+                message = f"Invalid K8s Manifest: {err.message}"
+                logger.error(message)
+                raise AdaptorCritical(message) from None
+            except (InvalidSchemaError, SchemaNotFoundError):
+                message = (
+                    f"Schema for {manifest['apiVersion']}/{manifest['kind']} "
+                    f"not found in Kubernetes v{k8s_version}"
+                )
+                logger.error(message)
+                raise AdaptorCritical(message) from None
+            except VersionNotSupportedError:
+                pass
 
         if not write_files:
             pass
