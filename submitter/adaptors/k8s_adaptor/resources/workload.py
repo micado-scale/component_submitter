@@ -68,9 +68,16 @@ class Workload(Resource):
             self.spec["selector"]["matchLabels"].update(self.pod.labels)
 
     def overwrite_pod_spec(self):
-        for field, values in self.spec["template"]["spec"].items():
-            try:
-                self.pod.spec[field].update(values)
-            except (KeyError, AttributeError):
-                self.pod.spec[field] = values
+        nested_update(self.pod.manifest, self.spec["template"])
         self.spec["template"].update(self.pod.manifest)
+
+
+def nested_update(original_dict, updated_dict):
+    for field, values in updated_dict.items():
+        try:
+            original_dict[field] = nested_update(
+                original_dict.get(field, {}), values
+            )
+        except (KeyError, AttributeError):
+            original_dict[field] = values
+    return original_dict
