@@ -9,7 +9,6 @@ import jinja2
 import pykube
 import docker
 import requests
-import ruamel.yaml as yaml
 from toscaparser.tosca_template import ToscaTemplate
 
 from submitter.abstracts import base_adaptor as abco
@@ -462,21 +461,20 @@ class OccopusAdaptor(abco.Adaptor):
         """
         Get cloud-config from MiCADO cloud-init template
         """
-        yaml.default_flow_style = False
         default_cloud_config = {}
         try:
             with open(base_cloud_init, 'r') as f:
                 template = jinja2.Template(f.read())
                 rendered = template.render(worker_name=self.node_name)
-                default_cloud_config = yaml.round_trip_load(rendered, preserve_quotes=True)
+                default_cloud_config = utils.get_yaml_data(rendered, stream=True)
         except OSError as e:
             logger.error(e)
 
         if not tosca_cloud_config:
             return default_cloud_config
 
-        tosca_cloud_config = yaml.round_trip_load(
-            tosca_cloud_config, preserve_quotes=True
+        tosca_cloud_config = utils.get_yaml_data(
+            tosca_cloud_config, stream=True
         )
         return utils.get_cloud_config(
             insert_mode, RUNCMD_PLACEHOLDER, default_cloud_config, tosca_cloud_config
@@ -485,7 +483,6 @@ class OccopusAdaptor(abco.Adaptor):
     def _get_infra_def(self, tmp):
         """Read infra definition and modify the min max instances according to the TOSCA policies.
         If the template doesn't have policy section or it is invalid then the adaptor set the default value """
-        yaml.default_flow_style = False
 
         node_infra = {}
         node_infra['name'] = self.node_name
@@ -502,19 +499,16 @@ class OccopusAdaptor(abco.Adaptor):
         if self.validate is False or tmp:
             try:
                 infra_def = {}
-                with open(path, 'r') as f:
-                    infra_def = yaml.round_trip_load(f, preserve_quotes=True)
+                infra_def = utils.get_yaml_data(path)
                 infra_def.setdefault('nodes', [])
                 infra_def["nodes"].append(node_infra)
             except OSError as e:
                 logger.error(e)
 
             if tmp:
-                with open(self.infra_def_path_output_tmp, 'w') as ofile:
-                    yaml.round_trip_dump(infra_def, ofile)
+                utils.dump_order_yaml(infra_def, self.infra_def_path_output_tmp)
             elif self.validate is False:
-                with open(self.infra_def_path_output, 'w') as ofile:
-                    yaml.round_trip_dump(infra_def, ofile)
+                utils.dump_order_yaml(infra_def, self.infra_def_path_output)
 
     def _init_docker(self):
         """ Initialize docker and get Occopus container """
@@ -563,7 +557,7 @@ class OccopusAdaptor(abco.Adaptor):
         auth_data = auth_secret.obj["data"]
         auth_file = auth_data.get("auth_data.yaml", {})
         auth_file = base64.decodestring(auth_file.encode())
-        auth_file = yaml.safe_load(auth_file)
+        auth_file = utils.get_yaml_data(auth_file, stream=True)
 
         # Modify the auth data
         for resource in auth_file.get("resource", []):
@@ -573,7 +567,7 @@ class OccopusAdaptor(abco.Adaptor):
 
         # Update the secret with the modified auth data
         if changes:
-            new_auth_data = yaml.dump(auth_file).encode()
+            new_auth_data = utils.dump_order_yaml(auth_file).encode()
             new_auth_data = base64.encodestring(new_auth_data)
             auth_data["auth_data.yaml"] = new_auth_data.decode()
             auth_secret.update()
@@ -596,8 +590,7 @@ class OccopusAdaptor(abco.Adaptor):
         while wait_timer > 0:
             # Read the file in the submitter's auth volume
             try:
-                with open(self.auth_data_submitter) as auth_file:
-                    auth_data = yaml.safe_load(auth_file)
+                utils.get_yaml_data(self.auth_data_submitter)
             except FileNotFoundError:
                 logger.error("Credential file missing...")
                 raise AdaptorCritical

@@ -6,7 +6,7 @@ A module allowing the configuration of the whole submitter
 import logging
 from os import path
 
-import ruamel.yaml as yaml
+from submitter import utils
 
 basepath = path.dirname(__file__)
 CONFIG_FILE = "{}/system/key_config.yml".format(basepath)
@@ -52,12 +52,11 @@ class SubmitterConfig:
         """reading the config file and creating a dictionary related to it"""
         logger.debug("reading config file")
         dic_types = dict()
-        yaml.default_flow_style = False
         with open(self.config_path, "r") as stream:
             try:
 
-                dic_types = yaml.round_trip_load(
-                    stream.read(), preserve_quotes=True
+                dic_types = utils.get_yaml_data(
+                    stream.read(), stream=True
                 )
             except OSError as exc:
 

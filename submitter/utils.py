@@ -6,17 +6,23 @@ import codecs
 import logging
 import copy
 
-import ruamel.yaml as yaml
+from ruamel.yaml import YAML, representer
 from toscaparser.functions import GetProperty
 
 logger = logging.getLogger("submitter." + __name__)
 
 
-class NoAliasRTDumper(yaml.RoundTripDumper):
-    """ Turn off aliases, preserve order """
+class NonAliasingRTRepresenter(representer.RoundTripRepresenter):
+    """ Turn off auto-aliases in ruamel.yaml """
 
     def ignore_aliases(self, data):
         return True
+
+
+yaml = YAML()
+yaml.default_flow_style = False
+yaml.preserve_quotes = True
+yaml.Representer = NonAliasingRTRepresenter
 
 
 def load_json(path):
@@ -39,27 +45,26 @@ def dump_order_yaml(data, path):
     """ Dump the dictionary to a yaml file """
 
     with open(path, "w") as file:
-        yaml.dump(data, file, default_flow_style=False, Dumper=NoAliasRTDumper)
+        yaml.dump(data, file)
 
 
 def dump_list_yaml(data, path):
     """ Dump a list of dictionaries to a single yaml file """
 
     with open(path, "w") as file:
-        yaml.dump_all(
-            data, file, default_flow_style=False, Dumper=NoAliasRTDumper
-        )
+        yaml.dump_all(data, file)
 
 
-def get_yaml_data(path):
+def get_yaml_data(path, stream=False):
     """ Retrieve the yaml dictionary form a yaml file and return it """
-    logger.debug("{}".format(path))
-    try:
-        f = urllib.request.urlopen(str(path))
-    except ValueError as exc:
-        logger.error("file is local: {}".format(exc))
-        f = codecs.open(path, encoding="utf-8", errors="strict")
-    return yaml.round_trip_load(f.read())
+
+    if stream:
+        return yaml.load(path)
+
+    with open(path, "r") as file:
+        data = yaml.load(file)
+
+    return data
 
 
 def id_generator(size=8, chars=string.ascii_uppercase + string.digits):
