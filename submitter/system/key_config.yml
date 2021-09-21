@@ -57,6 +57,10 @@ adaptor_config:
       - "tosca.policies.Security.MiCADO.Network.*"
     endoint: "endpoint"
     volume: "./files/output_configs/"
+    unvalidated_kinds:
+    - ClusterIssuer
+    - Certificate
+    k8s_version: 1.18.0
 
   TerraformAdaptor:
     types:
