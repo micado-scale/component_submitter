@@ -605,6 +605,11 @@ class TerraformAdaptor(abco.Adaptor):
                 self.tf_json.add_normal_variable("ostoken", "temp_token")
                 self._egi_render_configure(credential)
 
+        provider_details = {}
+        if properties.get("provider", ""):
+            provider_details = properties.get("provider")
+            provider.update(provider_details)
+
         self.tf_json.add_provider("openstack", provider)
 
         image_id = properties.get("image_id")
