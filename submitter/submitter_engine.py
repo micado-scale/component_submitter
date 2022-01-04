@@ -2,9 +2,10 @@ import json
 import logging
 import logging.config
 
-from submitter import micado_parser
+from micadoparser import parser
+from micadoparser.validator import MultiError
+
 from submitter.plugins_gestion import PluginsGestion
-from submitter.micado_validator import MultiError
 from submitter.abstracts.exceptions import AdaptorCritical, AdaptorError
 from submitter.submitter_config import SubmitterConfig
 from submitter import utils
@@ -142,7 +143,7 @@ class SubmitterEngine(object):
         """
         # MiCADO Validation
         logger.info("****** Starting the validation process of {} *****".format(path_to_file))
-        template = micado_parser.set_template(path_to_file, parsed_params)
+        template = parser.set_template(path_to_file, parsed_params)
         
         # Adaptors instantiation
         logger.debug("Instantiating the required adaptors")
