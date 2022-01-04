@@ -590,7 +590,7 @@ class OccopusAdaptor(abco.Adaptor):
         while wait_timer > 0:
             # Read the file in the submitter's auth volume
             try:
-                utils.get_yaml_data(self.auth_data_submitter)
+                auth_data = utils.get_yaml_data(self.auth_data_submitter)
             except FileNotFoundError:
                 logger.error("Credential file missing...")
                 raise AdaptorCritical
