@@ -1,13 +1,10 @@
 import random
 import string
 import json
-from six.moves import urllib
-import codecs
 import logging
 import copy
 
 from ruamel.yaml import YAML, representer
-from toscaparser.functions import GetProperty
 
 logger = logging.getLogger("submitter." + __name__)
 

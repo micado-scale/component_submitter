@@ -2,9 +2,10 @@ docker==4.2.1
 Flask==1.1.2
 pykube-ng==20.5.0
 requests==2.24.0
-ruamel.yaml==0.16.10
-tosca-parser==2.1.0
+ruamel.yaml==0.17.20
+tosca-parser==2.5.0
 kubernetes-validate==1.18.0
 webargs==6.1.0
 marshmallow==3.7.1
 gunicorn==20.0.4
+git+git://github.com/micado-scale/micado-parser@main#egg=micado-parser

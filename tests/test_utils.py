@@ -1,6 +1,6 @@
 import unittest
 
-from submitter.micado_parser import set_template
+from micadoparser.parser import set_template
 from submitter.adaptors.occopus_adaptor import OccopusAdaptor
 from submitter.adaptors.terraform_adaptor import TerraformAdaptor
 

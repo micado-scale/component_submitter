@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock, patch
 from collections import namedtuple
 
-from submitter.micado_parser import set_template
+from micadoparser.parser import set_template
 
 from submitter.adaptors.k8s_adaptor.k8s_adaptor import KubernetesAdaptor
 from submitter.adaptors.k8s_adaptor.resources import pod, container, service
