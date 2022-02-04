@@ -426,6 +426,11 @@ class OccopusAdaptor(abco.Adaptor):
             self.node_data.setdefault(key,{}) \
               .setdefault("description", {}) \
               .setdefault("infrastructure_component_id", properties["infrastructure_component_id"])
+        if properties.get("dynamic_domain_name_ids") is not None:
+            self.node_data.setdefault(key,{}) \
+              .setdefault("description", {}) \
+              .setdefault("dynamic_domain_name_ids", {}) \
+              .setdefault("dynamic_domain_name_id", properties["dynamic_domain_name_ids"][0])
         self._node_data_get_context_section(properties)
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
