@@ -626,9 +626,12 @@ class TerraformAdaptor(abco.Adaptor):
         config_drive = properties.get("config_drive")
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
 
+        ct = int(time.time())
+        instance_name_new = instance_name + "-" + str(ct)
+
         public_key = properties.get("public_key")
         if public_key:
-            key_pair = "{}-key".format(instance_name)
+            key_pair = "{}-key".format(instance_name_new)
             self.tf_json.add_resource(
                 "openstack_compute_keypair_v2", get_keypair()
             )
@@ -639,8 +642,8 @@ class TerraformAdaptor(abco.Adaptor):
 
         ip_pool = properties.get("floating_ip_pool")
         floating_ip = properties.get("floating_ip")
-        floating_ip_name = "{}-fip".format(instance_name)
-        fip_assoc_name = "{}-fip-assoc".format(instance_name)
+        floating_ip_name = "{}-fip".format(instance_name_new)
+        fip_assoc_name = "{}-fip-assoc".format(instance_name_new)
         fip_assoc_resource = get_floatingip_associate()
         if floating_ip:
             fip_assoc_resource[fip_assoc_name]["floating_ip"] = floating_ip
