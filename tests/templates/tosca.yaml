@@ -1,4 +1,4 @@
-tosca_definitions_version: tosca_simple_yaml_1_0
+tosca_definitions_version: tosca_simple_yaml_1_3
 
 imports:
   - custom_types.yaml
@@ -61,6 +61,7 @@ topology_template:
 
     redis:
       type: tosca.nodes.MiCADO.Container.Application.Docker.Deployment
+      occurrences: [1, 5]
       properties:
         image: redis
         command:
@@ -100,6 +101,7 @@ topology_template:
         - host: worker-node
         - volume: docker-binary-host-vol
         - volume: docker-socket-host-vol
+        - volume: local-vol
 
     docker-binary-host-vol:
       type: tosca.nodes.MiCADO.Container.Volume.HostPath
@@ -111,6 +113,12 @@ topology_template:
       properties:
         path: /var/run/docker.sock
 
+    local-vol:
+      type: tosca.nodes.MiCADO.Container.Volume.Local
+      properties:
+        path: /shared/local
+        node: persistenty
+
     worker-node:
       type: tosca.nodes.MiCADO.EC2.Compute
       properties: *compute_properties
@@ -121,13 +129,16 @@ topology_template:
             inputs: *endpoint_properties
       
     cq-server:
-      type: tosca.nodes.MiCADO.EC2.Compute
-      properties: *compute_properties
-      interfaces:
-        # TERRAFORM: Change key to Terraform
-        Occopus:
-          create:
-            inputs: *endpoint_properties
+      type: tosca.nodes.MiCADO.EC2.Compute.Occo
+      properties:
+        <<: *compute_properties
+        endpoint: https://mycloud.net/api/v2
+
+    terra-server:
+      type: tosca.nodes.MiCADO.EC2.Compute.Terra
+      properties:
+        <<: *compute_properties
+        endpoint: https://mycloud.net/api/terra/v2
       
   policies:
     - scalability:
@@ -144,7 +155,7 @@ topology_template:
           queries:
             REMAININGTIME: '{{DEADLINE}}-time()'
             ITEMS: 'rabbitmq_queue_messages_persistent{queue="machinery_tasks"}'
-          min_instances: 1
+          min_instances: '1'
           max_instances: '{{MAXNODES}}'
           scaling_rule: |
             reqnodes=0
@@ -163,7 +174,7 @@ topology_template:
         type: tosca.policies.Scaling.MiCADO
         targets: [ cqueue-worker ]
         properties:
-          min_instances: 1
+          min_instances: '1'
           max_instances: '{{MAXCONTAINERS}}'
           scaling_rule: |
             print "Length of queue:",ITEMS

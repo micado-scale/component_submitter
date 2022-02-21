@@ -24,7 +24,7 @@ LOG_SUFFIX = (
     ' do printf "%s %s\n" "$(date "+[%Y-%m-%d %H:%M:%S]")" "$line";'
     " done | tee /proc/1/fd/1"
 )
-SUPPORTED_CLOUDS = ("ec2", "nova", "azure", "gce", "oci")
+SUPPORTED_CLOUDS = ("ec2", "nova", "azure", "gce", "oci", "egi")
 RUNCMD_PLACEHOLDER = "echo micado runcmd placeholder"
 
 
@@ -80,6 +80,10 @@ class TerraformDict(dict):
             node_list.append(str(i))
         self.tfvars[name] = node_list
 
+    def add_normal_variable(self, name, value):
+        self.add_variable(name, {})
+        self.tfvars[name] = value
+
     def update_instance_vars(self, old_node_list):
         new_counts = {}
         for node_name, new_node_list in self.tfvars.items():
@@ -122,6 +126,8 @@ class TerraformAdaptor(abco.Adaptor):
         self.oci_auth_key = "{}oci_api_key.pem".format(self.volume)
 
         self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
+        self.configure_template = "./system/configure_tf"
+        self.configure_file = "/var/lib/micado/submitter/preprocess/egi/configure.py"
         self.auth_data_file = "/var/lib/micado/submitter/auth/auth_data.yaml"
         self.auth_gce = "/var/lib/micado/submitter/gce-auth/accounts.json"
         self.auth_oci = "/var/lib/micado/submitter/oci-auth/oci_api_key.pem"
@@ -137,7 +143,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         logger.info("Terraform adaptor initialised")
 
-    def translate(self, update=False):
+    def translate(self, update=False, to_dict=False):
         """
         Translate the self.tpl subset to Terraform node infrastructure format
         This fuction creates a mapping between TOSCA and Terraform template descriptor.
@@ -160,7 +166,7 @@ class TerraformAdaptor(abco.Adaptor):
                 continue
 
             self._get_policies(node)
-            tf_options = utils.resolve_get_property(node, tf_interface.get("create"))
+            tf_options = tf_interface.get("create")
             properties = self._get_properties_values(node)
             properties.update(tf_options)
 
@@ -191,6 +197,9 @@ class TerraformAdaptor(abco.Adaptor):
             logger.info("No nodes to orchestrate with Terraform. Skipping...")
             self.status = "Skipped"
             return
+
+        if to_dict:
+            return self.tf_json
 
         if update:
             logger.debug("Creating temp files")
@@ -253,6 +262,7 @@ class TerraformAdaptor(abco.Adaptor):
             self.vars_file,
             self.account_file,
             self.oci_auth_key,
+            self.configure_file,
             self.volume + "terraform.tfstate",
             self.volume + "terraform.tfstate.backup",
         ]
@@ -317,21 +327,22 @@ class TerraformAdaptor(abco.Adaptor):
         Create the cloud-init config file
         """
         cloud_config = context.get("cloud_config")
+        base_cloud_init = context.get("path") or self.cloud_init_template
         if not context:
             logger.debug("The adaptor will use a default cloud-config")
-            node_init = self._get_cloud_init(None)
+            node_init = self._get_cloud_init(None, base_cloud_init)
         elif not cloud_config:
             logger.debug("No cloud-config provided... using default cloud-config")
-            node_init = self._get_cloud_init(None)
+            node_init = self._get_cloud_init(None, base_cloud_init)
         elif context.get("insert"):
             logger.debug("Insert the TOSCA cloud-config in the default config")
-            node_init = self._get_cloud_init(cloud_config, "insert")
+            node_init = self._get_cloud_init(cloud_config, base_cloud_init, "insert")
         elif context.get("append"):
             logger.debug("Append the TOSCA cloud-config to the default config")
-            node_init = self._get_cloud_init(cloud_config, "append")
+            node_init = self._get_cloud_init(cloud_config, base_cloud_init, "append")
         else:
             logger.debug("Overwrite the default cloud-config")
-            node_init = self._get_cloud_init(cloud_config, "overwrite")
+            node_init = self._get_cloud_init(cloud_config, base_cloud_init, "overwrite")
 
         cloud_init_file_name = "{}-cloud-init.yaml".format(self.node_name)
         cloud_init_path = "{}{}".format(self.volume, cloud_init_file_name)
@@ -339,6 +350,32 @@ class TerraformAdaptor(abco.Adaptor):
 
         utils.dump_order_yaml(node_init, cloud_init_path_tmp)
         return cloud_init_path
+
+    def _egi_render_configure(self, credential):
+        """
+        Render the egi configure file
+        """
+        access = credential["access_token"]
+        try:
+            with open(self.configure_template, "r") as f:
+                template = jinja2.Template(f.read())
+                rendered = template.render(
+                    identity_provider=credential["identity_provider"],
+                    auth_url=credential["auth_url"],
+                    project_id=credential["project_id"],
+                    oidc_url=access["url"],
+                    client_id=access["client_id"],
+                    client_secret=access["client_secret"],
+                    refresh_token=access["refresh_token"],
+                )
+        except OSError as e:
+            logger.error(e)
+
+        try:
+            with open(self.configure_file, "w") as p:
+                p.write(rendered)
+        except OSError as e:
+            logger.error(e)
 
     def _rename_ec2_properties(self, properties):
         """
@@ -350,7 +387,7 @@ class TerraformAdaptor(abco.Adaptor):
             security_groups = properties.pop("security_group_ids")
             properties["vpc_security_group_ids"] = security_groups
 
-    def _get_cloud_init(self, tosca_cloud_config, insert_mode=None):
+    def _get_cloud_init(self, tosca_cloud_config, base_cloud_init, insert_mode=None):
         """
         Get cloud-config from MiCADO cloud-init template
         """
@@ -363,7 +400,7 @@ class TerraformAdaptor(abco.Adaptor):
             logger.warning("No CA Cert found for IPSec on worker node")
             master_file = ""
         try:
-            with open(self.cloud_init_template, "r") as f:
+            with open(base_cloud_init, "r") as f:
                 template = jinja2.Template(f.read())
                 rendered = template.render(
                     worker_name=self.node_name, master_pem=master_file
@@ -480,7 +517,7 @@ class TerraformAdaptor(abco.Adaptor):
 
         def get_provider():
             return {
-                "version": "~> 1.26",
+                "version": "~> 1.32.0",
                 "auth_url": auth_url,
                 "tenant_id": tenant_id,
             }
@@ -490,7 +527,6 @@ class TerraformAdaptor(abco.Adaptor):
                 instance_name: {
                     "name": "%s${each.key}" % instance_name,
                     "image_id": image_id,
-                    "flavor_id": flavor_id,
                     "key_pair": key_pair,
                     "security_groups": security_groups,
                     "user_data": '${file("${path.module}/%s")}' % cloud_init_file_name,
@@ -499,8 +535,37 @@ class TerraformAdaptor(abco.Adaptor):
                 }
             }
             if config_drive:
-                vm[instance_name]["config_drive"] = True
+                vm[instance_name]["config_drive"] = "true"
+            if flavor_id:
+                vm[instance_name]["flavor_id"] = flavor_id
+            if flavor_name:
+                vm[instance_name]["flavor_name"] = flavor_name
             return vm
+
+        def get_keypair():
+            return {
+                key_pair: {
+                    "name": key_pair,
+                    "public_key": public_key,
+                }
+            }
+
+        def get_floating_ip():
+            return {
+                floating_ip_name: {
+                    "pool": ip_pool,
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                }
+            }
+
+        def get_floatingip_associate():
+            return {
+                fip_assoc_name: {
+                    "for_each": "${toset(var.%s)}" % instance_name,
+                    "floating_ip": "${openstack_networking_floatingip_v2.%s[each.key].address}" % floating_ip_name,
+                    "instance_id": "${openstack_compute_instance_v2.%s[each.key].id}" % instance_name,
+                }
+            }
 
         instance_name = self.node_name
         self.tf_json.add_instance_variable(instance_name, self.min_instances)
@@ -511,7 +576,7 @@ class TerraformAdaptor(abco.Adaptor):
             or properties.get("endpoint")
             or properties.get("endpoint_cloud")
         )
-        tenant_id = properties["project_id"]
+        tenant_id = properties.get("project_id")
 
         provider = get_provider()
         app_cred_id = credential.get("application_credential_id")
@@ -519,27 +584,79 @@ class TerraformAdaptor(abco.Adaptor):
         if app_cred_id and app_cred_secret:
             provider["application_credential_id"] = app_cred_id
             provider["application_credential_secret"] = app_cred_secret
-        else:
-            provider["user_name"] = credential["username"]
-            provider["password"] = credential["password"]
+
+        username = credential.get("username")
+        password = credential.get("password")
+        if username and password:
+            provider["user_name"] = username
+            provider["password"] = password
+
+        domain_name = credential.get("domain_name")
+        if domain_name:
+            provider["domain_name"] = domain_name
+
+        identity_provider = credential["identity_provider"]
+        if identity_provider:
+            if identity_provider == "egi.eu":
+                credential["project_id"] = properties["project_id"]
+                credential["auth_url"] = properties["auth_url"]
+                provider["token"] = "${var.ostoken}"
+                self.tf_json.add_normal_variable("preprocess", identity_provider)
+                self.tf_json.add_normal_variable("ostoken", "temp_token")
+                self._egi_render_configure(credential)
+
+        provider_details = {}
+        if properties.get("provider", ""):
+            provider_details = properties.get("provider")
+            provider.update(provider_details)
 
         self.tf_json.add_provider("openstack", provider)
 
-        image_id = properties["image_id"]
-        flavor_id = properties.get("flavor_name") or properties.get("flavor_id")
+        image_id = properties.get("image_id")
+        flavor_id = properties.get("flavor_id")
+        flavor_name = properties.get("flavor_name")
 
         network = {}
         network["name"] = properties.get("network_name")
         network["uuid"] = properties.get("network_id")
         network = {x: y for x, y in network.items() if y}
 
-        key_pair = properties["key_name"]
+        key_pair = properties.get("key_name")
         security_groups = properties["security_groups"]
         config_drive = properties.get("config_drive")
         cloud_init_file_name = "{}-cloud-init.yaml".format(instance_name)
+
+        ct = int(time.time())
+        instance_name_new = instance_name + "-" + str(ct)
+
+        public_key = properties.get("public_key")
+        if public_key:
+            key_pair = "{}-key".format(instance_name_new)
+            self.tf_json.add_resource(
+                "openstack_compute_keypair_v2", get_keypair()
+            )
+
         self.tf_json.add_resource(
             "openstack_compute_instance_v2", get_virtual_machine()
         )
+
+        ip_pool = properties.get("floating_ip_pool")
+        floating_ip = properties.get("floating_ip")
+        floating_ip_name = "{}-fip".format(instance_name_new)
+        fip_assoc_name = "{}-fip-assoc".format(instance_name_new)
+        fip_assoc_resource = get_floatingip_associate()
+        if floating_ip:
+            fip_assoc_resource[fip_assoc_name]["floating_ip"] = floating_ip
+        elif ip_pool:
+            self.tf_json.add_resource(
+                "openstack_networking_floatingip_v2", get_floating_ip()
+            )
+        
+        if floating_ip or ip_pool:
+            self.tf_json.add_resource(
+                "openstack_compute_floatingip_associate_v2",
+                fip_assoc_resource,
+            )
 
     def _add_terraform_azure(self, properties):
         """ Write Terraform template files for Azure in JSON"""
@@ -949,6 +1066,11 @@ class TerraformAdaptor(abco.Adaptor):
 
     def _get_credential_info(self, provider):
         """ Return credential info from file """
+
+        # Currently only works for an AWS dryrun
+        if self.dryrun:
+            return {"accesskey":"CPC", "secretkey":"123"}
+
         with open(self.auth_data_file, "r") as stream:
             temp = yaml.safe_load(stream)
         resources = temp.get("resource", {})

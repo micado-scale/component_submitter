@@ -1,21 +1,25 @@
 import random
 import string
 import json
-from six.moves import urllib
-import codecs
 import logging
+import copy
 
-import ruamel.yaml as yaml
-from toscaparser.functions import GetProperty
+from ruamel.yaml import YAML, representer
 
 logger = logging.getLogger("submitter." + __name__)
 
 
-class NoAliasRTDumper(yaml.RoundTripDumper):
-    """ Turn off aliases, preserve order """
+class NonAliasingRTRepresenter(representer.RoundTripRepresenter):
+    """ Turn off auto-aliases in ruamel.yaml """
 
     def ignore_aliases(self, data):
         return True
+
+
+yaml = YAML()
+yaml.default_flow_style = False
+yaml.preserve_quotes = True
+yaml.Representer = NonAliasingRTRepresenter
 
 
 def load_json(path):
@@ -38,27 +42,26 @@ def dump_order_yaml(data, path):
     """ Dump the dictionary to a yaml file """
 
     with open(path, "w") as file:
-        yaml.dump(data, file, default_flow_style=False, Dumper=NoAliasRTDumper)
+        yaml.dump(data, file)
 
 
 def dump_list_yaml(data, path):
     """ Dump a list of dictionaries to a single yaml file """
 
     with open(path, "w") as file:
-        yaml.dump_all(
-            data, file, default_flow_style=False, Dumper=NoAliasRTDumper
-        )
+        yaml.dump_all(data, file)
 
 
-def get_yaml_data(path):
+def get_yaml_data(path, stream=False):
     """ Retrieve the yaml dictionary form a yaml file and return it """
-    logger.debug("{}".format(path))
-    try:
-        f = urllib.request.urlopen(str(path))
-    except ValueError as exc:
-        logger.error("file is local: {}".format(exc))
-        f = codecs.open(path, encoding="utf-8", errors="strict")
-    return yaml.round_trip_load(f.read())
+
+    if stream:
+        return yaml.load(path)
+
+    with open(path, "r") as file:
+        data = yaml.load(file)
+
+    return data
 
 
 def id_generator(size=8, chars=string.ascii_uppercase + string.digits):
@@ -95,10 +98,13 @@ def get_lifecycle(node, interface_type):
     for stage in interfaces:
         _update_parent_spec(lifecycle, stage)
 
-    for inputs in lifecycle.values():
-        _update_get_property([inputs], properties)
-        _update_get_property(inputs.values(), properties)
-        _update_get_property(inputs.get("spec", {}).values(), properties)
+    resolve_get_functions(
+        lifecycle,
+        "get_property",
+        lambda x: isinstance(x, list),
+        lambda x, y: y.get(x[1]),
+        properties,
+    )
 
     return lifecycle
 
@@ -107,6 +113,7 @@ def _get_parent_interfaces(node, interface_type):
     interfaces = {}
     try:
         parent_interfaces = node.type_definition.interfaces[interface_type]
+        parent_interfaces = copy.deepcopy(parent_interfaces)
     except (AttributeError, KeyError, TypeError):
         parent_interfaces = {}
 
@@ -155,39 +162,6 @@ def get_cloud_type(node, supported_clouds):
             return cloud
 
 
-def resolve_get_property(node, cloud_inputs):
-    """Resolve get property and return resolved inputs
-
-    Returns:
-        dict: resolved interface inputs
-    """
-    for field, value in cloud_inputs.items():
-        if isinstance(value, GetProperty):
-            cloud_inputs[field] = value.result()
-            continue
-        elif not isinstance(value, dict) or "get_property" not in value:
-            continue
-        cloud_inputs[field] = node.get_property_value(
-            value.get("get_property")[-1]
-        )
-
-    return cloud_inputs
-
-
-def _update_get_property(list_of_dict, properties):
-    for field in list_of_dict:
-        try:
-            field.update(
-                {
-                    key: properties.get(value["get_property"][1])
-                    for key, value in field.items()
-                    if "get_property" in value
-                }
-            )
-        except (TypeError, AttributeError):
-            pass
-
-
 def get_cloud_config(
     insert_mode, runcmd_placeholder, default_cloud_config, tosca_cloud_config
 ):
@@ -216,3 +190,42 @@ def get_cloud_config(
                 default_cloud_config[x] = y
 
     return default_cloud_config
+
+
+def resolve_get_functions(
+    dict_to_search, key_to_find, test_result_fn, resolve_result_fn, *args
+):
+    """Recursively update a dict with TOSCA 'get' functions
+
+    Args:
+        dict_to_search (dict): Dictionary to iterate through
+        key_to_find (str): 'get' function to search for (eg 'get_input')
+        test_result_fn (func): Function to test the result
+        resolve_result_fn (func): Function to resolve the result
+        args (*): Extra args to pass to resolve_result_fn
+
+    Returns:
+        None: Modifies the dictionary in place
+    """
+    for key, value in dict_to_search.items():
+        if key == key_to_find:
+            return value
+
+        elif isinstance(value, dict):
+            result = resolve_get_functions(
+                value, key_to_find, test_result_fn, resolve_result_fn, *args
+            )
+            if test_result_fn(result):
+                dict_to_search[key] = resolve_result_fn(result, *args)
+
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                if not isinstance(item, dict):
+                    continue
+                result = resolve_get_functions(
+                    item, key_to_find, test_result_fn, resolve_result_fn, *args
+                )
+                if test_result_fn(result):
+                    dict_to_search[key][index] = resolve_result_fn(
+                        result, *args
+                    )

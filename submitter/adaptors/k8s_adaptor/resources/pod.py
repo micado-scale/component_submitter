@@ -115,23 +115,25 @@ class Pod(Resource):
             self._add_mounts(mount_type, mounts, container)
 
     def _add_mounts(self, mount_type, mounts, container):
-        """Adds a list of mounts given type, to Container and Pod specs """
-        for mount in mounts:
+        """Adds a list of mounts given type, to Container and Pod specs"""
+        for requirement in container.info.requirements:
+            volume = requirement.get("volume")
+            try:
+                properties, mount = _get_volume(volume, mounts)
+            except ValueError:
+                continue
+            
             name = mount.properties.get("name", mount.name)
             claim_name = mount.inputs.get("metadata", {}).get(
                 "name", mount.name
             )
 
-            requirements = container.info.requirements
-            read_only = _get_volume_property("read_only", name, requirements)
-            path = (
-                _get_volume_property("location", name, requirements)
+            properties["mountPath"] = (
+                properties.pop("location", None)
                 or _get_path_on_disk(mount.inputs, mount.properties)
                 or f"/mnt/volumes/{name}"
             )
-            _add_volume_to_container_spec(
-                name, container.spec, path, read_only
-            )
+            _add_volume_to_container_spec(name, container.spec, properties)
 
             volume_spec = _get_volume_spec(
                 mount_type, name, mount.inputs, claim_name
@@ -185,21 +187,20 @@ def _get_path_on_disk(inputs, properties):
     return disk_path
 
 
-def _get_volume_property(key, node_name, container_requirements):
-    """Returns a property from the relationship definition of a requirement """
-    requirements = [
-        required["volume"]
-        for required in container_requirements
-        if "volume" in required
-    ]
-    for required in requirements:
-        try:
-            if required["node"] == node_name:
-                return required["relationship"]["properties"][key]
-        except (AttributeError, TypeError, KeyError):
-            pass
+def _get_volume(volume, mounts):
+    """Returns the info of the volume to mount"""
+    if not volume:
+        raise ValueError
 
-    return False
+    if isinstance(volume, str):
+        name = volume
+        properties = {}
+    else:
+        name = volume.get("node")
+        properties = volume.get("relationship", {}).get("properties")
+
+    [mount] = [mount for mount in mounts if mount.name == name]
+    return properties, mount
 
 
 def _get_volume_spec(mount_type, name, inputs, claim_name):
@@ -220,20 +221,20 @@ def _get_volume_spec(mount_type, name, inputs, claim_name):
 
 
 def _inline_volume_check(inputs, claim_name):
-    """Returns either an emptyDir or PVC volumeSpec """
+    """Returns either an emptyDir, hostPath or PVC volumeSpec """
     if "emptyDir" in inputs.get("spec", {}):
         return {"emptyDir": {}}
+    elif "hostPath" in inputs.get("spec", {}):
+        return inputs.get("spec")
     else:
         return {
             "persistentVolumeClaim": {"claimName": claim_name},
         }
 
 
-def _add_volume_to_container_spec(name, container_spec, path, read_only):
-    """Adds the volume and path to the containerSpec """
-    volume_mount = {"name": name, "mountPath": path}
-    if read_only:
-        volume_mount["readOnly"] = "true"
+def _add_volume_to_container_spec(name, container_spec, properties):
+    """Adds the volume and path to the containerSpec"""
+    volume_mount = {"name": name, **properties}
     container_spec.setdefault("volumeMounts", []).append(volume_mount)
 
 

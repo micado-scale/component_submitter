@@ -9,7 +9,6 @@ import jinja2
 import pykube
 import docker
 import requests
-import ruamel.yaml as yaml
 from toscaparser.tosca_template import ToscaTemplate
 
 from submitter.abstracts import base_adaptor as abco
@@ -69,7 +68,7 @@ class OccopusAdaptor(abco.Adaptor):
         self.occo_infra_path = "/var/lib/micado/occopus/submitter/{}-infra.yaml".format(self.ID)
         logger.info("Occopus Adaptor initialised")
 
-    def translate(self, tmp=False):
+    def translate(self, tmp=False, to_dict=False):
         """
         Translate the self.tpl subset to Occopus node definition and infrastructure format
         The adaptor create a mapping between TOSCA and Occopus template descriptor.
@@ -89,8 +88,8 @@ class OccopusAdaptor(abco.Adaptor):
             occo_interface = self._node_data_get_interface(node)
             if not occo_interface:
                 continue
-
-            self._node_resolve_interface_data(node, occo_interface, "resource")
+            
+            self._node_resolve_interface_data(occo_interface, "resource")
             cloud_type = utils.get_cloud_type(node, SUPPORTED_CLOUDS)
 
             if cloud_type == "cloudsigma":
@@ -112,12 +111,20 @@ class OccopusAdaptor(abco.Adaptor):
             node_type = self.node_prefix + self.node_name
             self.node_def.setdefault(node_type, [])
             self.node_def[node_type].append(self.node_data)
-        if self.node_def:
-            if tmp:
-                utils.dump_order_yaml(self.node_def, self.node_path_tmp)
-            elif self.validate is False:
+
+        if not self.node_def:
+            self.status = "no occopus nodes found"
+            return
+
+        if to_dict:
+            return self.node_def
+
+        if tmp:
+            utils.dump_order_yaml(self.node_def, self.node_path_tmp)
+        elif self.validate is False:
+            if not self.dryrun:
                 self.prepare_auth_file()
-                utils.dump_order_yaml(self.node_def, self.node_path)
+            utils.dump_order_yaml(self.node_def, self.node_path)
 
         self.status = "translated"
 
@@ -283,16 +290,13 @@ class OccopusAdaptor(abco.Adaptor):
             logger.debug("No interface for Occopus in {}".format(node.name))
         return interfaces
 
-    def _node_resolve_interface_data(self, node, interfaces, key):
+    def _node_resolve_interface_data(self, interfaces, key):
         """
         Get cloud relevant information from tosca
         """
-        cloud_inputs = utils.resolve_get_property(node, interfaces.get("create"))
-        
-        # DEPRECATE 'interface_cloud' to read cloud from TOSCA type
-        #self.node_data.setdefault(key, {}).setdefault("type", cloud_inputs["interface_cloud"])
+        cloud_inputs = interfaces.get("create")
 
-        # DEPRECATE 'endpoint_cloud' in favour of 'endpoint'
+        # TODO DEPRECATE 'endpoint_cloud' in favour of 'endpoint'
         endpoint = cloud_inputs.get("endpoint", cloud_inputs.get("endpoint_cloud"))
         self.node_data.setdefault(key, {}).setdefault("endpoint", endpoint)
 
@@ -304,31 +308,32 @@ class OccopusAdaptor(abco.Adaptor):
             "type", "cloudinit"
         )
         context = properties.get("context", {})
+        base_cloud_init = context.get("path") or self.cloudinit_path
         cloud_config = context.get("cloud_config")
         if not context:
             logger.debug("The adaptor will use a default cloud-config")
             self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(None)
+                "context_template", self._get_cloud_init(None, base_cloud_init)
             )
         elif not cloud_config:
             logger.debug("No cloud-config provided... using default cloud-config")
             self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(None)
+                "context_template", self._get_cloud_init(None, base_cloud_init)
             )
         elif context.get("insert"):
             logger.debug("Insert the TOSCA cloud-config in the default config")
             self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(cloud_config, "insert")
+                "context_template", self._get_cloud_init(cloud_config, base_cloud_init, "insert")
             )
         elif context.get("append"):
             logger.debug("Append the TOSCA cloud-config to the default config")
             self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(cloud_config, "append")
+                "context_template", self._get_cloud_init(cloud_config, base_cloud_init, "append")
             )
         else:
             logger.debug("Overwrite the default cloud-config")
             self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(cloud_config, "overwrite")
+                "context_template", self._get_cloud_init(cloud_config, base_cloud_init, "overwrite")
             )
 
     def _node_data_get_cloudsigma_host_properties(self, node, key):
@@ -421,6 +426,11 @@ class OccopusAdaptor(abco.Adaptor):
             self.node_data.setdefault(key,{}) \
               .setdefault("description", {}) \
               .setdefault("infrastructure_component_id", properties["infrastructure_component_id"])
+        if properties.get("dynamic_domain_name_ids") is not None:
+            self.node_data.setdefault(key,{}) \
+              .setdefault("description", {}) \
+              .setdefault("dynamic_domain_name_ids", {}) \
+              .setdefault("dynamic_domain_name_id", properties["dynamic_domain_name_ids"][0])
         self._node_data_get_context_section(properties)
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
@@ -452,25 +462,24 @@ class OccopusAdaptor(abco.Adaptor):
         self.node_data.setdefault("health_check", {}) \
             .setdefault("ping",False)
 
-    def _get_cloud_init(self,tosca_cloud_config,insert_mode=None):
+    def _get_cloud_init(self,tosca_cloud_config, base_cloud_init, insert_mode=None):
         """
         Get cloud-config from MiCADO cloud-init template
         """
-        yaml.default_flow_style = False
         default_cloud_config = {}
         try:
-            with open(self.cloudinit_path, 'r') as f:
+            with open(base_cloud_init, 'r') as f:
                 template = jinja2.Template(f.read())
                 rendered = template.render(worker_name=self.node_name)
-                default_cloud_config = yaml.round_trip_load(rendered, preserve_quotes=True)
+                default_cloud_config = utils.get_yaml_data(rendered, stream=True)
         except OSError as e:
             logger.error(e)
 
         if not tosca_cloud_config:
             return default_cloud_config
 
-        tosca_cloud_config = yaml.round_trip_load(
-            tosca_cloud_config, preserve_quotes=True
+        tosca_cloud_config = utils.get_yaml_data(
+            tosca_cloud_config, stream=True
         )
         return utils.get_cloud_config(
             insert_mode, RUNCMD_PLACEHOLDER, default_cloud_config, tosca_cloud_config
@@ -479,7 +488,6 @@ class OccopusAdaptor(abco.Adaptor):
     def _get_infra_def(self, tmp):
         """Read infra definition and modify the min max instances according to the TOSCA policies.
         If the template doesn't have policy section or it is invalid then the adaptor set the default value """
-        yaml.default_flow_style = False
 
         node_infra = {}
         node_infra['name'] = self.node_name
@@ -496,19 +504,16 @@ class OccopusAdaptor(abco.Adaptor):
         if self.validate is False or tmp:
             try:
                 infra_def = {}
-                with open(path, 'r') as f:
-                    infra_def = yaml.round_trip_load(f, preserve_quotes=True)
+                infra_def = utils.get_yaml_data(path)
                 infra_def.setdefault('nodes', [])
                 infra_def["nodes"].append(node_infra)
             except OSError as e:
                 logger.error(e)
 
             if tmp:
-                with open(self.infra_def_path_output_tmp, 'w') as ofile:
-                    yaml.round_trip_dump(infra_def, ofile)
+                utils.dump_order_yaml(infra_def, self.infra_def_path_output_tmp)
             elif self.validate is False:
-                with open(self.infra_def_path_output, 'w') as ofile:
-                    yaml.round_trip_dump(infra_def, ofile)
+                utils.dump_order_yaml(infra_def, self.infra_def_path_output)
 
     def _init_docker(self):
         """ Initialize docker and get Occopus container """
@@ -557,7 +562,7 @@ class OccopusAdaptor(abco.Adaptor):
         auth_data = auth_secret.obj["data"]
         auth_file = auth_data.get("auth_data.yaml", {})
         auth_file = base64.decodestring(auth_file.encode())
-        auth_file = yaml.safe_load(auth_file)
+        auth_file = utils.get_yaml_data(auth_file, stream=True)
 
         # Modify the auth data
         for resource in auth_file.get("resource", []):
@@ -567,7 +572,7 @@ class OccopusAdaptor(abco.Adaptor):
 
         # Update the secret with the modified auth data
         if changes:
-            new_auth_data = yaml.dump(auth_file).encode()
+            new_auth_data = utils.dump_order_yaml(auth_file).encode()
             new_auth_data = base64.encodestring(new_auth_data)
             auth_data["auth_data.yaml"] = new_auth_data.decode()
             auth_secret.update()
@@ -590,8 +595,7 @@ class OccopusAdaptor(abco.Adaptor):
         while wait_timer > 0:
             # Read the file in the submitter's auth volume
             try:
-                with open(self.auth_data_submitter) as auth_file:
-                    auth_data = yaml.safe_load(auth_file)
+                auth_data = utils.get_yaml_data(self.auth_data_submitter)
             except FileNotFoundError:
                 logger.error("Credential file missing...")
                 raise AdaptorCritical

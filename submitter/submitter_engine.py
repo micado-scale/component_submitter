@@ -1,20 +1,14 @@
-
-import sys
 import json
-import os
-import time
-from random import randint
 import logging
 import logging.config
 
-import ruamel.yaml as yaml
+from micadoparser import parser
+from micadoparser.validator import MultiError
 
-from submitter import micado_parser
-from submitter import utils
 from submitter.plugins_gestion import PluginsGestion
-from submitter.micado_validator import MultiError
 from submitter.abstracts.exceptions import AdaptorCritical, AdaptorError
 from submitter.submitter_config import SubmitterConfig
+from submitter import utils
 """ set up of Logging """
 config = SubmitterConfig()
 logging.config.dictConfig(config.logging_config)
@@ -49,7 +43,6 @@ class SubmitterEngine(object):
         self.executed_adaptors = {}
         
 
-    #def launch(self, path_to_file, id_app, dry_run=False, parsed_params=None):
     def launch(self, template, dict_object_adaptors, id_app, dry_run):
         """
         Launch method, that will call the in-method egine to execute the application
@@ -66,17 +59,11 @@ class SubmitterEngine(object):
         if self.app_list:
             raise Exception("An application is already running, MiCADO doesn't currently support multi applications")
         
-        #template = self._micado_parser_upload(path_to_file, parsed_params)
-        #template, dict_object_adaptors = self._validate(path_to_file, dry_run, False, id_app, parsed_params)
-    
-        #dict_object_adaptors = self._instantiate_adaptors(id_app, dryrun, template)
-        #logger.debug("list of objects adaptor: {}".format(dict_object_adaptors))
-        #self._save_file(id_app, path_to_file)
         self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys()), "adaptors_object": dict_object_adaptors, "dry_run":dry_run}})
         self._update_json()
         logger.debug("dictionnaty of id is: {}".format(self.app_list))
 
-        self._engine(dict_object_adaptors, template, id_app)
+        self._engine(dict_object_adaptors, id_app)
 
         logger.info("launched process done")
         logger.info("*********************")
@@ -132,10 +119,8 @@ class SubmitterEngine(object):
 
         logger.info("****** proceding to the update of the application {}******".format(id_app))
 
-        #template = self._micado_parser_upload(path_to_file, parsed_params)
         dry_run = self.app_list[id_app]['dry_run']
         
-        #dict_object_adaptors = self._instantiate_adaptors(id_app, dry_run, False, template)
         logger.debug("list of adaptor created: {}".format(dict_object_adaptors))
         self.app_list.update({id_app: {"components":list(dict_object_adaptors.keys()), "adaptors_object": dict_object_adaptors, "dry_run": dry_run}})
         self._update(dict_object_adaptors, id_app)
@@ -158,10 +143,8 @@ class SubmitterEngine(object):
         """
         # MiCADO Validation
         logger.info("****** Starting the validation process of {} *****".format(path_to_file))
-        template = micado_parser.set_template(path_to_file, parsed_params)
-        self.object_config.resolve_inputs(template)
-        #if validate is True:
-        #    dry_run = True
+        template = parser.set_template(path_to_file, parsed_params)
+        
         # Adaptors instantiation
         logger.debug("Instantiating the required adaptors")
         dict_object_adaptors = self._instantiate_adaptors(app_id, dry_run, validate, template)
@@ -186,12 +169,11 @@ class SubmitterEngine(object):
 
         return template, dict_object_adaptors
 
-    def _engine(self,adaptors, template, app_id):
+    def _engine(self,adaptors, app_id):
         """ Engine itself. Creates first an id, then parse the input file. Retreive the list of id created by the translate methods of the adaptors.
         Excute those id in their respective adaptor. Update the app_list and the json file.
         """
         try:
-            #self._translate(adaptors)
             self._execute(app_id, adaptors)
             logger.debug(self.executed_adaptors)
 
@@ -240,32 +222,15 @@ class SubmitterEngine(object):
 
         """
         adaptors = dict()
-        if template is not None:
-            for adaptor in self.adaptors_class_name:
-                logger.debug("instantiate {}, template".format(adaptor))
-                if app_id:
-                    adaptor_id="{}_{}".format(app_id, adaptor.__name__)
-                else:
-                    adaptor_id = adaptor.__name__
-                obj = adaptor(adaptor_id, self.object_config.adaptor_config[adaptor.__name__], dry_run, validate, template = template)
-                adaptors[adaptor.__name__] = obj
-                #adaptors.append(obj)
-            return adaptors
-
-        elif template is None:
-            for adaptor in self.adaptors_class_name:
-                logger.debug("instantiate {}, no template".format(adaptor))
-                if app_id:
-                    adaptor_id="{}_{}".format(app_id, adaptor.__name__)
-                else:
-                    adaptor_id = adaptor.__name__
-                obj = adaptor(adaptor_id,self.object_config.adaptor_config[adaptor.__name__], dry_run, validate)
-                #adaptors.append(obj)
-                adaptors[adaptor.__name__] = obj
-
-                logger.debug("done instntiation of {}".format(adaptor))
-
-            return adaptors
+        for adaptor in self.adaptors_class_name:
+            logger.debug("instantiate {}, template".format(adaptor))
+            if app_id:
+                adaptor_id="{}_{}".format(app_id, adaptor.__name__)
+            else:
+                adaptor_id = adaptor.__name__
+            obj = adaptor(adaptor_id, self.object_config.adaptor_config[adaptor.__name__], dry_run, validate, template = template)
+            adaptors[adaptor.__name__] = obj
+        return adaptors
 
 
     def _translate(self, adaptors):
@@ -364,7 +329,7 @@ class SubmitterEngine(object):
         """
         data_to_save = dict()
         if isinstance(self.app_list, dict):
-            for key, value in self.app_list.items():
+            for key in self.app_list:
                 data_to_save.setdefault(key, {})
                 if isinstance(self.app_list[key], dict):
                     for k, v in self.app_list[key].items():
@@ -376,15 +341,6 @@ class SubmitterEngine(object):
 
 
         try:
-            with open(JSON_FILE, 'w') as outfile:
-                json.dump(data_to_save, outfile)
+            utils.dump_json(data_to_save, JSON_FILE)
         except Exception as e:
             logger.warning("{}".format(e))
-
-
-    def _save_file(self, id_app, path):
-        """ method called by the engine to dump the current template being treated to the files/templates directory, with as name
-        the ID of the app.
-        """
-        data = utils.get_yaml_data(path)
-        utils.dump_order_yaml(data, "files/templates/{}.yaml".format(id_app))

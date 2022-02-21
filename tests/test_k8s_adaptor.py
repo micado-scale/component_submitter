@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock, patch
 from collections import namedtuple
 
-from toscaparser.tosca_template import ToscaTemplate
+from micadoparser.parser import set_template
 
 from submitter.adaptors.k8s_adaptor.k8s_adaptor import KubernetesAdaptor
 from submitter.adaptors.k8s_adaptor.resources import pod, container, service
@@ -31,7 +31,6 @@ DEFAULT_RESOURCE = {
             VER_LABEL: "",
         },
     },
-    "spec": {},
 }
 
 APP = "app-name"
@@ -222,7 +221,8 @@ class TestPod(unittest.TestCase):
         self.mock_pod.configure_mock(spec={})
 
     def test_pod_clear_keys(self):
-        compare = list(DEFAULT_RESOURCE.keys())[2:]
+        pod_resource = {"metadata": {}, "spec": {}}
+        compare = list(pod_resource.keys())
         self.assertEqual(compare, list(self.pod.manifest.keys()))
         self.assertNotIn("name", self.pod.manifest["metadata"])
 
@@ -300,21 +300,20 @@ class TestPod(unittest.TestCase):
     # Handle volume mounting tests
 
     @patch.object(pod, "_get_volume_spec")
-    def test_add_mounts_name_resolution(self, mock):
+    def test_add_mounts(self, mock):
         metadata = {"metadata": {"name": "claim"}}
-        mount = Mock(properties={}, inputs=metadata)
-        mount.name = "node"
+        mount_test = Mock(properties={}, inputs={})
+        mount_test.name = "test-dir"
+        mount_named = Mock(properties={"name": "test-dir"}, inputs=metadata)
+        mount_named.name = "named-dir"
         container = Mock()
-        container.info = Mock(requirements={})
-        Pod._add_mounts(self.mock_pod, "configs", [mount], container)
+        container.info = Mock(
+            requirements=[{"volume": "test-dir"}, {"volume": "named-dir"}]
+        )
+        Pod._add_mounts(self.mock_pod, "configs", [mount_test, mount_named], container)
+        self.assertEqual(mock.call_count, 2)
         call_args = mock.call_args[0]
-        self.assertEqual(call_args, ("configs", "node", metadata, "claim"))
-
-        mount = Mock(name="claim", properties={"name": "node"}, inputs={})
-        mount.name = "claim"
-        Pod._add_mounts(self.mock_pod, "configs", [mount], container)
-        call_args = mock.call_args[0]
-        self.assertEqual(call_args, ("configs", "node", {}, "claim"))
+        self.assertEqual(call_args, ("configs", "test-dir", metadata, "claim"))
 
     @patch.object(Pod, "_add_mounts")
     def test_handle_mount_types(self, mocked):
@@ -340,31 +339,6 @@ class TestPod(unittest.TestCase):
         self.assertEqual(path, "x")
         path = pod._get_path_on_disk({}, {})
         self.assertEqual(path, "")
-
-    def test_get_volume_property(self):
-        properties = {"location": "x", "read_only": True}
-        node = {"node": "name", "relationship": {"properties": properties}}
-
-        path = pod._get_volume_property("location", "name", [{"volume": node}])
-        read_only = pod._get_volume_property(
-            "read_only", "name", [{"volume": node}]
-        )
-        self.assertEqual(path, "x")
-        self.assertEqual(read_only, True)
-
-        # Missing key
-        node["relationship"]["properties"].pop("location")
-        path = pod._get_volume_property("location", "name", [{"volume": node}])
-        self.assertEqual(path, False)
-
-        # Non-matching name
-        node["node"] = "notname"
-        path = pod._get_volume_property("location", "name", [{"volume": node}])
-        read_only = pod._get_volume_property(
-            "read_only", "name", [{"volume": node}]
-        )
-        self.assertEqual(path, False)
-        self.assertEqual(read_only, False)
 
     def test_get_volume_spec_with_volumes(self):
         mount_type = "volumes"
@@ -401,12 +375,14 @@ class TestPod(unittest.TestCase):
     def test_add_volumes_to_container_spec(self):
         spec = {}
         name, path = "node", "path/to"
-        pod._add_volume_to_container_spec(name, spec, path, True)
+        pod._add_volume_to_container_spec(
+            name, spec, {"mountPath": path, "readOnly": "true"}
+        )
         self.assertIn(
             {"name": name, "mountPath": path, "readOnly": "true"},
             spec["volumeMounts"],
         )
-        pod._add_volume_to_container_spec(name, spec, path, False)
+        pod._add_volume_to_container_spec(name, spec, {"mountPath": path})
         self.assertEqual(len(spec["volumeMounts"]), 2)
         self.assertIn({"name": name, "mountPath": path}, spec["volumeMounts"])
 
@@ -604,7 +580,7 @@ class TestLocalADT(unittest.TestCase):
     """ Tests for local ADTs """
 
     def test_local(self):
-        tpl = ToscaTemplate("tests/templates/tosca.yaml")
+        tpl = set_template("tests/templates/tosca.yaml")
         self.adaptor = KubernetesAdaptor(
             "local_K8sAdaptor",
             {"volume": "tests/output/"},
@@ -622,9 +598,9 @@ class TestMasterDemos(unittest.TestCase):
     WRITE = False
 
     def test_cqueue_demo(self):
-        tpl = ToscaTemplate(
+        tpl = set_template(
             f"https://raw.githubusercontent.com/micado-scale/ansible-micado/{self.BRANCH}/demos/cqueue/cqueue_ec2.yaml",
-            a_file=False,
+            {},
         )
         self.adaptor = KubernetesAdaptor(
             f"cqueue-{self.BRANCH}_K8sAdaptor",
@@ -636,9 +612,9 @@ class TestMasterDemos(unittest.TestCase):
         self.adaptor.translate(write_files=self.WRITE)
 
     def test_nginx_demo(self):
-        tpl = ToscaTemplate(
+        tpl = set_template(
             f"https://raw.githubusercontent.com/micado-scale/ansible-micado/{self.BRANCH}/demos/nginx/nginx_ec2.yaml",
-            a_file=False,
+            {},
         )
         self.adaptor = KubernetesAdaptor(
             f"nginx-{self.BRANCH}_K8sAdaptor",
@@ -650,9 +626,9 @@ class TestMasterDemos(unittest.TestCase):
         self.adaptor.translate(write_files=self.WRITE)
 
     def test_wordpress_demo(self):
-        tpl = ToscaTemplate(
+        tpl = set_template(
             f"https://raw.githubusercontent.com/micado-scale/ansible-micado/{self.BRANCH}/demos/wordpress/wordpress_ec2.yaml",
-            a_file=False,
+            {},
         )
         self.adaptor = KubernetesAdaptor(
             f"wordpress-{self.BRANCH}_K8sAdaptor",

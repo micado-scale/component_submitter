@@ -6,7 +6,7 @@ A module allowing the configuration of the whole submitter
 import logging
 from os import path
 
-import ruamel.yaml as yaml
+from submitter import utils
 
 basepath = path.dirname(__file__)
 CONFIG_FILE = "{}/system/key_config.yml".format(basepath)
@@ -52,52 +52,14 @@ class SubmitterConfig:
         """reading the config file and creating a dictionary related to it"""
         logger.debug("reading config file")
         dic_types = dict()
-        yaml.default_flow_style = False
         with open(self.config_path, "r") as stream:
             try:
 
-                dic_types = yaml.round_trip_load(
-                    stream.read(), preserve_quotes=True
+                dic_types = utils.get_yaml_data(
+                    stream.read(), stream=True
                 )
             except OSError as exc:
 
                 logger.error("Error while reading file, error: %s" % exc)
         logger.debug("return dictionary of types from config file")
         return dic_types
-
-    def resolve_inputs(self, template):
-        self._find_get_input(template.tpl, template)
-        # Update nodetemplate properties
-        for node in template.nodetemplates:
-            node._properties = node._create_properties()
-
-    def _find_get_input(self, tpl, template):
-        for key, value in tpl.items():
-            if key == "get_input":
-                return value
-            elif isinstance(value, dict):
-                result = self._find_get_input(value, template)
-                if result:
-                    tpl[key] = self._get_input_value(result, template)
-            elif isinstance(value, list):
-                for i in value:
-                    if not isinstance(i, dict):
-                        continue
-                    result = self._find_get_input(i, template)
-                    if result:
-                        tpl[key][i] = self._get_input_value(result, template)
-
-    def _get_input_value(self, key, template):
-        try:
-            return template.parsed_params[key]
-        except (KeyError, TypeError):
-            logger.debug(f"Input '{key}' not given, using default")
-
-        try:
-            return [
-                param.default for param
-                in template.inputs
-                if param.name == key][0]
-        except IndexError:
-            logger.error(f"Input '{key}' has no default")
-
