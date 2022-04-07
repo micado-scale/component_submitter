@@ -1,5 +1,5 @@
 from .resources import (
-    Resource,
+    Custom,
     Workload,
     Pod,
     PersistentVolume,
@@ -100,7 +100,7 @@ class CustomTranslator(Translator):
         Returns:
             list of dict: The generated manifest, in a list
         """
-        resource = Resource(self.app, self.name, self.manifest_inputs)
+        resource = Custom(self.app, self.name, self.manifest_inputs)
         return [resource.build(validate=False)]
 
 

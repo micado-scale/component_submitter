@@ -158,3 +158,11 @@ def get_api(kind):
             return api
 
     raise ValueError(f"Could not determine apiVersion from {kind}")
+
+
+class Custom(Resource):
+    def __init__(self, app, name, manifest):
+        super().__init__(app, name, manifest)
+        self.spec = self.manifest.get("spec", {}).get("template", {}).get(
+            "spec", None
+        ) or self.manifest.get("spec", {})
