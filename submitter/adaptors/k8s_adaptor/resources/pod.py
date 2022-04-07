@@ -199,7 +199,9 @@ def _get_volume(volume, mounts):
         name = volume.get("node")
         properties = volume.get("relationship", {}).get("properties")
 
-    [mount] = [mount for mount in mounts if mount.name == name]
+    [mount] = [
+        mount for mount in mounts if mount.name == name.replace("_", "-")
+    ]
     return properties, mount
 
 

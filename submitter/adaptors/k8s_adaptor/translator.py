@@ -72,7 +72,7 @@ class Translator:
             Translator: An instance of this class
         """
         node_info = tosca.get_node_info(node, repositories)
-        return cls(app, node.name, node_info)
+        return cls(app, node_info.name, node_info)
 
     def build(self):
         """Builds the Kubernetes manifest for the given node

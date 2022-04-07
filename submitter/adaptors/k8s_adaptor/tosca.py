@@ -57,10 +57,10 @@ class NetworkProxy(Enum):
 
 
 def get_node_info(node, repositories=None):
-    """Check the node name for errors (underscores)
+    """Extract required info from the TOSCAParser object
 
     Returns:
-        toscaparser.nodetemplate.NodeTemplate: a deepcopy of a NodeTemplate
+        NodeInfo: NamedTuple containing relevant node information
     """
     if not repositories:
         repositories = []
@@ -81,7 +81,7 @@ def get_node_info(node, repositories=None):
         ],
     )
     return NodeInfo(
-        name=node.name,
+        name=node.name.replace("_", "-"),
         type=node.type,
         properties={x: y.value for x, y in node.get_properties().items()},
         inputs=utils.get_lifecycle(node, Interface.KUBERNETES).get(
