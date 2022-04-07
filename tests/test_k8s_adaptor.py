@@ -638,9 +638,3 @@ class TestMasterDemos(unittest.TestCase):
             template=tpl,
         )
         self.adaptor.translate(write_files=self.WRITE)
-
-
-class TestDevDemos(TestMasterDemos):
-    """ Tests for Demos on Dev branch"""
-
-    BRANCH = "develop"
