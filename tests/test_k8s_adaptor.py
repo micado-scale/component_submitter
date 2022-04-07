@@ -594,7 +594,7 @@ class TestLocalADT(unittest.TestCase):
 class TestMasterDemos(unittest.TestCase):
     """ Tests for Demos on Master branch """
 
-    BRANCH = "master"
+    BRANCH = "main"
     WRITE = False
 
     def test_cqueue_demo(self):
