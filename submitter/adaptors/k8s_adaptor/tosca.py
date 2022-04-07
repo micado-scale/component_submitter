@@ -56,7 +56,7 @@ class NetworkProxy(Enum):
         return Prefix.NETWORK_POLICY + "." + self.value
 
 
-def get_container_info(node, repositories):
+def get_node_info(node, repositories=None):
     """Check the node name for errors (underscores)
 
     Returns:
@@ -104,7 +104,7 @@ def get_derived(node, tosca_type):
 def _get_related_nodes(node, tosca_type, repositories=None):
     # TODO use is_derived_from when v9 API deprecated
     return [
-        get_container_info(container, repositories)
+        get_node_info(container, repositories)
         for container in node.related.keys()
         if container.is_derived_from(tosca_type)
         or container.type.startswith(str(tosca_type))

@@ -71,7 +71,7 @@ class Translator:
         Returns:
             Translator: An instance of this class
         """
-        node_info = tosca.get_container_info(node, repositories)
+        node_info = tosca.get_node_info(node, repositories)
         return cls(app, node.name, node_info)
 
     def build(self):
