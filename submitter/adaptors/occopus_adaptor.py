@@ -468,8 +468,9 @@ class OccopusAdaptor(abco.Adaptor):
         try:
             with open(base_cloud_init, 'r') as f:
                 template = jinja2.Template(f.read())
-                rendered = template.render(worker_name=self.node_name)
-                default_cloud_config = utils.get_yaml_data(rendered, stream=True)
+                rendered = template.render(
+                    worker_name=self.node_name.replace("_", "-")
+                )
         except OSError as e:
             logger.error(e)
 
