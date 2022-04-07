@@ -145,7 +145,7 @@ class TemplateHandler:
             app_id (str): Application identifier
         """
         base_path = flask.app.root_path + "/" + "files/templates/"
-        self.path = base_path + str(app_id) + ".yaml"
+        self.path = base_path + str(app_id)
 
     def save_template(self, adt):
         """
@@ -159,6 +159,8 @@ class TemplateHandler:
         if isinstance(adt, dict):
             utils.dump_order_yaml(adt, self.path)
         else:
+            ext = adt.filename.split(".")[-1]
+            self.path = self.path + "." + ext
             try:
                 adt.save(self.path)
             except AttributeError:
