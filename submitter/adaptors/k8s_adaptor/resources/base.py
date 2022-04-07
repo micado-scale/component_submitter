@@ -51,6 +51,40 @@ class Resource:
             self._validate()
         return self.manifest
 
+    def add_affinity(self, hosts_dict):
+        """Adds a node affinity to the PodSpec
+
+        Modifies the manifest attribute, adding the affinity key to the
+        PodSpec, given a dictionary where the key is a required
+        MatchExpressions key and the value is a list of hosts by name
+
+        Args:
+            hosts_dict (dict): dictionary of MatchExpression keys and names
+        """
+        for key_to_match, hosts in hosts_dict.items():
+            self._add_affinity_to_spec(key_to_match, hosts)
+
+    def _add_affinity_to_spec(self, key_to_match, hosts):
+        """Adds affinity to the PodSpec given a key and list of hosts"""
+        if not hosts:
+            return
+
+        selector = {
+            "matchExpressions": [
+                {"key": key_to_match, "operator": "In", "values": hosts}
+            ]
+        }
+
+        self.spec.setdefault("affinity", {}).setdefault(
+            "nodeAffinity", {}
+        ).setdefault(
+            "requiredDuringSchedulingIgnoredDuringExecution", {}
+        ).setdefault(
+            "nodeSelectorTerms", []
+        ).append(
+            selector
+        )
+
     def _validate(self):
         """Validates a Kubernetes resource (Kind, apiVersion checks)
 
