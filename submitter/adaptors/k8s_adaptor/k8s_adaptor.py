@@ -446,8 +446,6 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
 def _name_check_node(node):
     errors = []
-    if "_" in node.name:
-        errors.append("TOSCA node names")
     if "_" in (node.get_property_value("name") or ""):
         errors.append("property: 'name'")
     if "_" in (node.get_property_value("container_name") or ""):
@@ -459,7 +457,7 @@ def _name_check_node(node):
             f"Failed name convention check (underscores) on node: {node.name}"
         )
         raise AdaptorCritical(
-            f"Underscores in node {node.name} not allowed for {errors}"
+            f"Underscores in properties of {node.name} not allowed for {errors}"
         )
 
 

@@ -79,8 +79,6 @@ class OccopusAdaptor(abco.Adaptor):
 
         for node in self.template.nodetemplates:
 
-            if '_' in node.name:                
-                raise AdaptorCritical("Underscores in node {} not allowed".format(node.name))
             self.node_name = node.name
             self.node_data = {}
             
