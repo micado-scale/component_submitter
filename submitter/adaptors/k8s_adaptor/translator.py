@@ -101,6 +101,7 @@ class CustomTranslator(Translator):
             list of dict: The generated manifest, in a list
         """
         resource = Custom(self.app, self.name, self.manifest_inputs)
+        resource.add_affinity(self.node_info.hosts)
         return [resource.build(validate=False)]
 
 
