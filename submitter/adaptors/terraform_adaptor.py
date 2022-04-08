@@ -398,8 +398,7 @@ class TerraformAdaptor(abco.Adaptor):
             with open(base_cloud_init, "r") as f:
                 template = jinja2.Template(f.read())
                 rendered = template.render(
-                    worker_name=self.node_name.replace("_", "-"),
-                    master_pem=master_file,
+                    worker_name=self.node_name, master_pem=master_file
                 )
                 default_cloud_config = yaml.round_trip_load(
                     rendered, preserve_quotes=True
