@@ -1,7 +1,27 @@
-from collections import namedtuple
+from dataclasses import dataclass
 from enum import Enum
 
 from submitter import utils
+
+
+@dataclass(frozen=True, eq=True)
+class NodeInfo:
+    """Interface to TOSCA Parser"""
+
+    name: str
+    type: str
+    properties: dict
+    inputs: dict
+    artifacts: dict
+    parent: dict
+    sidecars: list
+    mounts: dict
+    hosts: dict
+    requirements: dict
+    repositories: dict
+
+    def __hash__(self):
+        return hash((self.name, self.type))
 
 
 class Interface:
@@ -64,22 +84,7 @@ def get_node_info(node, repositories=None):
     """
     if not repositories:
         repositories = []
-    NodeInfo = namedtuple(
-        "NodeInfo",
-        [
-            "name",
-            "type",
-            "properties",
-            "inputs",
-            "artifacts",
-            "parent",
-            "sidecars",
-            "mounts",
-            "hosts",
-            "requirements",
-            "repositories",
-        ],
-    )
+
     return NodeInfo(
         name=node.name,
         type=node.type,
