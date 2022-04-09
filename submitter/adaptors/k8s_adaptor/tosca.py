@@ -94,7 +94,9 @@ def get_node_info(node, repositories=None):
         ),
         artifacts=node.entity_tpl.get("artifacts", {}),
         parent=node.type_definition.defs,
-        sidecars=_get_related_nodes(node, NodeType.CONTAINER, repositories),
+        sidecars=list(
+            _get_related_nodes(node, NodeType.CONTAINER, repositories)
+        ),
         mounts=_get_related_mounts(node),
         hosts=_get_related_hosts(node),
         requirements=node.requirements,
@@ -108,12 +110,25 @@ def get_derived(node, tosca_type):
 
 def _get_related_nodes(node, tosca_type, repositories=None):
     # TODO use is_derived_from when v9 API deprecated
-    return [
-        get_node_info(container, repositories)
-        for container in node.related.keys()
-        if container.is_derived_from(tosca_type)
-        or container.type.startswith(str(tosca_type))
-    ]
+    return {
+        get_node_info(related, repositories): _get_matching_requirement(
+            related.name, node.requirements
+        )
+        for related in node.related.keys()
+        if related.is_derived_from(tosca_type)
+        or related.type.startswith(str(tosca_type))
+    }
+
+
+def _get_matching_requirement(name, requirements):
+    for requirement in requirements:
+        inner_dict = requirement[list(requirement)[0]]
+        if not isinstance(inner_dict, dict):
+            continue
+        if not inner_dict["node"] == name:
+            continue
+        return inner_dict.get("relationship", {}).get("properties", {})
+    return {}
 
 
 def _get_related_mounts(node):
@@ -127,11 +142,11 @@ def _get_related_hosts(node):
     return {
         Affinity.COMPUTE_MATCH: [
             host.name
-            for host in _get_related_nodes(node, NodeType.MICADO_COMPUTE)
+            for host in list(_get_related_nodes(node, NodeType.MICADO_COMPUTE))
         ],
         Affinity.EDGE_MATCH: [
             host.name
-            for host in _get_related_nodes(node, NodeType.MICADO_EDGE)
+            for host in list(_get_related_nodes(node, NodeType.MICADO_EDGE))
         ],
     }
 
