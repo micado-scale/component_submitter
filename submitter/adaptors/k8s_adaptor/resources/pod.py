@@ -103,13 +103,8 @@ class Pod(Resource):
 
     def _add_mounts(self, mount_type, mounts, container):
         """Adds a list of mounts given type, to Container and Pod specs"""
-        for requirement in container.info.requirements:
-            volume = requirement.get("volume")
-            try:
-                properties, mount = _get_volume(volume, mounts)
-            except ValueError:
-                continue
-            
+        for mount, properties in mounts.items():
+
             name = mount.properties.get("name", mount.name)
             claim_name = mount.inputs.get("metadata", {}).get(
                 "name", mount.name
@@ -151,22 +146,6 @@ def _get_path_on_disk(inputs, properties):
         disk_path = properties.get("path", "")
 
     return disk_path
-
-
-def _get_volume(volume, mounts):
-    """Returns the info of the volume to mount"""
-    if not volume:
-        raise ValueError
-
-    if isinstance(volume, str):
-        name = volume
-        properties = {}
-    else:
-        name = volume.get("node")
-        properties = volume.get("relationship", {}).get("properties")
-
-    [mount] = [mount for mount in mounts if mount.name == name]
-    return properties, mount
 
 
 def _get_volume_spec(mount_type, name, inputs, claim_name):
