@@ -307,10 +307,15 @@ class TestPod(unittest.TestCase):
         mount_named = Mock(properties={"name": "test-dir"}, inputs=metadata)
         mount_named.name = "named-dir"
         container = Mock()
-        container.info = Mock(
-            requirements=[{"volume": "test-dir"}, {"volume": "named-dir"}]
+        Pod._add_mounts(
+            self.mock_pod,
+            "configs",
+            {
+                mount_test: {"volume": "test-dir"},
+                mount_named: {"volume": "named-dir"},
+            },
+            container,
         )
-        Pod._add_mounts(self.mock_pod, "configs", [mount_test, mount_named], container)
         self.assertEqual(mock.call_count, 2)
         call_args = mock.call_args[0]
         self.assertEqual(call_args, ("configs", "test-dir", metadata, "claim"))
