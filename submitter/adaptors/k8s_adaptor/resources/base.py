@@ -1,3 +1,5 @@
+WORKLOADS = ("Deployment", "DaemonSet", "StatefulSet", "Job", "Pod")
+
 class Resource:
     """Base class for Kubernetes Resources
 
@@ -61,6 +63,8 @@ class Resource:
         Args:
             hosts_dict (dict): dictionary of MatchExpression keys and names
         """
+        if self.manifest.get("kind", "Pod") not in WORKLOADS:
+            return
         for key_to_match, hosts in hosts_dict.items():
             self._add_affinity_to_spec(key_to_match, hosts)
 
