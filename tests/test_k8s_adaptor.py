@@ -234,13 +234,6 @@ class TestPod(unittest.TestCase):
         self.pod._update_pod_spec(cont)
         self.assertIn("terminationGracePeriodSeconds", self.pod.spec)
 
-    @patch.object(Pod, "_add_affinity_to_spec")
-    def test_add_host_affinity(self, mocked):
-        Pod.add_affinity(Pod, {"micado.eu/node_type": ["host-1"]})
-        self.assertEqual(mocked.call_count, 1)
-        Pod.add_affinity(Pod, {"compute": ["host-2"], "name": []})
-        self.assertEqual(mocked.call_count, 3)
-
     def test_add_affinity_to_spec(self):
         Pod._add_affinity_to_spec(self.mock_pod, "mykey", [])
         self.assertNotIn("affinity", self.mock_pod.spec)
