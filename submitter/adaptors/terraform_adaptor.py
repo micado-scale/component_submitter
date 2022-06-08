@@ -359,8 +359,6 @@ class TerraformAdaptor(abco.Adaptor):
                     auth_url=credential["auth_url"],
                     project_id=credential["project_id"],
                     oidc_url=access["url"],
-                    client_id=access["client_id"],
-                    client_secret=access["client_secret"],
                     refresh_token=access["refresh_token"],
                 )
         except OSError as e:
