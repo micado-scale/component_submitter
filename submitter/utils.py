@@ -3,6 +3,7 @@ import string
 import json
 import logging
 import copy
+import io
 
 from ruamel.yaml import YAML, representer
 
@@ -38,8 +39,12 @@ def dump_json(data, path):
         json.dump(data, file, indent=4)
 
 
-def dump_order_yaml(data, path):
+def dump_order_yaml(data, path=None):
     """ Dump the dictionary to a yaml file """
+    if not path:
+        buffer = io.StringIO()
+        yaml.dump(data, buffer)
+        return buffer.getvalue()
 
     with open(path, "w") as file:
         yaml.dump(data, file)
