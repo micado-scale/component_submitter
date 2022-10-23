@@ -5,7 +5,7 @@ import logging.config
 from micadoparser import parser
 from micadoparser.validator import MultiError
 
-from submitter.plugins_gestion import PluginsGestion
+from submitter.plugin_manager import PluginManager
 from submitter.abstracts.exceptions import AdaptorCritical, AdaptorError
 from submitter.submitter_config import SubmitterConfig
 from submitter import utils
@@ -201,7 +201,7 @@ class SubmitterEngine(object):
         """ Retrieve the list of the differrent class adaptors """
         logger.debug("retreive the adaptors class")
         adaptor_list = self.object_config.get_list_adaptors()
-        PG=PluginsGestion()
+        PG=PluginManager()
         for k in adaptor_list:
             adaptor = PG.get_plugin(k)
             logger.debug("adaptor found {}".format(adaptor))

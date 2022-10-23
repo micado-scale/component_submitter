@@ -10,7 +10,7 @@ from submitter import adaptors
 logger = logging.getLogger("submitter." + __name__)
 
 
-class PluginsGestion(object):
+class PluginManager(object):
     def __init__(self):
         logger.debug("init of the Plugin_Gestion")
         self.plugins = self._load_plugins()
