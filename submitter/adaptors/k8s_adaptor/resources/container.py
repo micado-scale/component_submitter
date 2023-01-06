@@ -131,19 +131,50 @@ class Container:
             repository = parent_artifacts.get("image", {}).get("repository")
 
         # Default to DockerHub
-        if not repository or (
-            repository.lower().replace(" ", "").replace("-", "").replace("_", "")
-            == "dockerhub"
-        ):
+        if is_docker_hub(repository):
             return image
 
-        try:
-            path = self.info.repositories[repository]
-            path = path.strip("/").replace("https://", "").replace("http://", "")
-            image = "/".join([path, image])
-        except KeyError:
-            raise KeyError(f"Repository {repository} not defined!")
+        # Otherwise add full path according to repository
+        image = add_repo_url(image, repository, self.info.repositories)
         return image
+
+
+def add_repo_url(image, repository, repositories):
+    """Add repository URI to image name
+
+    Args:
+        image (str): docker image name
+        repository (str): repository key name
+        repositories (dict): map of repositories and URIs from ADT
+
+    Raises:
+        KeyError: Repository not defined in map in ADT
+
+    Returns:
+        str: full path to docker image including repository
+    """
+    try:
+        path = repositories[repository]
+        path = path.strip("/").replace("https://", "").replace("http://", "")
+        image = "/".join([path, image])
+    except KeyError:
+        raise KeyError(f"Repository {repository} not defined!")
+    return image
+
+
+def is_docker_hub(repository):
+    """Check if the repository specified is DockerHub
+
+    Args:
+        repository (str): repository name
+
+    Returns:
+        bool: True if docker hub or no repo provided
+    """
+    return not repository or (
+        repository.lower().replace(" ", "").replace("-", "").replace("_", "")
+        == "dockerhub"
+    )
 
 
 def _make_env(environment):
