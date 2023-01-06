@@ -66,13 +66,12 @@ class Resource:
         if self.manifest.get("kind", "Pod") not in WORKLOADS:
             return
         for key_to_match, hosts in hosts_dict.items():
+            if not hosts:
+                continue
             self._add_affinity_to_spec(key_to_match, hosts)
 
     def _add_affinity_to_spec(self, key_to_match, hosts):
         """Adds affinity to the PodSpec given a key and list of hosts"""
-        if not hosts:
-            return
-
         selector = {
             "matchExpressions": [
                 {"key": key_to_match, "operator": "In", "values": hosts}
