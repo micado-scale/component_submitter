@@ -1,0 +1,254 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+imports:
+  - container_common.yaml
+node_types:
+  # This type can be used to define *any* Kubernetes resource
+  tosca.nodes.MiCADO.Kubernetes:
+    description: Base type for defining custom Kubernetes resources
+    derived_from: tosca.nodes.Root
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+  tosca.nodes.MiCADO.Container.Application.Docker.Deployment:
+    description: An abstraction of the Docker container node, creates a Kubernetes Deployment
+    derived_from: tosca.nodes.MiCADO.Container.Application.Docker
+    artifacts:
+      image:
+        type: tosca.artifacts.Deployment.Image.Container.Docker
+        file: {get_property: [SELF, image]}
+        repository: docker_hub
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+        create:
+          inputs:
+            kind: Deployment
+            spec:
+              strategy:
+                type: Recreate
+  tosca.nodes.MiCADO.Container.Application.Docker.DaemonSet:
+    description: An abstraction which creates a Kubernetes DaemonSet
+    derived_from: tosca.nodes.MiCADO.Container.Application.Docker
+    artifacts:
+      image:
+        type: tosca.artifacts.Deployment.Image.Container.Docker
+        file: {get_property: [SELF, image]}
+        repository: docker_hub
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+        create:
+          inputs:
+            kind: DaemonSet
+  tosca.nodes.MiCADO.Container.Application.Docker.StatefulSet:
+    description: An abstraction of the Docker container node, creates a Kubernetes StatefulSet
+    derived_from: tosca.nodes.MiCADO.Container.Application.Docker
+    artifacts:
+      image:
+        type: tosca.artifacts.Deployment.Image.Container.Docker
+        file: {get_property: [SELF, image]}
+        repository: docker_hub
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+        create:
+          inputs:
+            kind: StatefulSet
+            spec:
+              updateStrategy:
+                type: RollingUpdate
+              podManagementPolicy: Parallel
+  # TODO: Deprecate in favour of ...Container.Application.Pod (common.yaml)
+  tosca.nodes.MiCADO.Container.Pod.Kubernetes:
+    description: A bare Kubernetes Pod, which supports hosting containers
+    derived_from: tosca.nodes.MiCADO.Container.Application.Pod
+    properties:
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+    requirements:
+      - service:
+          capability: tosca.capabilities.Container.Docker
+          node: tosca.nodes.MiCADO.Container.Application.Docker
+          relationship: tosca.relationships.MiCADO.ConnectsTo
+      - container:
+          capability: tosca.capabilities.Container.Docker
+          node: tosca.nodes.MiCADO.Container.Application.Docker
+          relationship: tosca.relationships.HostedOn
+      - host:
+          capability: tosca.capabilities.Compute
+          node: tosca.nodes.MiCADO.Compute
+          relationship: tosca.relationships.HostedOn
+  tosca.nodes.MiCADO.Container.Application.Pod.Deployment:
+    description: An abstraction of a generic Pod, creates a Deployment
+    derived_from: tosca.nodes.MiCADO.Container.Application.Pod
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+        create:
+          inputs:
+            kind: Deployment
+            spec:
+              strategy:
+                type: Recreate
+  # TODO: Deprecate this in favour of ...Config.ConfigMap
+  tosca.nodes.MiCADO.Container.Config.Kubernetes:
+    description: An abstraction of the config node for Kubernetes ConfigMaps
+    derived_from: tosca.nodes.MiCADO.Container.Config
+    properties:
+      data:
+        type: map
+        description: data
+        required: false
+      binaryData:
+        type: map
+        description: datab
+        required: false
+    capabilities:
+      volume:
+        type: tosca.capabilities.Attachment
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+        create:
+          inputs:
+            data: {get_property: [SELF, data]}
+            binaryData: {get_property: [SELF, binaryData]}
+  tosca.nodes.MiCADO.Container.Config.ConfigMap:
+    description: An abstraction of the config node for Kubernetes ConfigMaps
+    derived_from: tosca.nodes.MiCADO.Container.Config
+    properties:
+      data:
+        type: map
+        description: data
+        required: false
+      binaryData:
+        type: map
+        description: datab
+        required: false
+    capabilities:
+      volume:
+        type: tosca.capabilities.Attachment
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+        create:
+          inputs:
+            data: {get_property: [SELF, data]}
+            binaryData: {get_property: [SELF, binaryData]}
+  tosca.nodes.MiCADO.Container.Volume.EmptyDir:
+    description: An abstraction of the volume node for Kubernetes EmptyDir volumes
+    derived_from: tosca.nodes.MiCADO.Container.Volume
+    capabilities:
+      volume:
+        type: tosca.capabilities.Attachment
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+        create:
+          inputs:
+            spec:
+              emptyDir: {}
+  tosca.nodes.MiCADO.Container.Volume.HostPath:
+    description: An abstraction of the volume node for Kubernetes HostPath volumes
+    derived_from: tosca.nodes.MiCADO.Container.Volume
+    properties:
+      path:
+        type: string
+        description: path on host
+        required: true
+    capabilities:
+      volume:
+        type: tosca.capabilities.Attachment
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+        create:
+          inputs:
+            spec:
+              hostPath:
+                path: {get_property: [SELF, path]}
+  tosca.nodes.MiCADO.Container.Volume.Local:
+    description: An abstraction of the volume node for Kubernetes Local volumes
+    derived_from: tosca.nodes.MiCADO.Container.Volume
+    properties:
+      path:
+        type: string
+        description: path on node
+        required: true
+      node:
+        type: string
+        description: name of node for affinity
+        required: true
+    capabilities:
+      volume:
+        type: tosca.capabilities.Attachment
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+        create:
+          inputs:
+            spec:
+              volumeMode: Filesystem
+              local:
+                path: {get_property: [SELF, path]}
+              nodeAffinity:
+                required:
+                  nodeSelectorTerms:
+                    - matchExpressions:
+                        - key: manual_node
+                          operator: In
+                          values:
+                            - {get_property: [SELF, node]}
+  tosca.nodes.MiCADO.Container.Volume.NFS:
+    description: An abstraction of the volume node for Kubernetes NFS volumes
+    derived_from: tosca.nodes.MiCADO.Container.Volume
+    properties:
+      path:
+        type: string
+        description: path on host
+        required: true
+      server:
+        type: string
+        description: NFS server IP
+        required: true
+    capabilities:
+      volume:
+        type: tosca.capabilities.Attachment
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+        create:
+          inputs:
+            spec:
+              nfs:
+                path: {get_property: [SELF, path]}
+                server: {get_property: [SELF, server]}
+  tosca.nodes.MiCADO.Container.Volume.GlusterFS:
+    description: An abstraction of the volume node for Kubernetes GlusterFS volumes
+    derived_from: tosca.nodes.MiCADO.Container.Volume
+    properties:
+      path:
+        type: string
+        description: path on host
+        required: true
+      endpoints:
+        type: string
+        description: NFS server IP
+        required: true
+      readOnly:
+        type: boolean
+        required: false
+    capabilities:
+      volume:
+        type: tosca.capabilities.Attachment
+    interfaces:
+      Kubernetes:
+        type: tosca.interfaces.MiCADO.Kubernetes
+        create:
+          inputs:
+            spec:
+              glusterfs:
+                path: {get_property: [SELF, path]}
+                endpoints: {get_property: [SELF, endpoints]}
+                readOnly: {get_property: [SELF, readOnly]}

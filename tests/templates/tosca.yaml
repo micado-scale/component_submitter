@@ -1,7 +1,7 @@
 tosca_definitions_version: tosca_simple_yaml_1_3
 
 imports:
-  - custom_types.yaml
+  - micado_types.yaml
 
 repositories:
   docker_hub: https://hub.docker.com/
@@ -138,7 +138,6 @@ topology_template:
       type: tosca.nodes.MiCADO.EC2.Compute.Terra
       properties:
         <<: *compute_properties
-        endpoint: https://mycloud.net/api/terra/v2
       
   policies:
     - scalability:

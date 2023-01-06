@@ -1,0 +1,16 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+imports:
+  - cloud_common.yaml
+node_types:
+  tosca.nodes.MiCADO.EC2.Compute.Terra:
+    description: Basic EC2 VM for MiCADO, by Terraform, on eu-west-2
+    derived_from: tosca.nodes.MiCADO.EC2.Compute
+    properties:
+      region_name:
+        type: string
+        default: eu-west-2
+        required: true
+    interfaces:
+      Terraform:
+        type: tosca.interfaces.MiCADO.Terraform
+        create:

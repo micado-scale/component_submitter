@@ -1,0 +1,90 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+imports:
+  - cloud_common.yaml
+node_types:
+  tosca.nodes.MiCADO.CloudSigma.Compute.Occo:
+    description: Basic CloudSigma VM for MiCADO, by Occopus
+    derived_from: tosca.nodes.MiCADO.CloudSigma.Compute
+    properties:
+      endpoint:
+        type: string
+        default: https://zrh.cloudsigma.com/api/2.0
+        required: true
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+        create:
+          inputs:
+            endpoint: {get_property: [SELF, endpoint]}
+  tosca.nodes.MiCADO.CloudSigma.Compute.Occo.small:
+    description: Basic CloudSigma VM (2GHz/2GB) for MiCADO, by Occopus
+    derived_from: tosca.nodes.MiCADO.CloudSigma.Compute.Occo
+    properties:
+      num_cpus:
+        type: integer
+        default: 2000
+        required: true
+      mem_size:
+        type: integer
+        default: 2147483648
+        required: true
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+        create:
+          inputs:
+            endpoint: {get_property: [SELF, endpoint]}
+  tosca.nodes.MiCADO.CloudSigma.Compute.Occo.big:
+    description: Bigger CloudSigma VM (4GHz/4GB) for MiCADO, by Occopus
+    derived_from: tosca.nodes.MiCADO.CloudSigma.Compute.Occo
+    properties:
+      num_cpus:
+        type: integer
+        default: 4000
+        required: true
+      mem_size:
+        type: integer
+        default: 4294967296
+        required: true
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+        create:
+          inputs:
+            endpoint: {get_property: [SELF, endpoint]}
+  tosca.nodes.MiCADO.CloudSigma.Compute.Occo.small.NFS:
+    description: CloudSigma VM (2GHz/2GB) with NFS dependencies, by Occopus
+    derived_from: tosca.nodes.MiCADO.CloudSigma.Compute.Occo.small
+    properties:
+      context:
+        type: map
+        default:
+          append: true
+          cloud_config: |
+            runcmd:
+            - apt-get install -y nfs-kernel-server nfs-common
+        required: true
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+        create:
+          inputs:
+            endpoint: {get_property: [SELF, endpoint]}
+  tosca.nodes.MiCADO.EC2.Compute.Occo:
+    description: Basic EC2 VM for MiCADO, by Occopus, on eu-west-2
+    derived_from: tosca.nodes.MiCADO.EC2.Compute
+    properties:
+      region_name:
+        type: string
+        default: eu-west-2
+        required: true
+      endpoint:
+        type: string
+        default: https://ec2.eu-west-2.amazonaws.com
+        required: true
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+        create:
+          inputs:
+            endpoint: {get_property: [SELF, endpoint]}
