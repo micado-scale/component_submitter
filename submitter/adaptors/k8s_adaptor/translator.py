@@ -21,19 +21,17 @@ def get_translator(node):
     Returns:
         Translator: The matching translator object
     """
-    # TODO: Use ONLY get_derived when v9 API deprecated
-    if (
-        tosca.get_derived(node, tosca.NodeType.CONTAINER)
-        or node.type.startswith(str(tosca.NodeType.CONTAINER))
-        or node.type == "tosca.nodes.MiCADO.Container.Pod.Kubernetes"
-    ):
-        return WorkloadTranslator
-    elif tosca.get_derived(node, tosca.NodeType.CONTAINER_CONFIG):
-        return ConfigMapTranslator
-    elif tosca.get_derived(node, tosca.NodeType.CONTAINER_VOLUME):
-        return VolumeTranslator
-    else:
-        return CustomTranslator
+    TRANSLATORS = {
+        tosca.NodeType.CONTAINER: WorkloadTranslator,
+        tosca.NodeType.CONTAINER_CONFIG: ConfigMapTranslator,
+        tosca.NodeType.CONTAINER_VOLUME: VolumeTranslator,
+    }
+
+    for node_type, translator in TRANSLATORS.items():
+        if tosca.get_derived(node, node_type):
+            return translator
+
+    return CustomTranslator
 
 
 class Translator:
