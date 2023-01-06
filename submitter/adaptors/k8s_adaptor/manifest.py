@@ -136,8 +136,7 @@ class VolumeManifest(Manifest):
         Returns:
             list of dict: A list with generated manifests for PV and PVC
         """
-        volume_type = self.manifest_inputs.get("spec", {})
-        if "emptyDir" in volume_type or "hostPath" in volume_type:
+        if is_empty_dir_or_host_path(self.manifest_inputs):
             return []
         pv = PersistentVolume(
             self.app,
@@ -249,3 +248,15 @@ class WorkloadManifest(Manifest):
             service.update_spec(port)
             services[service_name] = service
         return services.values()
+
+
+
+def is_empty_dir_or_host_path(manifest):
+    """Check if volume is emptyDir or hostPath, which do not require a manifest
+
+    Args:
+        manifest (dict): manifest
+    """
+    volume_spec = manifest.get("spec", {})
+    if "emptyDir" in volume_spec or "hostPath" in volume_spec:
+        return True
