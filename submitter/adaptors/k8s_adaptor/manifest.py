@@ -22,9 +22,9 @@ def get_manifest_type(node):
         Manifest: The matching Manifest object
     """
     MANIFEST_TYPES = {
-        tosca.NodeType.CONTAINER: WorkloadManifest,
-        tosca.NodeType.CONTAINER_CONFIG: ConfigMapManifest,
-        tosca.NodeType.CONTAINER_VOLUME: VolumeManifest,
+        str(tosca.NodeType.CONTAINER): WorkloadManifest,
+        str(tosca.NodeType.CONTAINER_CONFIG): ConfigMapManifest,
+        str(tosca.NodeType.CONTAINER_VOLUME): VolumeManifest,
     }
 
     for node_type, manifest_type in MANIFEST_TYPES.items():
@@ -200,7 +200,7 @@ def build_containers(node_info):
     container_list = []
 
     for container in containers:
-        if (tosca.NodeType.KUBERNETES_POD in container.type):
+        if (str(tosca.NodeType.KUBERNETES_POD) in container.type):
             continue
 
         built_container = Container(container)
