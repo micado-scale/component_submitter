@@ -138,15 +138,19 @@ class VolumeManifest(Manifest):
         """
         if is_empty_dir_or_host_path(self.manifest_inputs):
             return []
+        
         pv = PersistentVolume(
             self.app,
             self.name,
             self.manifest_inputs,
             self.node_info.properties,
         )
-        pvc_spec = pv.pvc_spec
-        size = pv.size
-        pvc = PersistentVolumeClaim(self.app, pv.name, pvc_spec, size)
+        pvc = PersistentVolumeClaim(
+            self.app,
+            pv.name,
+            pv.pvc_spec,
+            pv.size,
+        )
         return [pv.build()] + [pvc.build()]
 
 
