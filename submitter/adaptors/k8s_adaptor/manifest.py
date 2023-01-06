@@ -169,90 +169,79 @@ class WorkloadManifest(Manifest):
         Returns:
             list of dict: A list with the Workload and Service manifests
         """
-        pod = self._build_pod()
+        pod = build_pod(self.app, self.name)
         pod.add_affinity(self.node_info.hosts)
 
-        containers = self._build_containers()
+        containers = build_containers(self.node_info)
         pod.add_containers(containers)
 
         resource = Workload(self.app, self.name, self.manifest_inputs)
         resource.add_pod(pod)
 
-        services = self._build_services(pod.ports, pod.namespace, pod.labels)
+        services = build_services(self.app, self.name, pod)
 
         return [resource.build()] + [s.build() for s in services]
 
-    def _build_containers(self):
-        """Builds containers for the node """
-        containers = [self.node_info] + self.node_info.sidecars
-        container_list = []
 
-        for container in containers:
+def build_pod(app, name):
+    """Builds the Pod object """
+    try:
+        return Pod(app, name)
+    except Exception as err:
+        raise ValueError(
+            f"Error while building pod for {name}: {err}"
+        ) from err
 
-            # TODO: Use ONLY container.type == when v9 API deprecated
-            if (
-                str(tosca.NodeType.KUBERNETES_POD) in container.type
-                or "MiCADO.Container.Pod" in container.type
-            ):
-                continue
 
-            built_container = Container(container)
-            built_container.is_init = (
-                tosca.NodeType.INIT_CONTAINER == container.type
-            )
-            try:
-                built_container.build()
-            except Exception as err:
-                raise ValueError(
-                    f"Error while building container {container.name}: {err}"
-                ) from err
+def build_containers(node_info):
+    """Builds containers for the node """
+    containers = [node_info] + node_info.sidecars
+    container_list = []
 
-            container_list.append(built_container)
-        return container_list
+    for container in containers:
+        if (tosca.NodeType.KUBERNETES_POD in container.type):
+            continue
 
-    def _build_pod(self):
-        """Builds the Pod object """
+        built_container = Container(container)
+        built_container.is_init = (
+            tosca.NodeType.INIT_CONTAINER == container.type
+        )
         try:
-            return Pod(self.app, self.name)
+            built_container.build()
         except Exception as err:
             raise ValueError(
-                f"Error while building pod for {self.name}: {err}"
+                f"Error while building container {container.name}: {err}"
             ) from err
 
-    def _build_services(self, ports, namespace, labels):
-        """Builds Services required by the Pods """
-        services = {}
+        container_list.append(built_container)
+    return container_list
 
-        for port in ports:
-            port = get_port_spec(port)
-            service_name = port.service_name
-            service_type = port.type or "ClusterIP"
 
-            if service_name:
-                service = services.get(port.service_name)
-            else:
-                service_name = self.name.lower()
-                service = services.get(service_name)
-                if service and service.type != service_type:
-                    service = None
-                    service_name = f"{self.name}-{service_type}".lower()
+def build_services(app, name, pod):
+    """Builds Services required by the Pods """
+    services = {}
 
-            if not service:
-                try:
-                    service = Service(
-                        self.app, service_name, labels, service_type
-                    )
-                except Exception as err:
-                    raise ValueError(
-                        f"Error while building service for {self.name}: {err}"
-                    ) from err
+    for port in pod.ports:
+        port = get_port_spec(port)
+        svc_name = port.service_name or name.lower()
+        svc_type = port.type or "ClusterIP"
 
-            if namespace:
-                service.update_namespace(namespace)
-            service.update_spec(port)
-            services[service_name] = service
-        return services.values()
+        service = services.get(svc_name)
+        if service and service.type != svc_type:
+            service = None
+            svc_name = f"{name}-{svc_type}".lower()
 
+        if not service:
+            try:
+                service = Service(app, svc_name, pod.labels, svc_type)
+            except Exception as err:
+                raise ValueError(f"Error building service for {name}: {err}")
+
+        if pod.namespace:
+            service.update_namespace(pod.namespace)
+        service.update_spec(port)
+        services[svc_name] = service
+    return services.values()
 
 
 def is_empty_dir_or_host_path(manifest):
