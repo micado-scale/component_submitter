@@ -12,30 +12,30 @@ from .resources.service import get_port_spec
 from . import tosca
 
 
-def get_translator(node):
-    """Gets the required translator object to transform the given TOSCA node
+def get_manifest_type(node):
+    """Gets the required manifest object to transform the given TOSCA node
 
     Args:
         node (toscaparser...NodeTemplate): A toscaparser NodeTemplate object
 
     Returns:
-        Translator: The matching translator object
+        Manifest: The matching Manifest object
     """
-    TRANSLATORS = {
-        tosca.NodeType.CONTAINER: WorkloadTranslator,
-        tosca.NodeType.CONTAINER_CONFIG: ConfigMapTranslator,
-        tosca.NodeType.CONTAINER_VOLUME: VolumeTranslator,
+    MANIFEST_TYPES = {
+        tosca.NodeType.CONTAINER: WorkloadManifest,
+        tosca.NodeType.CONTAINER_CONFIG: ConfigMapManifest,
+        tosca.NodeType.CONTAINER_VOLUME: VolumeManifest,
     }
 
-    for node_type, translator in TRANSLATORS.items():
+    for node_type, manifest_type in MANIFEST_TYPES.items():
         if tosca.get_derived(node, node_type):
-            return translator
+            return manifest_type
 
-    return CustomTranslator
+    return CustomManifest
 
 
-class Translator:
-    """Base class for Kubernetes Translators
+class Manifest:
+    """Base class for Kubernetes Manifests
 
     Attributes:
         app: Overall application name
@@ -67,7 +67,7 @@ class Translator:
             repositories (dict, optional): ToscaTemplate.repositories object
 
         Returns:
-            Translator: An instance of this class
+            Manifest: An instance of this class
         """
         node_info = tosca.get_node_info(node, repositories)
         return cls(app, node.name, node_info)
@@ -84,7 +84,7 @@ class Translator:
         raise NotImplementedError
 
 
-class CustomTranslator(Translator):
+class CustomManifest(Manifest):
     """Builds Kubernetes manifests for custom resources
 
     """
@@ -103,7 +103,7 @@ class CustomTranslator(Translator):
         return [resource.build(validate=False)]
 
 
-class ConfigMapTranslator(Translator):
+class ConfigMapManifest(Manifest):
     """Builds Kubernetes manifests for ConfigMap resources
 
     """
@@ -123,7 +123,7 @@ class ConfigMapTranslator(Translator):
         return [config.build()]
 
 
-class VolumeTranslator(Translator):
+class VolumeManifest(Manifest):
     """Builds Kubernetes manifests for PersistentVolumes and Claims
 
     """
@@ -151,7 +151,7 @@ class VolumeTranslator(Translator):
         return [pv.build()] + [pvc.build()]
 
 
-class WorkloadTranslator(Translator):
+class WorkloadManifest(Manifest):
     """Builds the manifest for Kubernetes Workload objects
 
     Including: Deployments, StatefulSets, Jobs, Pods, DaemonSets
