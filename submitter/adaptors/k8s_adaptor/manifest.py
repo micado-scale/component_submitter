@@ -136,6 +136,7 @@ class VolumeManifest(Manifest):
         Returns:
             list of dict: A list with generated manifests for PV and PVC
         """
+        # We don't create manifests for these two types
         if is_empty_dir_or_host_path(self.manifest_inputs):
             return []
         
@@ -223,10 +224,16 @@ def build_services(app, name, pod):
 
     for port in pod.ports:
         port = get_port_spec(port)
+
+        # service names and types may not be provided
         svc_name = port.service_name or name.lower()
         svc_type = port.type or "ClusterIP"
 
+        # try to find an existing service by this name
         service = services.get(svc_name)
+
+        # if a service by this name exists but the type does not match,
+        # we add the type to this name to avoid collisions
         if service and service.type != svc_type:
             service = None
             svc_name = f"{name}-{svc_type}".lower()
@@ -237,6 +244,7 @@ def build_services(app, name, pod):
             except Exception as err:
                 raise ValueError(f"Error building service for {name}: {err}")
 
+        # both new and existing services will be updated here
         if pod.namespace:
             service.update_namespace(pod.namespace)
         service.update_spec(port)
