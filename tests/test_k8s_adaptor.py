@@ -235,7 +235,7 @@ class TestPod(unittest.TestCase):
         self.assertIn("terminationGracePeriodSeconds", self.pod.spec)
 
     def test_add_affinity_to_spec(self):
-        Pod._add_affinity_to_spec(self.mock_pod, "mykey", [])
+        Pod.add_affinity(self.mock_pod, {"hostkey": []})
         self.assertNotIn("affinity", self.mock_pod.spec)
         Pod._add_affinity_to_spec(self.mock_pod, "mykey", ["c-one", "c-two"])
         self.assertIn("affinity", self.mock_pod.spec)
