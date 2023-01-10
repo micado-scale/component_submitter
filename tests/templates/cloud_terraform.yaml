@@ -10,6 +10,10 @@ node_types:
         type: string
         default: eu-west-2
         required: true
+      endpoint:
+        type: string
+        required: false
+      
     interfaces:
       Terraform:
         type: tosca.interfaces.MiCADO.Terraform
