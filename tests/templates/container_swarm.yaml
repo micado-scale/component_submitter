@@ -1,0 +1,31 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+imports:
+  - container_common.yaml
+node_types:
+  tosca.nodes.MiCADO.network.Network.Docker:
+    description: Node for creating a new Docker network
+    derived_from: tosca.nodes.network.Network
+    properties:
+      attachable:
+        type: boolean
+        description: is attachable
+        required: false
+      driver:
+        type: string
+        description: network driver
+        required: false
+      external:
+        type: boolean
+        required: false
+      driver_opts:
+        type: map
+        description: network driver options (incl. mtu)
+        required: false
+      ip_version:
+        type: integer
+        required: false
+        default: null
+      dhcp_enabled:
+        type: boolean
+        required: false
+        default: null

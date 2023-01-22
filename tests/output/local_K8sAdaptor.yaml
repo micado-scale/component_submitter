@@ -227,11 +227,14 @@ spec:
                 - worker-node
       volumes:
       - name: docker-binary-host-vol
-        persistentVolumeClaim:
-          claimName: docker-binary-host-vol
+        hostPath:
+          path: /usr/bin/docker
       - name: docker-socket-host-vol
+        hostPath:
+          path: /var/run/docker.sock
+      - name: local-vol
         persistentVolumeClaim:
-          claimName: docker-socket-host-vol
+          claimName: local-vol
       containers:
       - image: sztakilpds/cqueue_worker
         env:
@@ -245,6 +248,8 @@ spec:
           mountPath: /usr/bin/docker
         - name: docker-socket-host-vol
           mountPath: /var/run/docker.sock
+        - name: local-vol
+          mountPath: /shared/local
   selector:
     matchLabels:
       app.kubernetes.io/name: cqueue-worker
@@ -255,14 +260,23 @@ spec:
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: docker-binary-host-vol
+  name: local-vol
   labels:
-    app.kubernetes.io/name: docker-binary-host-vol
+    app.kubernetes.io/name: local-vol
     app.kubernetes.io/instance: local
     app.kubernetes.io/managed-by: micado
 spec:
-  hostPath:
-    path: /usr/bin/docker
+  volumeMode: Filesystem
+  local:
+    path: /shared/local
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: manual_node
+          operator: In
+          values:
+          - persistenty
   capacity:
     storage: 1Gi
   accessModes:
@@ -272,9 +286,9 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: docker-binary-host-vol
+  name: local-vol
   labels:
-    app.kubernetes.io/name: docker-binary-host-vol
+    app.kubernetes.io/name: local-vol
     app.kubernetes.io/instance: local
     app.kubernetes.io/managed-by: micado
 spec:
@@ -285,43 +299,6 @@ spec:
       storage: 1Gi
   selector:
     matchLabels:
-      app.kubernetes.io/name: docker-binary-host-vol
-      app.kubernetes.io/instance: local
-      app.kubernetes.io/managed-by: micado
----
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: docker-socket-host-vol
-  labels:
-    app.kubernetes.io/name: docker-socket-host-vol
-    app.kubernetes.io/instance: local
-    app.kubernetes.io/managed-by: micado
-spec:
-  hostPath:
-    path: /var/run/docker.sock
-  capacity:
-    storage: 1Gi
-  accessModes:
-  - ReadWriteMany
-  persistentVolumeReclaimPolicy: Retain
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: docker-socket-host-vol
-  labels:
-    app.kubernetes.io/name: docker-socket-host-vol
-    app.kubernetes.io/instance: local
-    app.kubernetes.io/managed-by: micado
-spec:
-  accessModes:
-  - ReadWriteMany
-  resources:
-    requests:
-      storage: 1Gi
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: docker-socket-host-vol
+      app.kubernetes.io/name: local-vol
       app.kubernetes.io/instance: local
       app.kubernetes.io/managed-by: micado

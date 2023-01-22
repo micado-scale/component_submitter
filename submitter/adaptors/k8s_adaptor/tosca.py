@@ -149,11 +149,3 @@ def _get_related_hosts(node):
             for host in list(_get_related_nodes(node, NodeType.MICADO_EDGE))
         ],
     }
-
-
-def _parent_types(node):
-    while True:
-        if not hasattr(node, "type"):
-            break
-        yield node.type
-        node = node.parent_type

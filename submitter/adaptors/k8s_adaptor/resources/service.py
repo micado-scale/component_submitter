@@ -1,6 +1,19 @@
 from collections import namedtuple
 from .pod import Resource
 
+PortSpec = namedtuple(
+    "PortSpec",
+    [
+        "name",
+        "service_name",
+        "type",
+        "node_port",
+        "port",
+        "protocol",
+        "target_port",
+        "cluster_ip",
+    ],
+)
 
 class Service(Resource):
     """Creates a ServiceSpec
@@ -73,19 +86,7 @@ def get_port_spec(port):
     )
     alt_type = "NodePort" if port.get("nodePort") else ""
     alt_port = port.get("published", port.get("targetPort", port.get("target")))
-    PortSpec = namedtuple(
-        "PortSpec",
-        [
-            "name",
-            "service_name",
-            "type",
-            "node_port",
-            "port",
-            "protocol",
-            "target_port",
-            "cluster_ip",
-        ],
-    )
+
     port_spec = PortSpec(
         name=port.get("name") or alt_name,
         service_name=port.get("metadata", {}).get("name"),

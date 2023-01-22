@@ -1,0 +1,423 @@
+tosca_definitions_version: tosca_simple_yaml_1_2
+artifact_types:
+  tosca.artifacts.CloudInit.Data:
+    description: A possible artifact type for CloudInit files
+    derived_from: tosca.artifacts.Root
+    properties:
+      raw_text:
+        type: string
+        required: false
+capability_types:
+  tosca.capabilities.Compute:
+    ## This is normative as of v1.1 but is not recognised by OS tosca-parser
+    description: Defining TOSCA compute capabilities
+    derived_from: tosca.capabilities.Container
+    properties:
+      name:
+        type: string
+        required: false
+      num_cpus:
+        type: integer
+        required: false
+        constraints:
+          - greater_or_equal: 1
+      cpu_frequency:
+        type: scalar-unit.frequency
+        required: false
+        constraints:
+          - greater_or_equal: 0.1 GHz
+      disk_size:
+        type: scalar-unit.size
+        required: false
+        constraints:
+          - greater_or_equal: 0 MB
+      mem_size:
+        type: scalar-unit.size
+        required: false
+        constraints:
+          - greater_or_equal: 0 MB
+data_types:
+  context_type:
+    description: Available properties in the contextualisation map
+    properties:
+      cloud_config:
+        type: string
+        required: false
+      append:
+        type: boolean
+        required: false
+      insert:
+        type: boolean
+        required: false
+      path:
+        type: string
+        required: false
+interface_types:
+  tosca.interfaces.MiCADO.Occopus:
+    description: Interface for VM management with Occopus
+    derived_from: tosca.interfaces.node.lifecycle.Standard
+    inputs:
+      endpoint:
+        type: string
+        description: Cloud API endpoint
+        required: false
+    create:
+      description: Create a compute node with Occopus
+  tosca.interfaces.MiCADO.Terraform:
+    description: Interface for VM management with Terraform
+    derived_from: tosca.interfaces.node.lifecycle.Standard
+    inputs:
+      endpoint:
+        description: Cloud provider endpoint API
+        type: string
+        required: false
+      provider:
+        description: Options for the provider block of a terraform template
+        type: map
+        required: false
+    create:
+      description: Create a compute node with Terraform
+node_types:
+  tosca.nodes.MiCADO.Edge:
+    description: Base edge node for MiCADO
+    derived_from: tosca.nodes.Root
+    properties:
+      public_ip:
+        type: string
+        required: true
+      ssh_username:
+        type: string
+        default: ubuntu
+        required: false
+      ssh_private_key:
+        type: string
+        required: false
+      ssh_tunnel:
+        type: boolean
+        default: false
+        required: false
+    capabilities:
+      host:
+        type: tosca.capabilities.Compute
+      os:
+        type: tosca.capabilities.OperatingSystem
+  tosca.nodes.MiCADO.Compute:
+    description: Base compute node for MiCADO
+    derived_from: tosca.nodes.Compute
+    properties:
+      context:
+        type: context_type
+        required: false
+    capabilities:
+      host:
+        type: tosca.capabilities.Compute
+      os:
+        type: tosca.capabilities.OperatingSystem
+      scalable:
+        type: tosca.capabilities.Scalable
+  tosca.nodes.MiCADO.CloudSigma.Compute:
+    description: CloudSigma compute node
+    derived_from: tosca.nodes.MiCADO.Compute
+    properties:
+      num_cpus:
+        type: integer
+        required: true
+        constraints:
+          - greater_or_equal: 250
+          - less_or_equal: 100000
+      mem_size:
+        type: integer
+        required: true
+        constraints:
+          - greater_or_equal: 268435456
+          - less_or_equal: 137438953472
+      libdrive_id:
+        type: string
+        required: true
+      vnc_password:
+        type: string
+        required: true
+      public_key_id:
+        type: string
+        required: true
+      host_name:
+        type: string
+        required: false
+      hv_relaxed:
+        type: boolean
+        required: false
+      hv_tsc:
+        type: boolean
+        required: false
+      nics:
+        type: list
+        required: true
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+  tosca.nodes.MiCADO.Edge.CloudSigma:
+    description: CS edge node for MiCADO
+    derived_from: tosca.nodes.MiCADO.CloudSigma.Compute
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+  tosca.nodes.MiCADO.EC2.Compute:
+    description: Amazon EC2 compute node
+    derived_from: tosca.nodes.MiCADO.Compute
+    properties:
+      region_name:
+        type: string
+        required: true
+      image_id:
+        type: string
+        required: true
+      instance_type:
+        type: string
+        required: true
+      key_name:
+        type: string
+        required: false
+      security_group_ids:
+        type: list
+        required: false
+      subnet_id:
+        type: string
+        required: false
+      tags:
+        type: map
+        required: false
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+      Terraform:
+        type: tosca.interfaces.MiCADO.Terraform
+  tosca.nodes.MiCADO.Edge.EC2:
+    description: EC2 edge node for MiCADO
+    derived_from: tosca.nodes.MiCADO.EC2.Compute
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+      Terraform:
+        type: tosca.interfaces.MiCADO.Terraform
+  tosca.nodes.MiCADO.GCE.Compute:
+    description: Google Compute Engine compute node
+    derived_from: tosca.nodes.MiCADO.Compute
+    properties:
+      region:
+        type: string
+        required: true
+      project:
+        type: string
+        required: true
+      machine_type:
+        type: string
+        required: true
+      zone:
+        type: string
+        required: true
+      image:
+        type: string
+        required: true
+      network:
+        type: string
+        required: true
+      ssh-keys:
+        type: string
+        required: false
+      tags:
+        type: map
+        required: false
+    interfaces:
+      Terraform:
+        type: tosca.interfaces.MiCADO.Terraform
+  tosca.nodes.MiCADO.Edge.GCE:
+    description: GCE edge node for MiCADO
+    derived_from: tosca.nodes.MiCADO.GCE.Compute
+    interfaces:
+      Terraform:
+        type: tosca.interfaces.MiCADO.Terraform
+  tosca.nodes.MiCADO.Azure.Compute:
+    description: Microsoft Azure compute node
+    derived_from: tosca.nodes.MiCADO.Compute
+    properties:
+      resource_group:
+        type: string
+        required: true
+      virtual_network:
+        type: string
+        required: true
+      subnet:
+        type: string
+        required: true
+      network_security_group:
+        type: string
+        required: true
+      size:
+        type: string
+        required: true
+      admin_username:
+        type: string
+        required: false
+      admin_password:
+        type: string
+        required: false
+      image_sku:
+        type: string
+        required: false
+      source_image_id:
+        type: string
+        required: false
+      public_key:
+        type: string
+        required: false
+      public_ip:
+        type: boolean
+        required: false
+    interfaces:
+      Terraform:
+        type: tosca.interfaces.MiCADO.Terraform
+  tosca.nodes.MiCADO.Edge.Azure:
+    description: Azure edge node for MiCADO
+    derived_from: tosca.nodes.MiCADO.Azure.Compute
+    interfaces:
+      Terraform:
+        type: tosca.interfaces.MiCADO.Terraform
+  tosca.nodes.MiCADO.CloudBroker.Compute:
+    description: CloudBroker compute node
+    derived_from: tosca.nodes.MiCADO.Compute
+    properties:
+      deployment_id:
+        type: string
+        required: true
+      instance_type_id:
+        type: string
+        required: true
+      key_pair_id:
+        type: string
+        required: false
+      opened_port:
+        type: string
+        required: false
+      infrastructure_component_id:
+        type: string
+        required: false
+      dynamic_domain_name:
+        type: string
+        required: false
+      dynamic_domain_name_ids:
+        type: list
+        required: false
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+  tosca.nodes.MiCADO.Edge.CloudBroker:
+    description: CB edge node for MiCADO
+    derived_from: tosca.nodes.MiCADO.CloudBroker.Compute
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+  tosca.nodes.MiCADO.Nova.Compute:
+    description: Openstack Nova Compute node
+    derived_from: tosca.nodes.MiCADO.Compute
+    properties:
+      image_id:
+        type: string
+        required: true
+      flavor_name:
+        type: string
+        required: false
+      flavor_id:
+        type: string
+        required: false
+      tenant_name:
+        type: string
+        required: false
+      auth_url:
+        type: string
+        required: false
+      project_id:
+        type: string
+        required: true
+      user_domain_name:
+        type: string
+        required: false
+      network_name:
+        type: string
+        required: false
+      network_id:
+        type: string
+        required: false
+      server_name:
+        type: string
+        required: false
+      availability_zone:
+        type: string
+        required: false
+      key_name:
+        type: string
+        required: false
+      public_key:
+        type: string
+        required: false
+      security_groups:
+        type: list
+        required: false
+      floating_ip:
+        type: string
+        required: false
+      floating_ip_pool:
+        type: string
+        required: false
+      config_drive:
+        type: boolean
+        required: false
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+      Terraform:
+        type: tosca.interfaces.MiCADO.Terraform
+  tosca.nodes.MiCADO.Edge.Nova:
+    description: Base edge node for MiCADO
+    derived_from: tosca.nodes.MiCADO.Nova.Compute
+    interfaces:
+      Occopus:
+        type: tosca.interfaces.MiCADO.Occopus
+      Terraform:
+        type: tosca.interfaces.MiCADO.Terraform
+  tosca.nodes.MiCADO.OCI.Compute:
+    description: Oracle Cloud Instance compute node
+    derived_from: tosca.nodes.MiCADO.Compute
+    properties:
+      region:
+        type: string
+        required: true
+      availability_domain:
+        type: string
+        required: true
+      compartment_id:
+        type: string
+        required: true
+      shape:
+        type: string
+        required: true
+      network_security_group:
+        type: string
+        required: true
+      subnet_id:
+        type: string
+        required: true
+      source_id:
+        type: string
+        required: false
+      ssh_keys:
+        type: string
+        required: false
+    interfaces:
+      Terraform:
+        type: tosca.interfaces.MiCADO.Terraform
+  tosca.nodes.MiCADO.Edge.OCI:
+    description: OCI edge node for MiCADO
+    derived_from: tosca.nodes.MiCADO.OCI.Compute
+    interfaces:
+      Terraform:
+        type: tosca.interfaces.MiCADO.Terraform

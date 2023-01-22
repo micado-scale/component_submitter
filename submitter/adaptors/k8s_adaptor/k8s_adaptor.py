@@ -20,7 +20,7 @@ from submitter import utils
 from submitter.abstracts import base_adaptor
 from submitter.abstracts.exceptions import AdaptorCritical, TranslateError
 from .zorp import ZorpManifests
-from .translator import get_translator
+from .manifest import get_manifest_type
 from .tosca import Prefix, NodeType, Interface, NetworkProxy
 
 logger = logging.getLogger("adaptors.k8s_adaptor")
@@ -140,12 +140,12 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
         if not utils.check_lifecycle(node, Interface.KUBERNETES):
             return
 
-        translator = get_translator(node)
-        tosca_translator = translator.from_toscaparser(
+        manifest_type = get_manifest_type(node)
+        manifest = manifest_type.from_toscaparser(
             self.short_id, node, self.tpl.repositories
         )
 
-        manifests = tosca_translator.build()
+        manifests = manifest.build()
         self.manifests += manifests
 
     def _translate_monitoring_policy(self, policy):

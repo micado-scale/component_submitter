@@ -12,32 +12,30 @@ from .resources.service import get_port_spec
 from . import tosca
 
 
-def get_translator(node):
-    """Gets the required translator object to transform the given TOSCA node
+def get_manifest_type(node):
+    """Gets the required manifest object to transform the given TOSCA node
 
     Args:
         node (toscaparser...NodeTemplate): A toscaparser NodeTemplate object
 
     Returns:
-        Translator: The matching translator object
+        Manifest: The matching Manifest object
     """
-    # TODO: Use ONLY get_derived when v9 API deprecated
-    if (
-        tosca.get_derived(node, tosca.NodeType.CONTAINER)
-        or node.type.startswith(str(tosca.NodeType.CONTAINER))
-        or node.type == "tosca.nodes.MiCADO.Container.Pod.Kubernetes"
-    ):
-        return WorkloadTranslator
-    elif tosca.get_derived(node, tosca.NodeType.CONTAINER_CONFIG):
-        return ConfigMapTranslator
-    elif tosca.get_derived(node, tosca.NodeType.CONTAINER_VOLUME):
-        return VolumeTranslator
-    else:
-        return CustomTranslator
+    MANIFEST_TYPES = {
+        str(tosca.NodeType.CONTAINER): WorkloadManifest,
+        str(tosca.NodeType.CONTAINER_CONFIG): ConfigMapManifest,
+        str(tosca.NodeType.CONTAINER_VOLUME): VolumeManifest,
+    }
+
+    for node_type, manifest_type in MANIFEST_TYPES.items():
+        if tosca.get_derived(node, node_type):
+            return manifest_type
+
+    return CustomManifest
 
 
-class Translator:
-    """Base class for Kubernetes Translators
+class Manifest:
+    """Base class for Kubernetes Manifests
 
     Attributes:
         app: Overall application name
@@ -69,7 +67,7 @@ class Translator:
             repositories (dict, optional): ToscaTemplate.repositories object
 
         Returns:
-            Translator: An instance of this class
+            Manifest: An instance of this class
         """
         node_info = tosca.get_node_info(node, repositories)
         return cls(app, node.name, node_info)
@@ -86,7 +84,7 @@ class Translator:
         raise NotImplementedError
 
 
-class CustomTranslator(Translator):
+class CustomManifest(Manifest):
     """Builds Kubernetes manifests for custom resources
 
     """
@@ -105,7 +103,7 @@ class CustomTranslator(Translator):
         return [resource.build(validate=False)]
 
 
-class ConfigMapTranslator(Translator):
+class ConfigMapManifest(Manifest):
     """Builds Kubernetes manifests for ConfigMap resources
 
     """
@@ -125,7 +123,7 @@ class ConfigMapTranslator(Translator):
         return [config.build()]
 
 
-class VolumeTranslator(Translator):
+class VolumeManifest(Manifest):
     """Builds Kubernetes manifests for PersistentVolumes and Claims
 
     """
@@ -138,22 +136,26 @@ class VolumeTranslator(Translator):
         Returns:
             list of dict: A list with generated manifests for PV and PVC
         """
-        volume_type = self.manifest_inputs.get("spec", {})
-        if "emptyDir" in volume_type or "hostPath" in volume_type:
+        # We don't create manifests for these two types
+        if is_empty_dir_or_host_path(self.manifest_inputs):
             return []
+        
         pv = PersistentVolume(
             self.app,
             self.name,
             self.manifest_inputs,
             self.node_info.properties,
         )
-        pvc_spec = pv.pvc_spec
-        size = pv.size
-        pvc = PersistentVolumeClaim(self.app, pv.name, pvc_spec, size)
+        pvc = PersistentVolumeClaim(
+            self.app,
+            pv.name,
+            pv.pvc_spec,
+            pv.size,
+        )
         return [pv.build()] + [pvc.build()]
 
 
-class WorkloadTranslator(Translator):
+class WorkloadManifest(Manifest):
     """Builds the manifest for Kubernetes Workload objects
 
     Including: Deployments, StatefulSets, Jobs, Pods, DaemonSets
@@ -168,86 +170,94 @@ class WorkloadTranslator(Translator):
         Returns:
             list of dict: A list with the Workload and Service manifests
         """
-        pod = self._build_pod()
+        pod = build_pod(self.app, self.name)
         pod.add_affinity(self.node_info.hosts)
 
-        containers = self._build_containers()
+        containers = build_containers(self.node_info)
         pod.add_containers(containers)
 
         resource = Workload(self.app, self.name, self.manifest_inputs)
         resource.add_pod(pod)
 
-        services = self._build_services(pod.ports, pod.namespace, pod.labels)
+        services = build_services(self.app, self.name, pod)
 
         return [resource.build()] + [s.build() for s in services]
 
-    def _build_containers(self):
-        """Builds containers for the node """
-        containers = [self.node_info] + self.node_info.sidecars
-        container_list = []
 
-        for container in containers:
+def build_pod(app, name):
+    """Builds the Pod object """
+    try:
+        return Pod(app, name)
+    except Exception as err:
+        raise ValueError(
+            f"Error while building pod for {name}: {err}"
+        ) from err
 
-            # TODO: Use ONLY container.type == when v9 API deprecated
-            if (
-                str(tosca.NodeType.KUBERNETES_POD) in container.type
-                or "MiCADO.Container.Pod" in container.type
-            ):
-                continue
 
-            built_container = Container(container)
-            built_container.is_init = (
-                tosca.NodeType.INIT_CONTAINER == container.type
-            )
-            try:
-                built_container.build()
-            except Exception as err:
-                raise ValueError(
-                    f"Error while building container {container.name}: {err}"
-                ) from err
+def build_containers(node_info):
+    """Builds containers for the node """
+    containers = [node_info] + node_info.sidecars
+    container_list = []
 
-            container_list.append(built_container)
-        return container_list
+    for container in containers:
+        if (str(tosca.NodeType.KUBERNETES_POD) in container.type):
+            continue
 
-    def _build_pod(self):
-        """Builds the Pod object """
+        built_container = Container(container)
+        built_container.is_init = (
+            tosca.NodeType.INIT_CONTAINER == container.type
+        )
         try:
-            return Pod(self.app, self.name)
+            built_container.build()
         except Exception as err:
             raise ValueError(
-                f"Error while building pod for {self.name}: {err}"
+                f"Error while building container {container.name}: {err}"
             ) from err
 
-    def _build_services(self, ports, namespace, labels):
-        """Builds Services required by the Pods """
-        services = {}
+        container_list.append(built_container)
+    return container_list
 
-        for port in ports:
-            port = get_port_spec(port)
-            service_name = port.service_name
-            service_type = port.type or "ClusterIP"
 
-            if service_name:
-                service = services.get(port.service_name)
-            else:
-                service_name = self.name.lower()
-                service = services.get(service_name)
-                if service and service.type != service_type:
-                    service = None
-                    service_name = f"{self.name}-{service_type}".lower()
+def build_services(app, name, pod):
+    """Builds Services required by the Pods """
+    services = {}
 
-            if not service:
-                try:
-                    service = Service(
-                        self.app, service_name, labels, service_type
-                    )
-                except Exception as err:
-                    raise ValueError(
-                        f"Error while building service for {self.name}: {err}"
-                    ) from err
+    for port in pod.ports:
+        port = get_port_spec(port)
 
-            if namespace:
-                service.update_namespace(namespace)
-            service.update_spec(port)
-            services[service_name] = service
-        return services.values()
+        # service names and types may not be provided
+        svc_name = port.service_name or name.lower()
+        svc_type = port.type or "ClusterIP"
+
+        # try to find an existing service by this name
+        service = services.get(svc_name)
+
+        # if a service by this name exists but the type does not match,
+        # we add the type to this name to avoid collisions
+        if service and service.type != svc_type:
+            service = None
+            svc_name = f"{name}-{svc_type}".lower()
+
+        if not service:
+            try:
+                service = Service(app, svc_name, pod.labels, svc_type)
+            except Exception as err:
+                raise ValueError(f"Error building service for {name}: {err}")
+
+        # both new and existing services will be updated here
+        if pod.namespace:
+            service.update_namespace(pod.namespace)
+        service.update_spec(port)
+        services[svc_name] = service
+    return services.values()
+
+
+def is_empty_dir_or_host_path(manifest):
+    """Check if volume is emptyDir or hostPath, which do not require a manifest
+
+    Args:
+        manifest (dict): manifest
+    """
+    volume_spec = manifest.get("spec", {})
+    if "emptyDir" in volume_spec or "hostPath" in volume_spec:
+        return True
