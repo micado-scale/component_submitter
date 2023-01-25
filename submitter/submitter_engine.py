@@ -1,6 +1,5 @@
 import json
 import logging
-import logging.config
 
 from micadoparser import parser
 from micadoparser.validator import MultiError
@@ -9,10 +8,8 @@ from submitter.plugin_manager import PluginManager
 from submitter.abstracts.exceptions import AdaptorCritical, AdaptorError
 from submitter.submitter_config import SubmitterConfig
 from submitter import utils
-""" set up of Logging """
-config = SubmitterConfig()
-logging.config.dictConfig(config.logging_config)
-logger=logging.getLogger("submitter."+__name__)
+
+logger = logging.getLogger("submitter." + __name__)
 
 JSON_FILE = "system/ids.json"
 

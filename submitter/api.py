@@ -1,8 +1,12 @@
+import logging
 from flask import Flask
 from werkzeug.exceptions import HTTPException
 
 from submitter.apis.v1.api import v1blueprint
 from submitter.apis.v2.controller import v2blueprint
+from submitter.submitter_config import SubmitterConfig
+
+logging.config.dictConfig(SubmitterConfig.logging_config)
 
 app = Flask(__name__)
 
