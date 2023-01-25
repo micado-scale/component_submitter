@@ -13,6 +13,11 @@ CONFIG_FILE = "{}/system/key_config.yml".format(basepath)
 
 logger = logging.getLogger("submitter." + __name__)
 
+def _reading_config(path):
+    """reading the config file and creating a dictionary related to it"""
+    logger.debug("reading config file")
+    return utils.get_yaml_data(path)
+
 
 class SubmitterConfig:
     """
@@ -28,6 +33,8 @@ class SubmitterConfig:
 
     """
 
+    logging_config = _reading_config(CONFIG_FILE)["logging"]
+
     def __init__(self, testing=None):
         logger.debug("initialisation of SubmitterConfig class")
         config_path = testing or CONFIG_FILE
@@ -35,7 +42,6 @@ class SubmitterConfig:
 
         self.main_config = config["main_config"]
         self.step_config = config["step"]
-        self.logging_config = config["logging"]
         self.adaptor_config = config["adaptor_config"]
 
     def get_list_adaptors(self):
@@ -43,7 +49,3 @@ class SubmitterConfig:
         logger.debug("get the list of adaptors")
         return [adaptor for adaptor in self.adaptor_config]
 
-def _reading_config(path):
-    """reading the config file and creating a dictionary related to it"""
-    logger.debug("reading config file")
-    return utils.get_yaml_data(path)
