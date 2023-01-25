@@ -1,5 +1,6 @@
 import json
 import logging
+from pathlib import Path
 
 from micadoparser import parser
 from micadoparser.validator import MultiError
@@ -11,7 +12,9 @@ from submitter import utils
 
 logger = logging.getLogger("submitter." + __name__)
 
-JSON_FILE = "system/ids.json"
+
+
+JSON_FILE = Path(__file__).parent / "system/ids.json"
 
 
 class SubmitterEngine(object):
@@ -25,12 +28,10 @@ class SubmitterEngine(object):
         logger.debug("init of submitter engine class")
 
         try:
-            with open(JSON_FILE, 'r') as json_data:
-                logger.debug("instantiation of dictionary app_list with {}".format(JSON_FILE))
-                self.app_list = json.load(json_data)
+            self.app_list = utils.load_json(JSON_FILE)
         except FileNotFoundError:
             logger.debug("file {} doesn't exist so isntantiation of empty directory of app_list".format(JSON_FILE))
-            self.app_list = dict()
+            self.app_list = {}
         logger.debug("load configurations")
         self.object_config = SubmitterConfig()
         self.adaptors_class_name = []
