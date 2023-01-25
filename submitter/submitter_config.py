@@ -16,23 +16,23 @@ logger = logging.getLogger("submitter." + __name__)
 
 class SubmitterConfig:
     """
-        This is the SubmitterConfig,
-        in charge of the configuration of the whole submitter.
-        It has ``__init__()``, ``get_list_adaptors()``,
-        ``_reading_config()``, ``_find_get_input()``,
-        ``get_SubmitterConfig()``, ``get_dict()`` and ``get_node_from_type()``.
+    This is the SubmitterConfig,
+    in charge of the configuration of the whole submitter.
+    It has ``__init__()``, ``get_list_adaptors()``,
+    ``_reading_config()``, ``_find_get_input()``,
+    ``get_SubmitterConfig()``, ``get_dict()`` and ``get_node_from_type()``.
 
-        Optional testing parameter can be passed to __init__
-        to define which key_config files to take for test purposes.
+    Optional testing parameter can be passed to __init__
+    to define which key_config files to take for test purposes.
 
-        
-  """
+
+    """
 
     def __init__(self, testing=None):
         logger.debug("initialisation of SubmitterConfig class")
         self.config_path = testing or CONFIG_FILE
         config = self._reading_config()
-        
+
         self.main_config = config["main_config"]
         self.step_config = config["step"]
         self.logging_config = config["logging"]
@@ -41,12 +41,7 @@ class SubmitterConfig:
     def get_list_adaptors(self):
         """return list of adaptors to use"""
         logger.debug("get the list of adaptors")
-        adaptor_list = []
-        for key, value in self._reading_config()["adaptor_config"].items():
-            adaptor_list.append(key)
-
-        logger.debug("adaptors:  {}".format(adaptor_list))
-        return adaptor_list
+        return [adaptor for adaptor in self.adaptor_config]
 
     def _reading_config(self):
         """reading the config file and creating a dictionary related to it"""
@@ -55,9 +50,7 @@ class SubmitterConfig:
         with open(self.config_path, "r") as stream:
             try:
 
-                dic_types = utils.get_yaml_data(
-                    stream.read(), stream=True
-                )
+                dic_types = utils.get_yaml_data(stream.read(), stream=True)
             except OSError as exc:
 
                 logger.error("Error while reading file, error: %s" % exc)

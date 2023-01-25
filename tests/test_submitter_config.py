@@ -15,6 +15,16 @@ class TestSubmitterConfig(unittest.TestCase):
         self.assertTrue(self.config.main_config)
         self.assertTrue(self.config.step_config)
         self.assertTrue(self.config.logging_config)
+
+    def test_get_adaptor_list(self):
+        adaptors = [
+            "SecurityEnforcerAdaptor",
+            "DockerAdaptor",
+            "PkAdaptor",
+            "OccopusAdaptor",
+        ]
+        self.assertListEqual(sorted(self.config.get_list_adaptors()), sorted(adaptors))
+
     def test_step_config(self):
         dic = {
             "translate": [
