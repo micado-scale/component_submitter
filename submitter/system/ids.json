@@ -1,0 +1,7 @@
+{
+    "test_app": {
+        "components": ["KubernetesAdaptor"],
+        "adaptors_object": "do we need this?",
+        "dry_run": true
+    }
+}

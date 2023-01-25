@@ -1,6 +1,6 @@
 import unittest
 
-from submitter.submitter_engine import SubmitterEngine as SE
+from submitter import submitter_engine
 
 
 class TestEngine(unittest.TestCase):
@@ -8,8 +8,8 @@ class TestEngine(unittest.TestCase):
 
     def setUp(self):
         """Setup Validator object and prep a bad TOSCA template"""
-        self.engine = SE()
+        self.engine = submitter_engine.SubmitterEngine()
 
     def test_engine_init(self):
         """Test Engine init method"""
-        self.assertTrue(self.engine)
+        self.assertIn("test_app", self.engine.app_list)
