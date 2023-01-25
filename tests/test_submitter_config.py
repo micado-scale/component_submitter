@@ -1,6 +1,7 @@
 import unittest
 
 from submitter.submitter_config import SubmitterConfig as SubConfig
+from submitter.submitter_config import _reading_config
 
 
 class TestSubmitterConfig(unittest.TestCase):
@@ -8,8 +9,8 @@ class TestSubmitterConfig(unittest.TestCase):
 
     def setUp(self):
         """Setup Validator object and prep a bad TOSCA template"""
-        config_path = "tests/configs/key_config.yaml"
-        self.config = SubConfig(config_path)
+        self.config_path = "tests/configs/key_config.yaml"
+        self.config = SubConfig(self.config_path)
 
     def test_main_config(self):
         self.assertTrue(self.config.main_config)
@@ -24,6 +25,11 @@ class TestSubmitterConfig(unittest.TestCase):
             "OccopusAdaptor",
         ]
         self.assertListEqual(sorted(self.config.get_list_adaptors()), sorted(adaptors))
+
+    def test_read_config(self):
+        keys_to_check = ["main_config", "logging", "step", "adaptor_config"]
+        config_keys = _reading_config(self.config_path)
+        self.assertListEqual(sorted(keys_to_check), sorted(config_keys))
 
     def test_step_config(self):
         dic = {

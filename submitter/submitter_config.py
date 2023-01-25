@@ -30,8 +30,8 @@ class SubmitterConfig:
 
     def __init__(self, testing=None):
         logger.debug("initialisation of SubmitterConfig class")
-        self.config_path = testing or CONFIG_FILE
-        config = self._reading_config()
+        config_path = testing or CONFIG_FILE
+        config = _reading_config(config_path)
 
         self.main_config = config["main_config"]
         self.step_config = config["step"]
@@ -43,16 +43,7 @@ class SubmitterConfig:
         logger.debug("get the list of adaptors")
         return [adaptor for adaptor in self.adaptor_config]
 
-    def _reading_config(self):
-        """reading the config file and creating a dictionary related to it"""
-        logger.debug("reading config file")
-        dic_types = dict()
-        with open(self.config_path, "r") as stream:
-            try:
-
-                dic_types = utils.get_yaml_data(stream.read(), stream=True)
-            except OSError as exc:
-
-                logger.error("Error while reading file, error: %s" % exc)
-        logger.debug("return dictionary of types from config file")
-        return dic_types
+def _reading_config(path):
+    """reading the config file and creating a dictionary related to it"""
+    logger.debug("reading config file")
+    return utils.get_yaml_data(path)
