@@ -34,8 +34,9 @@ class SubmitterEngine(object):
             self.app_list = {}
         logger.debug("load configurations")
         self.object_config = SubmitterConfig()
-        self.adaptors_class_name = []
-        self._get_adaptors_class()
+
+        self.adaptors_class_name = self._get_adaptors_class()
+        logger.debug("list of adaptors instantiated: {}".format(self.adaptors_class_name))
 
         self.translated_adaptors = {}
         self.executed_adaptors = {}
@@ -199,12 +200,8 @@ class SubmitterEngine(object):
         """ Retrieve the list of the differrent class adaptors """
         logger.debug("retreive the adaptors class")
         adaptor_list = self.object_config.get_list_adaptors()
-        PG=PluginManager()
-        for k in adaptor_list:
-            adaptor = PG.get_plugin(k)
-            logger.debug("adaptor found {}".format(adaptor))
-            self.adaptors_class_name.append(adaptor)
-        logger.debug("list of adaptors instantiated: {}".format(self.adaptors_class_name))
+        plugin_manager = PluginManager()
+        return [plugin_manager.get_plugin(adaptor) for adaptor in adaptor_list]
 
 
     def _instantiate_adaptors(self, app_id, dry_run=False, validate=False, template = None):
