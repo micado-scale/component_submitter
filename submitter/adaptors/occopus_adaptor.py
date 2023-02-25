@@ -7,7 +7,10 @@ import time
 
 import jinja2
 import pykube
-import docker
+from kubernetes import config as kubeconfig
+from kubernetes.client.api import core_v1_api
+from kubernetes.client.rest import ApiException
+from kubernetes.stream import stream
 import requests
 from toscaparser.tosca_template import ToscaTemplate
 
@@ -57,10 +60,10 @@ class OccopusAdaptor(abco.Adaptor):
         self.node_def = {}
 
         self.created = False
-        self.client = None
         self.occopus = None
-        if not self.dryrun:
-                self._init_docker()
+
+        kubeconfig.load_kube_config()
+        self.kube = core_v1_api.CoreV1Api()
 
         self.occopus_address = "occopus:5000"
         self.auth_data_file = "/var/lib/micado/occopus/auth/auth_data.yaml"
@@ -142,44 +145,42 @@ class OccopusAdaptor(abco.Adaptor):
             self.status = "DRY-RUN Deployment"
             return
         else:
-            if self.created:
-                run = False
-                i = 0
-                while not run and i < 5:
-                    try:
-                        logger.debug("Occopus import starting...")
-                        result = self.occopus.exec_run("occopus-import {0}".format(self.occo_node_path))
-                        logger.debug("Occopus import has been successful")
-                        run = True
-                    except Exception as e:
-                        i += 1
-                        logger.debug("{0}. Try {1} of 5.".format(str(e), i))
-                        time.sleep(5)
-                logger.debug(result)
-                if "Successfully imported" in result[1].decode("utf-8"):
-                    try:
-                        logger.debug("Occopus build starting...")
-                        exit_code, out = self.occopus.exec_run("occopus-build {} -i {} --auth_data_path {} --parallelize"
-                                                          .format(self.occo_infra_path,
-                                                                  self.worker_infra_name,
-                                                                  self.auth_data_file))
-                        if exit_code == 1:
-                            raise AdaptorCritical(out)
-                        occo_api_call = requests.post("http://{0}/infrastructures/{1}/attach"
-                                                  .format(self.occopus_address, self.worker_infra_name))
-                        if occo_api_call.status_code != 200:
-                            raise AdaptorCritical("Cannot submit infra to Occopus API!")
-                        logger.debug("Occopus build has been successful")
-                        
-                    except docker.errors.APIError as e:
-                        logger.error("{0}. Error caught in calling Docker container".format(str(e)))
-                    except requests.exceptions.RequestException as e:
-                        logger.error("{0}. Error caught in call to occopus API".format(str(e)))
-                else:
-                    logger.error("Occopus import was unsuccessful!")
-                    raise AdaptorCritical("Occopus import was unsuccessful!")
+            occopus_pod_name = [
+                x.metadata.name 
+                for x 
+                in self.kube.list_namespaced_pod("micado-system").items 
+                if x.metadata.name.startswith("occopus")
+            ][0]
+            if occopus_pod_name:
+                logger.debug("Occopus build starting...")
+                exec_command = [
+                "/bin/sh",
+                "-c",
+                "occopus-build {} -i {} --auth_data_path {} --parallelize".format(
+                    self.occo_infra_path,
+                    self.worker_infra_name,
+                    self.auth_data_file)
+                ]
+                try:
+                    stream(
+                        self.kube.connect_get_namespaced_pod_exec,
+                        occopus_pod_name,
+                        'micado-system',
+                        command = exec_command,
+                        stderr = True, stdin = False,
+                        stdout = True, tty = False
+                    )
+                except ApiException as e:
+                    raise AdaptorCritical(f"Cannot exec Occopus container: {e}")
+                
+                occo_api_call = requests.post("http://{0}/infrastructures/{1}/attach"
+                    .format(self.occopus_address, self.worker_infra_name))
+                if occo_api_call.status_code != 200:
+                    raise AdaptorCritical("Cannot submit infra to Occopus API!")
+                logger.debug("Occopus build has been successful")
+                
             else:
-                logger.error("Not connected to Occopus container!")
+                logger.error("Could not find Occopus container!")
                 raise AdaptorCritical("Occopus container connection was unsuccessful!")
         logger.info("Occopus executed")
         self.status = "executed"
@@ -219,9 +220,10 @@ class OccopusAdaptor(abco.Adaptor):
             logger.warning(e)
         # Flush the occopus-redis db
         try:
-            redis = self.client.containers.list(filters={'label':'io.kubernetes.container.name=occopus-redis'})[0]
-            if redis.exec_run("redis-cli FLUSHALL").exit_code != 0:
-                raise AdaptorCritical
+            pass
+            # redis = self.client.containers.list(filters={'label':'io.kubernetes.container.name=occopus-redis'})[0]
+            # if redis.exec_run("redis-cli FLUSHALL").exit_code != 0:
+            #     raise AdaptorCritical
         except AdaptorCritical:
             logger.warning("FLUSH in occopus-redis container failed")
         except IndexError:
@@ -522,20 +524,6 @@ class OccopusAdaptor(abco.Adaptor):
                 utils.dump_order_yaml(infra_def, self.infra_def_path_output_tmp)
             elif self.validate is False:
                 utils.dump_order_yaml(infra_def, self.infra_def_path_output)
-
-    def _init_docker(self):
-        """ Initialize docker and get Occopus container """
-        self.client = docker.from_env()
-        i = 0
-
-        while not self.created and i < 5:
-            try:
-                self.occopus = self.client.containers.list(filters={'label':'io.kubernetes.container.name=occopus'})[0]
-                self.created = True
-            except Exception as e:
-                i += 1
-                logger.error("{0}. Try {1} of 5.".format(str(e), i))
-                time.sleep(5)
 
     def _get_host_properties(self, node):
         """ Get host properties """
