@@ -144,47 +144,53 @@ class OccopusAdaptor(abco.Adaptor):
             logger.info("DRY-RUN: Occopus execution in dry-run mode...")
             self.status = "DRY-RUN Deployment"
             return
-        else:
-            occopus_pod_name = [
-                x.metadata.name 
-                for x 
-                in self.kube.list_namespaced_pod("micado-system").items 
-                if x.metadata.name.startswith("occopus")
-            ][0]
-            if occopus_pod_name:
-                logger.debug("Occopus build starting...")
-                exec_command = [
-                "/bin/sh",
-                "-c",
-                "occopus-build {} -i {} --auth_data_path {} --parallelize".format(
-                    self.occo_infra_path,
-                    self.worker_infra_name,
-                    self.auth_data_file)
-                ]
-                try:
-                    resp = stream(
-                        self.kube.connect_get_namespaced_pod_exec,
-                        occopus_pod_name,
-                        'micado-system',
-                        command = exec_command,
-                        stderr = True, stdin = False,
-                        stdout = True, tty = False
-                    )
-                    logger.debug(f"occo-build response: {resp}")
-                except ApiException as e:
-                    raise AdaptorCritical(f"Cannot exec Occopus container: {e}")
+    
+        occopus_pod_name = [
+            x.metadata.name 
+            for x 
+            in self.kube.list_namespaced_pod("micado-system").items 
+            if x.metadata.name.startswith("occopus")
+        ][0]
+        if not occopus_pod_name:
+            logger.error("Could not find Occopus container!")
+            raise AdaptorCritical("Occopus container connection was unsuccessful!")
+
+        logger.debug("Occopus build...")
+        command = "occopus-build {} -i {} --auth_data_path {} --parallelize".format(
+            self.occo_infra_path,
+            self.worker_infra_name,
+            self.auth_data_file)                
+        self.occo_exec(occopus_pod_name, command)
+        
+        logger.debug("Occopus attach...")
+        occo_api_call = requests.post("http://{0}/infrastructures/{1}/attach"
+            .format(self.occopus_address, self.worker_infra_name))
+        if occo_api_call.status_code != 200:
+            raise AdaptorCritical("Cannot submit infra to Occopus API!")
                 
-                occo_api_call = requests.post("http://{0}/infrastructures/{1}/attach"
-                    .format(self.occopus_address, self.worker_infra_name))
-                if occo_api_call.status_code != 200:
-                    raise AdaptorCritical("Cannot submit infra to Occopus API!")
-                logger.debug("Occopus build has been successful")
-                
-            else:
-                logger.error("Could not find Occopus container!")
-                raise AdaptorCritical("Occopus container connection was unsuccessful!")
         logger.info("Occopus executed")
         self.status = "executed"
+
+    def occo_exec(self, pod_name, command):
+        """
+        Execute a command in container
+        """
+        exec_command = ["/bin/sh", "-c"]
+        exec_command.append(command)
+        try:
+            resp = stream(
+                self.kube.connect_get_namespaced_pod_exec,
+                pod_name,
+                'micado-system',
+                command = exec_command,
+                stderr = True, stdin = False,
+                stdout = True, tty = False
+            )
+            if "critical error" in resp:
+                logger.error(f"occo-exec error: {resp}")
+                raise AdaptorCritical(f"Occopus exec error: {e}")
+        except ApiException as e:
+            raise AdaptorCritical(f"K8s API: {e}")
 
     def undeploy(self):
         """
