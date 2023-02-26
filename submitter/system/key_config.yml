@@ -2,23 +2,28 @@ main_config:
   dry_run: True
 logging:
   version: 1
+  disable_existing_loggers: True
   root:
-    level: DEBUG
     handlers: [console, file]
+    level: DEBUG
   formatters:
     simpleFormatter:
       format: "%(asctime)s %(name)s %(levelname)s %(message)s"
+  loggers:
+    submitter:
+      handlers: [console, file]
+      propagate: False
   handlers:
     console:
       class: logging.StreamHandler
       formatter: simpleFormatter
-      level: DEBUG
+      level: INFO
       stream: ext://sys.stdout
     file:
       class : logging.handlers.RotatingFileHandler
       formatter: simpleFormatter
-      mode: a
       level: DEBUG
+      mode: a
       filename: /var/log/submitter/submitter.log
       maxBytes: 52428800
       backupCount: 3
