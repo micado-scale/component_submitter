@@ -162,7 +162,7 @@ class OccopusAdaptor(abco.Adaptor):
                     self.auth_data_file)
                 ]
                 try:
-                    stream(
+                    resp = stream(
                         self.kube.connect_get_namespaced_pod_exec,
                         occopus_pod_name,
                         'micado-system',
@@ -170,6 +170,7 @@ class OccopusAdaptor(abco.Adaptor):
                         stderr = True, stdin = False,
                         stdout = True, tty = False
                     )
+                    logger.debug(f"occo-build response: {resp}")
                 except ApiException as e:
                     raise AdaptorCritical(f"Cannot exec Occopus container: {e}")
                 
