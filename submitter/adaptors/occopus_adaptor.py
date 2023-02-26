@@ -192,7 +192,7 @@ class OccopusAdaptor(abco.Adaptor):
             )
             if "critical error" in resp:
                 logger.error(f"occo-exec error: {resp}")
-                raise AdaptorCritical(f"Occopus exec error: {e}")
+                raise AdaptorCritical(f"Occopus exec error: {resp}")
         except ApiException as e:
             raise AdaptorCritical(f"K8s API: {e}")
 
