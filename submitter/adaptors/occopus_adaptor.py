@@ -155,6 +155,10 @@ class OccopusAdaptor(abco.Adaptor):
             logger.error("Could not find Occopus container!")
             raise AdaptorCritical("Occopus container connection was unsuccessful!")
 
+        logger.debug("Occopus import...")
+        command = f"occopus-import {self.occo_node_path}"             
+        self.occo_exec(occopus_pod_name, command)
+
         logger.debug("Occopus build...")
         command = "occopus-build {} -i {} --auth_data_path {} --parallelize".format(
             self.occo_infra_path,
