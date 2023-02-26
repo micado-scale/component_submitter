@@ -60,10 +60,10 @@ class OccopusAdaptor(abco.Adaptor):
         self.node_def = {}
 
         self.created = False
-        self.occopus = None
-
-        kubeconfig.load_kube_config()
-        self.kube = core_v1_api.CoreV1Api()
+        self.kube = None
+        if not self.dryrun:
+            kubeconfig.load_kube_config()
+            self.kube = core_v1_api.CoreV1Api()
 
         self.occopus_address = "occopus:5000"
         self.auth_data_file = "/var/lib/micado/occopus/auth/auth_data.yaml"
