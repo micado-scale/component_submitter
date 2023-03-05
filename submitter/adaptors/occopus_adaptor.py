@@ -235,16 +235,13 @@ class OccopusAdaptor(abco.Adaptor):
             logger.warning(e)
         # Flush the occopus-redis db
         try:
-            pass
-            # redis = self.client.containers.list(filters={'label':'io.kubernetes.container.name=occopus-redis'})[0]
-            # if redis.exec_run("redis-cli FLUSHALL").exit_code != 0:
-            #     raise AdaptorCritical
+            command = "redis-cli FLUSHALL"
+            redis_pod_name = self.get_micado_component_pod("occopus-redis")
+            self.pod_exec(redis_pod_name, command)
         except AdaptorCritical:
-            logger.warning("FLUSH in occopus-redis container failed")
-        except IndexError:
-            logger.warning("Could not find occopus-redis container for FLUSH")
+            logger.warning("Could not connect to occo-redis container for FLUSH")
         except Exception:
-            logger.warning("Could not connect to Docker for FLUSH")
+            logger.warning("Unknown error trying to FLUSH occo-redis")
 
     def update(self):
         """
