@@ -144,27 +144,23 @@ class OccopusAdaptor(abco.Adaptor):
             logger.info("DRY-RUN: Occopus execution in dry-run mode...")
             self.status = "DRY-RUN Deployment"
             return
-    
-        occopus_pod_name = [
-            x.metadata.name 
-            for x 
-            in self.kube.list_namespaced_pod("micado-system").items 
-            if x.metadata.name.startswith("occopus")
-        ][0]
-        if not occopus_pod_name:
+
+        try:
+            occopus_pod_name = self.get_micado_component_pod("occopus")
+        except IndexError:
             logger.error("Could not find Occopus container!")
             raise AdaptorCritical("Occopus container connection was unsuccessful!")
 
         logger.debug("Occopus import...")
-        command = f"occopus-import {self.occo_node_path}"             
-        self.occo_exec(occopus_pod_name, command)
+        command = f"occopus-import {self.occo_node_path}"
+        self.pod_exec(occopus_pod_name, command, err_msg="critical error")
 
         logger.debug("Occopus build...")
         command = "occopus-build {} -i {} --auth_data_path {} --parallelize".format(
             self.occo_infra_path,
             self.worker_infra_name,
             self.auth_data_file)                
-        self.occo_exec(occopus_pod_name, command)
+        self.pod_exec(occopus_pod_name, command)
         
         logger.debug("Occopus attach...")
         occo_api_call = requests.post("http://{0}/infrastructures/{1}/attach"
@@ -175,24 +171,32 @@ class OccopusAdaptor(abco.Adaptor):
         logger.info("Occopus executed")
         self.status = "executed"
 
-    def occo_exec(self, pod_name, command):
+    def get_micado_component_pod(self, deploy_name, namespace="micado-system"):
+        return [
+            x.metadata.name 
+            for x 
+            in self.kube.list_namespaced_pod(namespace).items 
+            if x.metadata.name.startswith(deploy_name)
+        ][0]
+
+    def pod_exec(self, pod_name, exec_cmd, err_msg=None, namespace="micado-system"):
         """
         Execute a command in container
         """
         exec_command = ["/bin/sh", "-c"]
-        exec_command.append(command)
+        exec_command.append(exec_cmd)
         try:
             resp = stream(
                 self.kube.connect_get_namespaced_pod_exec,
                 pod_name,
-                'micado-system',
-                command = exec_command,
+                namespace,
+                command = exec_cmd,
                 stderr = True, stdin = False,
                 stdout = True, tty = False
             )
-            if "critical error" in resp:
-                logger.error(f"occo-exec error: {resp}")
-                raise AdaptorCritical(f"Occopus exec error: {resp}")
+            if err_msg and err_msg in resp:
+                logger.error(f"{pod_name} exec error: {resp}")
+                raise AdaptorCritical(f"{pod_name} exec error: {resp}")
         except ApiException as e:
             raise AdaptorCritical(f"K8s API: {e}")
 
