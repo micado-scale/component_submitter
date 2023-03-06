@@ -236,7 +236,7 @@ class OccopusAdaptor(abco.Adaptor):
         # Flush the occopus-redis db
         try:
             command = "redis-cli FLUSHALL"
-            redis_pod_name = self.get_micado_component_pod("occopus-redis")
+            redis_pod_name = self.get_micado_component_pod("redis")
             self.pod_exec(redis_pod_name, command)
         except AdaptorCritical:
             logger.warning("Could not connect to occo-redis container for FLUSH")
