@@ -160,7 +160,7 @@ class OccopusAdaptor(abco.Adaptor):
             self.occo_infra_path,
             self.worker_infra_name,
             self.auth_data_file)                
-        self.pod_exec(occopus_pod_name, command)
+        self.pod_exec(occopus_pod_name, command, err_msg="critical error")
         
         logger.debug("Occopus attach...")
         occo_api_call = requests.post("http://{0}/infrastructures/{1}/attach"
