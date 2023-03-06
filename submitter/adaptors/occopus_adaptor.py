@@ -179,18 +179,18 @@ class OccopusAdaptor(abco.Adaptor):
             if x.metadata.name.startswith(deploy_name)
         ][0]
 
-    def pod_exec(self, pod_name, exec_cmd, success=None, namespace="micado-system"):
+    def pod_exec(self, pod_name, command, success=None, namespace="micado-system"):
         """
         Execute a command in container
         """
         exec_command = ["/bin/sh", "-c"]
-        exec_command.append(exec_cmd)
+        exec_command.append(command)
         try:
             resp = stream(
                 self.kube.connect_get_namespaced_pod_exec,
                 pod_name,
                 namespace,
-                command = exec_cmd,
+                command = exec_command,
                 stderr = True, stdin = False,
                 stdout = True, tty = False
             )
