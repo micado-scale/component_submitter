@@ -153,14 +153,14 @@ class OccopusAdaptor(abco.Adaptor):
 
         logger.debug("Occopus import...")
         command = f"occopus-import {self.occo_node_path}"
-        self.pod_exec(occopus_pod_name, command, err_msg="critical error")
+        self.pod_exec(occopus_pod_name, command, success="Successfully imported nodes")
 
         logger.debug("Occopus build...")
         command = "occopus-build {} -i {} --auth_data_path {} --parallelize".format(
             self.occo_infra_path,
             self.worker_infra_name,
             self.auth_data_file)                
-        self.pod_exec(occopus_pod_name, command, err_msg="critical error")
+        self.pod_exec(occopus_pod_name, command, success="Submitted infrastructure")
         
         logger.debug("Occopus attach...")
         occo_api_call = requests.post("http://{0}/infrastructures/{1}/attach"
@@ -179,7 +179,7 @@ class OccopusAdaptor(abco.Adaptor):
             if x.metadata.name.startswith(deploy_name)
         ][0]
 
-    def pod_exec(self, pod_name, exec_cmd, err_msg=None, namespace="micado-system"):
+    def pod_exec(self, pod_name, exec_cmd, success=None, namespace="micado-system"):
         """
         Execute a command in container
         """
@@ -194,7 +194,7 @@ class OccopusAdaptor(abco.Adaptor):
                 stderr = True, stdin = False,
                 stdout = True, tty = False
             )
-            if err_msg and err_msg in resp:
+            if success and success not in resp:
                 logger.error(f"{pod_name} exec error: {resp}")
                 raise AdaptorCritical(f"{pod_name} exec error: {resp}")
         except ApiException as e:
@@ -237,7 +237,7 @@ class OccopusAdaptor(abco.Adaptor):
         try:
             command = "redis-cli FLUSHALL"
             redis_pod_name = self.get_micado_component_pod("redis")
-            self.pod_exec(redis_pod_name, command)
+            self.pod_exec(redis_pod_name, command, success="OK")
         except AdaptorCritical:
             logger.warning("Could not connect to occo-redis container for FLUSH")
         except Exception:
