@@ -79,6 +79,28 @@ def exec_command_in_deployment(
         raise AdaptorCritical(f"K8s API error!")
 
 
+def get_namespaced_secret(secret_name, namespace="micado-system"):
+    """Get a secret in a namespace"""
+    if not api:
+        raise AdaptorCritical("Kube API not initialised!")
+    try:
+        return api.read_namespaced_secret(secret_name, namespace)
+    except ApiException as e:
+        logger.error(f"Could not read {secret_name} secret in {namespace}!")
+        raise AdaptorCritical from e
+
+
+def patch_namespaced_secret(secret_name, body, namespace="micado-system"):
+    """Patch a secret"""
+    if not api:
+        raise AdaptorCritical("Kube API not initialised!")
+    try:
+        api.patch_namespaced_secret(secret_name, namespace, body)
+    except ApiException as e:
+        logger.error(f"Could not patch {secret_name} secret in {namespace}!")
+        raise AdaptorCritical from e
+
+
 def load_json(path):
     """ Load the dictionary from a json file """
 
