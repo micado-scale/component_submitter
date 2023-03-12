@@ -531,7 +531,7 @@ class OccopusAdaptor(abco.Adaptor):
         secret_name = "cloud-credentials"
         
         auth_secret = utils.get_namespaced_secret(secret_name)
-        auth_data = auth_secret["data"]
+        auth_data = auth_secret.data
         auth_file = auth_data.get("auth_data.yaml", {})
         auth_file = base64.decodestring(auth_file.encode())
         auth_file = utils.get_yaml_data(auth_file, stream=True)
