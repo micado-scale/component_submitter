@@ -6,7 +6,6 @@ import time
 import shutil
 
 import requests
-import docker
 import ruamel.yaml as yaml
 import json
 import jinja2
@@ -136,10 +135,9 @@ class TerraformAdaptor(abco.Adaptor):
         self.tf_json = TerraformDict()
 
         self.created = False
-        self.terraform = None
         self.cloud_inits = set()
         if not self.dryrun:
-            self._init_docker()
+            utils.init_kubernetes()
 
         logger.info("Terraform adaptor initialised")
 
@@ -1071,70 +1069,42 @@ class TerraformAdaptor(abco.Adaptor):
             if resource.get("type") == provider:
                 return resource.get("auth_data")
 
-    def _init_docker(self):
-        """ Initialize docker and get Terraform container """
-        client = docker.from_env()
-        i = 0
 
-        while not self.created and i < 5:
-            try:
-                self.terraform = client.containers.list(
-                    filters={"label": "io.kubernetes.container.name=terraform"}
-                )[0]
-                self.created = True
-            except Exception as e:
-                i += 1
-                logger.error("{0}. Try {1} of 5.".format(str(e), i))
-                time.sleep(5)
-
-    def _terraform_exec(self, command, lock_timeout=0):
-        """ Execute the command in the terraform container """
-        if not self.created:
-            logger.error("Could not attach to Terraform container!")
-            raise AdaptorCritical("Could not attach to Terraform container!")
+    def _terraform_exec(self, command, success_msg, lock_timeout=0):
+        """Execute the command in the terraform container"""
+        command = f"cd {self.terra_path} && {command}"
         while True:
-            exit_code, out = self.terraform.exec_run(
-                command, workdir="{}".format(self.terra_path),
-            )
-            if exit_code > 0:
-                logger.error("Terraform exec failed {}".format(out))
-                raise AdaptorCritical("Terraform exec failed {}".format(out))
-            elif lock_timeout > 0 and "Error locking state" in str(out):
-                time.sleep(5)
-                lock_timeout -= 5
-                logger.debug("Waiting for lock, {}s until timeout".format(lock_timeout))
-            else:
-                break
-        return str(out)
+            try:
+                utils.exec_command_in_deployment(
+                    "terraform", command, success=success_msg
+                )
+            except AdaptorCritical as err:
+                if lock_timeout > 0 and "Error locking state" in str(err):
+                    time.sleep(5)
+                    lock_timeout -= 5
+                    logger.debug(
+                        "Waiting for lock, {}s until timeout".format(lock_timeout)
+                    )
+                    continue
+                else:
+                    raise err from None
+            break
 
     def _terraform_init(self):
         """ Run terraform init in the container """
-        command = ["sh", "-c", "terraform init -no-color" + LOG_SUFFIX]
-        exec_output = self._terraform_exec(command)
-        if "successfully initialized" in exec_output:
-            logger.debug("Terraform initialization has been successful")
-        else:
-            raise AdaptorCritical("Terraform init failed: {}".format(exec_output))
+        command = "terraform init -no-color" + LOG_SUFFIX
+        self._terraform_exec(command, "successfully initialized")
+        logger.debug("Terraform initialisation has been successful")
 
     def _terraform_apply(self, lock_timeout):
         """ Run terraform apply in the container """
-        command = ["sh", "-c", "terraform apply -auto-approve -no-color" + LOG_SUFFIX]
-        exec_output = self._terraform_exec(command, lock_timeout)
-        if "Apply complete" in exec_output:
-            logger.debug("Terraform apply has been successful")
-        else:
-            raise AdaptorCritical("Terraform apply failed: {}".format(exec_output))
-
+        command = "terraform apply -auto-approve -no-color" + LOG_SUFFIX
+        self._terraform_exec(command, "Apply complete", lock_timeout)
+        logger.debug("Terraform apply has been successful")
+        
     def _terraform_destroy(self):
         """ Run terraform destroy in the container """
-        command = [
-            "sh",
-            "-c",
-            "terraform destroy -auto-approve -no-color" + LOG_SUFFIX,
-        ]
-        exec_output = self._terraform_exec(command, lock_timeout=600)
-        if "Destroy complete" in exec_output:
-            logger.debug("Terraform destroy successful...")
-            self.status = "undeployed"
-        else:
-            raise AdaptorCritical("Undeploy failed: {}".format(exec_output))
+        command = "terraform destroy -auto-approve -no-color" + LOG_SUFFIX
+        self._terraform_exec(command, "Destroy complete", lock_timeout=600)
+        logger.debug("Terraform destroy successful...")
+        self.status = "undeployed"
