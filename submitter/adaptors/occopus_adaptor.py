@@ -7,10 +7,6 @@ import time
 
 import jinja2
 import pykube
-from kubernetes import config as kubeconfig
-from kubernetes.client.api import core_v1_api
-from kubernetes.client.rest import ApiException
-from kubernetes.stream import stream
 import requests
 from toscaparser.tosca_template import ToscaTemplate
 
@@ -60,10 +56,8 @@ class OccopusAdaptor(abco.Adaptor):
         self.node_def = {}
 
         self.created = False
-        self.kube = None
         if not self.dryrun:
-            kubeconfig.load_kube_config()
-            self.kube = core_v1_api.CoreV1Api()
+            utils.init_kubernetes()
 
         self.occopus_address = "occopus:5000"
         self.auth_data_file = "/var/lib/micado/occopus/auth/auth_data.yaml"
@@ -145,60 +139,31 @@ class OccopusAdaptor(abco.Adaptor):
             self.status = "DRY-RUN Deployment"
             return
 
-        try:
-            occopus_pod_name = self.get_micado_component_pod("occopus")
-        except IndexError:
-            logger.error("Could not find Occopus container!")
-            raise AdaptorCritical("Occopus container connection was unsuccessful!")
-
         logger.debug("Occopus import...")
         command = f"occopus-import {self.occo_node_path}"
-        self.pod_exec(occopus_pod_name, command, success="Successfully imported nodes")
+        utils.exec_command_in_deployment(
+            "occopus", command, success="Successfully imported nodes"
+        )
 
         logger.debug("Occopus build...")
         command = "occopus-build {} -i {} --auth_data_path {} --parallelize".format(
-            self.occo_infra_path,
-            self.worker_infra_name,
-            self.auth_data_file)                
-        self.pod_exec(occopus_pod_name, command, success="Submitted infrastructure")
-        
+            self.occo_infra_path, self.worker_infra_name, self.auth_data_file
+        )
+        utils.exec_command_in_deployment(
+            "occopus", command, success="Submitted infrastructure"
+        )
+
         logger.debug("Occopus attach...")
-        occo_api_call = requests.post("http://{0}/infrastructures/{1}/attach"
-            .format(self.occopus_address, self.worker_infra_name))
+        occo_api_call = requests.post(
+            "http://{0}/infrastructures/{1}/attach".format(
+                self.occopus_address, self.worker_infra_name
+            )
+        )
         if occo_api_call.status_code != 200:
             raise AdaptorCritical("Cannot submit infra to Occopus API!")
-                
+
         logger.info("Occopus executed")
         self.status = "executed"
-
-    def get_micado_component_pod(self, deploy_name, namespace="micado-system"):
-        return [
-            x.metadata.name 
-            for x 
-            in self.kube.list_namespaced_pod(namespace).items 
-            if x.metadata.name.startswith(deploy_name)
-        ][0]
-
-    def pod_exec(self, pod_name, command, success=None, namespace="micado-system"):
-        """
-        Execute a command in container
-        """
-        exec_command = ["/bin/sh", "-c"]
-        exec_command.append(command)
-        try:
-            resp = stream(
-                self.kube.connect_get_namespaced_pod_exec,
-                pod_name,
-                namespace,
-                command = exec_command,
-                stderr = True, stdin = False,
-                stdout = True, tty = False
-            )
-            if success and success not in resp:
-                logger.error(f"{pod_name} exec error: {resp}")
-                raise AdaptorCritical(f"{pod_name} exec error: {resp}")
-        except ApiException as e:
-            raise AdaptorCritical(f"K8s API: {e}")
 
     def undeploy(self):
         """
@@ -236,8 +201,7 @@ class OccopusAdaptor(abco.Adaptor):
         # Flush the occopus-redis db
         try:
             command = "redis-cli FLUSHALL"
-            redis_pod_name = self.get_micado_component_pod("redis")
-            self.pod_exec(redis_pod_name, command, success="OK")
+            utils.exec_command_in_deployment("redis", command, success="OK")
         except AdaptorCritical:
             logger.warning("Could not connect to occo-redis container for FLUSH")
         except Exception:

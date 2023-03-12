@@ -6,8 +6,16 @@ import copy
 import io
 
 from ruamel.yaml import YAML, representer
+from kubernetes import config as kubeconfig
+from kubernetes.client.api import core_v1_api
+from kubernetes.client.rest import ApiException
+from kubernetes.stream import stream
+
+from submitter.abstracts.exceptions import AdaptorCritical
 
 logger = logging.getLogger("submitter." + __name__)
+
+api = None
 
 
 class NonAliasingRTRepresenter(representer.RoundTripRepresenter):
@@ -21,6 +29,54 @@ yaml = YAML()
 yaml.default_flow_style = False
 yaml.preserve_quotes = True
 yaml.Representer = NonAliasingRTRepresenter
+
+
+def init_kubernetes():
+    """Initialise kubernetes sdk from kubeconfig"""
+    global api
+    kubeconfig.load_kube_config()
+    api = core_v1_api.CoreV1Api()
+
+
+def get_pod_of_namespaced_deployment(deployment_name, namespace):
+    """Get the first pod of a namespaced deployment"""
+    if not api:
+        raise NameError("Kube API not initialised!")
+    try:
+        return [
+            pod.metadata.name
+            for pod in api.list_namespaced_pod(namespace).items
+            if pod.metadata.name.startswith(deployment_name)
+        ][0]
+    except IndexError as e:
+        logger.error(f"Could not find {deployment_name} pod in {namespace}!")
+        raise e from None
+
+
+def exec_command_in_deployment(
+    command, deployment_name, success=None, namespace="micado-system"
+):
+    """Exec a shell command in the first pod of a deployment, check success"""
+    pod_name = get_pod_of_namespaced_deployment(deployment_name, namespace)
+    exec_command = ["/bin/sh", "-c"]
+    exec_command.append(command)
+    try:
+        resp = stream(
+            api.connect_get_namespaced_pod_exec,
+            pod_name,
+            namespace,
+            command=exec_command,
+            stderr=True,
+            stdin=False,
+            stdout=True,
+            tty=False,
+        )
+        if success and success not in resp:
+            logger.error(f"{pod_name} exec error: {resp}")
+            raise AdaptorCritical(f"{pod_name} exec error!")
+    except ApiException as e:
+        logger.error(f"K8s API error: {e}")
+        raise AdaptorCritical(f"K8s API error!")
 
 
 def load_json(path):
