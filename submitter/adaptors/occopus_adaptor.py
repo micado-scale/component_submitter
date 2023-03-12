@@ -6,7 +6,6 @@ import logging
 import time
 
 import jinja2
-import pykube
 import requests
 from toscaparser.tosca_template import ToscaTemplate
 
@@ -529,12 +528,10 @@ class OccopusAdaptor(abco.Adaptor):
         """ Prepare the Occopus auth file """
         # Pull the auth data out of the secret
         changes = {}
-        try:
-            auth_secret = self.load_auth_data_secret()
-        except FileNotFoundError:
-            logger.error("Auth data not found")
-            raise AdaptorCritical
-        auth_data = auth_secret.obj["data"]
+        secret_name = "cloud-credentials"
+        
+        auth_secret = utils.get_namespaced_secret(secret_name)
+        auth_data = auth_secret["data"]
         auth_file = auth_data.get("auth_data.yaml", {})
         auth_file = base64.decodestring(auth_file.encode())
         auth_file = utils.get_yaml_data(auth_file, stream=True)
@@ -550,19 +547,9 @@ class OccopusAdaptor(abco.Adaptor):
             new_auth_data = utils.dump_order_yaml(auth_file).encode()
             new_auth_data = base64.encodestring(new_auth_data)
             auth_data["auth_data.yaml"] = new_auth_data.decode()
-            auth_secret.update()
+            utils.patch_namespaced_secret(secret_name, auth_secret)
             self.wait_for_volume_update(changes)
 
-    def load_auth_data_secret(self):
-        """ Return the auth data secret """
-        kube_config = pykube.KubeConfig.from_file("~/.kube/config")
-        api = pykube.HTTPClient(kube_config)
-        secrets = pykube.Secret.objects(api).filter(namespace="micado-system")
-        for secret in secrets:
-            if secret.name == "cloud-credentials":
-                return secret
-        raise FileNotFoundError
-    
     def wait_for_volume_update(self, changes):
         """ Wait for update changes to be reflected in the volume """
         wait_timer = 100
