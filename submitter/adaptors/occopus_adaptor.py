@@ -438,7 +438,10 @@ class OccopusAdaptor(abco.Adaptor):
             self.node_data.setdefault(key,{}) \
               .setdefault("description", {}) \
               .setdefault("infrastructure_component_id", properties["infrastructure_component_id"])
-
+        if properties.get("firewall_rule_set_id") is not None:
+            self.node_data.setdefault(key, {}) \
+              .setdefault("description", {}) \
+              .setdefault("firewall_rule_set_id", properties["firewall_rule_set_id"])
         # Currently the IDs form only supports a single ID
         if properties.get("dynamic_domain_name_ids") is not None:
             self.node_data.setdefault(key,{}) \
