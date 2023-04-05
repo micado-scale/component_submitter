@@ -77,6 +77,7 @@ class OccopusAdaptor(abco.Adaptor):
 
             self.node_name = node.name
             self.node_data = {
+                "resource": {},
                 "health_check": {
                   "ping": False
                 },
@@ -87,7 +88,7 @@ class OccopusAdaptor(abco.Adaptor):
             if not occo_interface:
                 continue
             
-            self._node_resolve_interface_data(occo_interface, "resource")
+            self.node_data["resource"]["endpoint"] = get_endpoint_from_interface(occo_interface)
             cloud_type = utils.get_cloud_type(node, SUPPORTED_CLOUDS)
 
             if cloud_type == "cloudsigma":
@@ -269,15 +270,6 @@ class OccopusAdaptor(abco.Adaptor):
             logger.debug("No interface for Occopus in {}".format(node.name))
         return interfaces
 
-    def _node_resolve_interface_data(self, interfaces, key):
-        """
-        Get cloud relevant information from tosca
-        """
-        cloud_inputs = interfaces.get("create")
-
-        # TODO DEPRECATE 'endpoint_cloud' in favour of 'endpoint'
-        endpoint = cloud_inputs.get("endpoint", cloud_inputs.get("endpoint_cloud"))
-        self.node_data.setdefault(key, {}).setdefault("endpoint", endpoint)
 
     def _node_data_get_context_section(self, properties):
         """
@@ -605,3 +597,13 @@ class OccopusAdaptor(abco.Adaptor):
             logger.debug("File deleted: {}".format(self.infra_def_path_output_tmp))
         except OSError:
             pass
+
+
+def get_endpoint_from_interface(interfaces):
+    """
+    Get cloud relevant information from tosca
+    """
+    cloud_inputs = interfaces.get("create")
+
+    # TODO DEPRECATE 'endpoint_cloud' in favour of 'endpoint'
+    return cloud_inputs.get("endpoint", cloud_inputs.get("endpoint_cloud"))
