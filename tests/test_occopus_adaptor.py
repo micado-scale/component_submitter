@@ -10,11 +10,14 @@ class TestOccopusAdaptor(unittest.TestCase):
 
     def setUp(self) -> None:
         tpl = set_template("tests/templates/tosca.yaml")
-        occo = OccopusAdaptor(
+        occoadaptor = OccopusAdaptor(
             "occo_test", {"volume": "tests/output/"}, True, template=tpl
         )
-        self.node_data = occo.translate(to_dict = True)
+        translation = occoadaptor.translate(to_dict = True)
+        self.worker = translation['node_def:worker-node'][0]
+
 
     def test_resource_keys(self):
-        worker = self.node_data['node_def:worker-node'][0]['resource']
-        self.assertListEqual(["endpoint", "type",'regionname', 'image_id', 'instance_type', 'key_name', 'security_group_ids'], list(worker.keys()))
+    def test_health_check(self):
+        healthcheck = {"ping": False}
+        self.assertEqual(self.worker["health_check"], healthcheck)

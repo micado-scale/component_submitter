@@ -76,7 +76,11 @@ class OccopusAdaptor(abco.Adaptor):
         for node in self.template.nodetemplates:
 
             self.node_name = node.name
-            self.node_data = {}
+            self.node_data = {
+                "health_check": {
+                  "ping": False
+                },
+            }
             
             node = copy.deepcopy(node)
             occo_interface = self._node_data_get_interface(node)
@@ -344,8 +348,6 @@ class OccopusAdaptor(abco.Adaptor):
         nics=properties.get("nics")
         self.node_data[key]["description"]["nics"] = nics
         self._node_data_get_context_section(properties)
-        self.node_data.setdefault("health_check", {}) \
-            .setdefault("ping",False)
 
     def _node_data_get_ec2_host_properties(self, node, key):
         """
@@ -374,8 +376,6 @@ class OccopusAdaptor(abco.Adaptor):
         if properties.get("tags") is not None:
             tags = properties["tags"]
             self.node_data[key]["tags"] = tags
-        self.node_data.setdefault("health_check", {}) \
-            .setdefault("ping",False)
 
     def _node_data_get_cloudbroker_host_properties(self, node, key):
         """
@@ -420,8 +420,6 @@ class OccopusAdaptor(abco.Adaptor):
               .setdefault("dynamic_domain_name", properties["dynamic_domain_name"])
 
         self._node_data_get_context_section(properties)
-        self.node_data.setdefault("health_check", {}) \
-            .setdefault("ping",False)
 
     def _node_data_get_nova_host_properties(self, node, key):
         """
@@ -447,8 +445,6 @@ class OccopusAdaptor(abco.Adaptor):
         if properties.get("security_groups") is not None:
             self.node_data[key]["security_groups"] = properties["security_groups"]
         self._node_data_get_context_section(properties)
-        self.node_data.setdefault("health_check", {}) \
-            .setdefault("ping",False)
 
     def _get_cloud_init(self,tosca_cloud_config, base_cloud_init, insert_mode=None):
         """
