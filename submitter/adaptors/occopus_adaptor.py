@@ -311,7 +311,8 @@ class OccopusAdaptor(abco.Adaptor):
         """
         Get CloudSigma properties and create node definition
         """
-        properties = self._get_host_properties(node)
+        properties = get_host_properties(node)
+
         nics = dict()
         self.node_data.setdefault(key, {}).setdefault("type", "cloudsigma")
         self.node_data.setdefault(key, {})\
@@ -373,7 +374,7 @@ class OccopusAdaptor(abco.Adaptor):
         """
         Get CloudBroker properties and create node definition
         """
-        properties = self._get_host_properties(node)
+        properties = get_host_properties(node)
 
         self.node_data.setdefault(key, {}).setdefault("type", "cloudbroker")
         self.node_data.setdefault(key, {}) \
@@ -417,7 +418,7 @@ class OccopusAdaptor(abco.Adaptor):
         """
         Get NOVA properties and create node definition
         """
-        properties = self._get_host_properties(node)
+        properties = get_host_properties(node)
         
         self.node_data.setdefault(key, {}).setdefault("type", "nova")
         self.node_data.setdefault(key, {}) \
@@ -491,9 +492,7 @@ class OccopusAdaptor(abco.Adaptor):
             elif self.validate is False:
                 utils.dump_order_yaml(infra_def, self.infra_def_path_output)
 
-    def _get_host_properties(self, node):
-        """ Get host properties """
-        return {x: y.value for x, y in node.get_properties().items()}
+
 
     def _get_policies(self, node):
         """ Get the TOSCA policies """
@@ -607,3 +606,7 @@ def get_endpoint_from_interface(interfaces):
 
     # TODO DEPRECATE 'endpoint_cloud' in favour of 'endpoint'
     return cloud_inputs.get("endpoint", cloud_inputs.get("endpoint_cloud"))
+
+def get_host_properties(node):
+    """ Get host properties """
+    return {x: y.value for x, y in node.get_properties().items()}
