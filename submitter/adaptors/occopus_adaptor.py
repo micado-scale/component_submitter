@@ -104,7 +104,7 @@ class OccopusAdaptor(abco.Adaptor):
                 self._node_data_get_cloudbroker_host_properties(properties, "resource")
             elif cloud_type == "nova":
                 logger.info("Nova resource detected")
-                self._node_data_get_nova_host_properties(properties, "resource")
+                properties = get_nova_host_properties(properties)
 
             self.node_data["resource"].update(properties)
             self._get_policies(node)
@@ -389,31 +389,6 @@ class OccopusAdaptor(abco.Adaptor):
 
         self._node_data_get_context_section(properties)
 
-    def _node_data_get_nova_host_properties(self, node, key):
-        """
-        Get NOVA properties and create node definition
-        """
-        properties = get_host_properties(node)
-        
-        self.node_data.setdefault(key, {}).setdefault("type", "nova")
-        self.node_data.setdefault(key, {}) \
-            .setdefault("project_id", properties["project_id"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("image_id", properties["image_id"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("network_id", properties["network_id"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("flavor_name", properties["flavor_name"])
-        if properties.get("server_name") is not None:
-            self.node_data.setdefault(key, {}) \
-              .setdefault("server_name", properties["server_name"])
-        if properties.get("key_name") is not None:
-            self.node_data.setdefault(key, {}) \
-              .setdefault("key_name", properties["key_name"])
-        if properties.get("security_groups") is not None:
-            self.node_data[key]["security_groups"] = properties["security_groups"]
-        self._node_data_get_context_section(properties)
-
     def _get_cloud_init(self,tosca_cloud_config, base_cloud_init, insert_mode=None):
         """
         Get cloud-config from MiCADO cloud-init template
@@ -599,3 +574,10 @@ def get_ec2_host_properties(properties):
     ec2["regionname"] = ec2.pop("region_name")
     return ec2
 
+def get_nova_host_properties(properties):
+    """
+    Get Nova properties and create node definition
+    """
+    nova = properties
+    nova["type"] = "nova"
+    return nova
