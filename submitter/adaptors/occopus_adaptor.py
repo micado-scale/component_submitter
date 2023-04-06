@@ -98,7 +98,7 @@ class OccopusAdaptor(abco.Adaptor):
                 self._node_data_get_cloudsigma_host_properties(properties, "resource")
             elif cloud_type == "ec2":
                 logger.info("EC2 resource detected")
-                self._node_data_get_ec2_host_properties(properties, "resource")
+                properties = get_ec2_host_properties(properties)
             elif cloud_type == "cloudbroker":
                 logger.info("CloudBroker resource detected")
                 self._node_data_get_cloudbroker_host_properties(properties, "resource")
@@ -106,6 +106,7 @@ class OccopusAdaptor(abco.Adaptor):
                 logger.info("Nova resource detected")
                 self._node_data_get_nova_host_properties(properties, "resource")
 
+            self.node_data["resource"].update(properties)
             self._get_policies(node)
             self._get_infra_def(tmp)
 
@@ -343,34 +344,6 @@ class OccopusAdaptor(abco.Adaptor):
         nics=properties.get("nics")
         self.node_data[key]["description"]["nics"] = nics
         self._node_data_get_context_section(properties)
-
-    def _node_data_get_ec2_host_properties(self, node, key):
-        """
-        Get EC2 properties and create node definition
-        """
-        properties = self._get_host_properties(node)
-
-        self.node_data.setdefault(key, {}).setdefault("type", "ec2")
-        self.node_data.setdefault(key, {}) \
-            .setdefault("regionname", properties["region_name"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("image_id", properties["image_id"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("instance_type", properties["instance_type"])
-        self._node_data_get_context_section(properties)
-        if properties.get("key_name") is not None:
-            self.node_data.setdefault(key, {}) \
-              .setdefault("key_name", properties["key_name"])
-        if properties.get("subnet_id") is not None:
-            self.node_data.setdefault(key, {}) \
-              .setdefault("subnet_id", properties["subnet_id"])
-        if properties.get("security_group_ids") is not None:
-            security_groups = list()
-            security_groups = properties["security_group_ids"]
-            self.node_data[key]["security_group_ids"] = security_groups
-        if properties.get("tags") is not None:
-            tags = properties["tags"]
-            self.node_data[key]["tags"] = tags
 
     def _node_data_get_cloudbroker_host_properties(self, node, key):
         """
@@ -616,3 +589,13 @@ def fix_endpoint_in_interface(node_data):
 def get_host_properties(node):
     """ Get host properties """
     return {x: y.value for x, y in node.get_properties().items()}
+
+def get_ec2_host_properties(properties):
+    """
+    Get EC2 properties and create node definition
+    """
+    ec2 = properties
+    ec2["type"] = "ec2"
+    ec2["regionname"] = ec2.pop("region_name")
+    return ec2
+
