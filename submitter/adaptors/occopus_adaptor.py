@@ -92,10 +92,12 @@ class OccopusAdaptor(abco.Adaptor):
             fix_endpoint_in_interface(self.node_data)
             cloud_type = utils.get_cloud_type(node, SUPPORTED_CLOUDS)
             properties = get_host_properties(node)
+            description = self.node_data["resource"].get("description", {})
 
             if cloud_type == "cloudsigma":
                 logger.info("CloudSigma resource detected")
-                self._node_data_get_cloudsigma_host_properties(properties, "resource")
+                properties = description.update(properties)
+                properties = get_cloudsigma_host_properties(properties)
             elif cloud_type == "ec2":
                 logger.info("EC2 resource detected")
                 properties = get_ec2_host_properties(properties)
@@ -310,40 +312,6 @@ class OccopusAdaptor(abco.Adaptor):
                 "context_template", self._get_cloud_init(cloud_config, base_cloud_init, "overwrite")
             )
 
-    def _node_data_get_cloudsigma_host_properties(self, node, key):
-        """
-        Get CloudSigma properties and create node definition
-        """
-        properties = get_host_properties(node)
-
-        nics = dict()
-        self.node_data.setdefault(key, {}).setdefault("type", "cloudsigma")
-        self.node_data.setdefault(key, {})\
-            .setdefault("libdrive_id", properties["libdrive_id"])
-        self.node_data.setdefault(key, {})\
-            .setdefault("description", {})\
-            .setdefault("cpu", properties["num_cpus"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("description", {}) \
-            .setdefault("mem", properties["mem_size"])
-        self.node_data.setdefault(key, {})\
-            .setdefault("description", {})\
-            .setdefault("vnc_password", properties["vnc_password"])
-        if properties.get("public_key_id") is not None:
-            pubkeys = list()
-            pubkeys.append(properties["public_key_id"])
-            self.node_data[key]["description"]["pubkeys"] = pubkeys
-        if properties.get("hv_relaxed") is not None:
-            self.node_data.setdefault(key, {})\
-            .setdefault("description", {})\
-            .setdefault("hv_relaxed", properties["hv_relaxed"])
-        if properties.get("hv_tsc") is not None:
-            self.node_data.setdefault(key, {})\
-            .setdefault("description", {})\
-            .setdefault("hv_tsc", properties["hv_tsc"])
-        nics=properties.get("nics")
-        self.node_data[key]["description"]["nics"] = nics
-        self._node_data_get_context_section(properties)
 
     def _node_data_get_cloudbroker_host_properties(self, node, key):
         """
@@ -581,3 +549,20 @@ def get_nova_host_properties(properties):
     nova = properties
     nova["type"] = "nova"
     return nova
+
+def get_cloudsigma_host_properties(properties):
+    """
+    Get CloudSigma properties and create node definition
+    """
+    cloudsigma = {}
+    cloudsigma["type"] = "cloudsigma"
+
+    cloudsigma["libdrive_id"] = properties.pop("libdrive_id")
+    properties["cpu"] = properties.pop("num_cpus")
+    properties["mem"] = properties.pop("mem_size")
+
+    if (value := properties.pop("public_key_id", None)):
+        properties["pubkeys"] = [value] # reformat as list
+
+    cloudsigma["description"] = properties
+    return cloudsigma
