@@ -98,12 +98,13 @@ class OccopusAdaptor(abco.Adaptor):
 
             if cloud_type in ["cloudsigma", "cloudbroker"]:
                 description = self.node_data["resource"].get("description", {})
-                properties = description.update(properties)
+                description.update(properties)
+                properties = description
 
             logger.info(f"Resource detected: {cloud_type}")
             try:
                 CLOUD_TYPES[cloud_type](properties) # Call the right get function
-            except:
+            except KeyError:
                 raise AdaptorCritical(f"Cloud type not supported: {cloud_type}")
             
             context = properties.pop("context", {})
