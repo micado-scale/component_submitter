@@ -126,7 +126,10 @@ topology_template:
         # TERRAFORM: Change key to Terraform
         Occopus:
           create:
-            inputs: *endpoint_properties
+            inputs:
+              <<: *endpoint_properties
+              resource:
+                an_extra_prop: False
       
     cq-server:
       type: tosca.nodes.MiCADO.EC2.Compute.Occo
