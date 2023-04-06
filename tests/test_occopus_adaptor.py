@@ -38,6 +38,9 @@ class TestOccopusAdaptor(unittest.TestCase):
         healthcheck = {"ping": False}
         self.assertEqual(self.worker["health_check"], healthcheck)
 
+    def test_cloud_context(self):
+        self.assertIn("context_template", self.worker["contextualisation"])
+        
     def test_endpoint_from_interface(self):
         endpoint = "https://ec2.eu-west-1.amazonaws.com"
         test = {"endpoint": endpoint}

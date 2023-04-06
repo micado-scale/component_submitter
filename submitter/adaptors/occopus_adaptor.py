@@ -78,6 +78,7 @@ class OccopusAdaptor(abco.Adaptor):
             self.node_name = node.name
             self.node_data = {
                 "resource": {},
+                "contextualisation": {},
                 "health_check": {
                   "ping": False
                 },
@@ -102,7 +103,8 @@ class OccopusAdaptor(abco.Adaptor):
                 CLOUD_TYPES[cloud_type](properties)
             except:
                 raise AdaptorCritical(f"Cloud type not supported: {cloud_type}")
-
+            
+            self._node_data_get_context_section(properties)
             self.node_data["resource"].update(properties)
             self._get_policies(node)
             self._get_infra_def(tmp)
@@ -278,7 +280,7 @@ class OccopusAdaptor(abco.Adaptor):
         self.node_data.setdefault("contextualisation", {}).setdefault(
             "type", "cloudinit"
         )
-        context = properties.get("context", {})
+        context = properties.pop("context", {})
         base_cloud_init = context.get("path") or self.cloudinit_path
         cloud_config = context.get("cloud_config")
         if not context:
