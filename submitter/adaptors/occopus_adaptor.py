@@ -523,3 +523,10 @@ def get_cloudbroker_host_properties(properties):
 
     cloudbroker["description"] = properties
     return cloudbroker
+
+def get_insert_mode(context):
+    modes = ("insert", "append", "overwrite")
+    for mode in modes:
+        if context.get(mode):
+            return mode
+    return "append"
