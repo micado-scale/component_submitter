@@ -121,7 +121,14 @@ topology_template:
 
     worker-node:
       type: tosca.nodes.MiCADO.EC2.Compute
-      properties: *compute_properties
+      properties:
+        <<: *compute_properties
+        context:
+          insert: true
+          path: tests/templates/cloudinit.yaml
+          cloud_config: |
+            runcmd:
+            - wget https://github.com/coversatile/raw/main/iml.tgz
       interfaces:
         # TERRAFORM: Change key to Terraform
         Occopus:
@@ -136,6 +143,11 @@ topology_template:
       properties:
         <<: *compute_properties
         endpoint: https://mycloud.net/api/v2
+        context:
+          path: tests/templates/cloudinit.yaml
+          cloud_config: |
+            runcmd:
+            - wget https://github.com/coversatile/raw/main/iml.tgz
 
     terra-server:
       type: tosca.nodes.MiCADO.EC2.Compute.Terra
