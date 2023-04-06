@@ -105,4 +105,4 @@ class TestOccoAdaptorFunctions(unittest.TestCase):
 
         test = {}
         mode = occo.get_insert_mode(test)
-        self.assertEqual(mode, "overwrite")
+        self.assertEqual(mode, "append")
