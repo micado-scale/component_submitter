@@ -92,22 +92,16 @@ class OccopusAdaptor(abco.Adaptor):
             fix_endpoint_in_interface(self.node_data)
             cloud_type = utils.get_cloud_type(node, CLOUD_TYPES.keys())
             properties = get_host_properties(node)
-            description = self.node_data["resource"].get("description", {})
 
-            if cloud_type == "cloudsigma":
-                logger.info("CloudSigma resource detected")
+            if cloud_type in ["cloudsigma", "cloudbroker"]:
+                description = self.node_data["resource"].get("description", {})
                 properties = description.update(properties)
-                properties = get_cloudsigma_host_properties(properties)
-            elif cloud_type == "ec2":
-                logger.info("EC2 resource detected")
-                properties = get_ec2_host_properties(properties)
-            elif cloud_type == "cloudbroker":
-                logger.info("CloudBroker resource detected")
-                properties = description.update(properties)
-                properties = get_cloudbroker_host_properties(properties)
-            elif cloud_type == "nova":
-                logger.info("Nova resource detected")
-                properties = get_nova_host_properties(properties)
+
+            logger.info(f"Resource detected: {cloud_type}")
+            try:
+                CLOUD_TYPES[cloud_type](properties)
+            except:
+                raise AdaptorCritical(f"Cloud type not supported: {cloud_type}")
 
             self.node_data["resource"].update(properties)
             self._get_policies(node)
