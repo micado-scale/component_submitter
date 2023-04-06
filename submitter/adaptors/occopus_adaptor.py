@@ -15,12 +15,6 @@ from submitter import utils
 
 logger = logging.getLogger("adaptor."+__name__)
 
-SUPPORTED_CLOUDS = (
-    "ec2",
-    "nova",
-    "cloudsigma",
-    "cloudbroker"
-)
 RUNCMD_PLACEHOLDER = "echo micado runcmd placeholder"
 
 class OccopusAdaptor(abco.Adaptor):
@@ -69,36 +63,54 @@ class OccopusAdaptor(abco.Adaptor):
         Translate the self.tpl subset to Occopus node definition and infrastructure format
         The adaptor create a mapping between TOSCA and Occopus template descriptor.
         """
+        CLOUD_TYPES = {
+            "ec2": get_ec2_host_properties,
+            "nova": get_nova_host_properties,
+            "cloudsigma": get_cloudsigma_host_properties,
+            "cloudbroker": get_cloudbroker_host_properties,
+        }
         self.node_def = {}
         logger.info("Starting OccoTranslation")
         self.status = "translating"
 
         for node in self.template.nodetemplates:
 
-            self.node_name = node.name
-            self.node_data = {}
-            
             node = copy.deepcopy(node)
-            occo_interface = self._node_data_get_interface(node)
+            occo_interface = utils.get_lifecycle(node, "Occopus")
             if not occo_interface:
                 continue
+
+            self.node_name = node.name
+            self.node_data = {
+                "resource": {},
+                "contextualisation": {},
+                "health_check": {
+                  "ping": False
+                },
+            }
+
+            # Start with whatever is in interfaces
+            self.node_data.update(occo_interface.get("create", {}))
+            fix_endpoint_in_interface(self.node_data)
+
+            cloud_type = utils.get_cloud_type(node, CLOUD_TYPES.keys())
+            properties = get_host_properties(node)
+
+            if cloud_type in ["cloudsigma", "cloudbroker"]:
+                description = self.node_data["resource"].get("description", {})
+                properties = description.update(properties)
+
+            logger.info(f"Resource detected: {cloud_type}")
+            try:
+                CLOUD_TYPES[cloud_type](properties) # Call the right get function
+            except:
+                raise AdaptorCritical(f"Cloud type not supported: {cloud_type}")
             
-            self._node_resolve_interface_data(occo_interface, "resource")
-            cloud_type = utils.get_cloud_type(node, SUPPORTED_CLOUDS)
+            context = properties.pop("context", {})
+            self.node_data["resource"].update(properties)
 
-            if cloud_type == "cloudsigma":
-                logger.info("CloudSigma resource detected")
-                self._node_data_get_cloudsigma_host_properties(node, "resource")
-            elif cloud_type == "ec2":
-                logger.info("EC2 resource detected")
-                self._node_data_get_ec2_host_properties(node, "resource")
-            elif cloud_type == "cloudbroker":
-                logger.info("CloudBroker resource detected")
-                self._node_data_get_cloudbroker_host_properties(node, "resource")
-            elif cloud_type == "nova":
-                logger.info("Nova resource detected")
-                self._node_data_get_nova_host_properties(node, "resource")
-
+            self.node_data["contextualisation"] = self._node_data_get_context_section(context)
+            
             self._get_policies(node)
             self._get_infra_def(tmp)
 
@@ -256,199 +268,27 @@ class OccopusAdaptor(abco.Adaptor):
             logger.info("there are no changes in the Occopus files")
             self._remove_tmp_files()
 
-    def _node_data_get_interface(self, node):
-        """
-        Get interface for node from tosca
-        """
-        interfaces = utils.get_lifecycle(node, "Occopus")
-        if not interfaces:
-            logger.debug("No interface for Occopus in {}".format(node.name))
-        return interfaces
 
-    def _node_resolve_interface_data(self, interfaces, key):
-        """
-        Get cloud relevant information from tosca
-        """
-        cloud_inputs = interfaces.get("create")
-
-        # TODO DEPRECATE 'endpoint_cloud' in favour of 'endpoint'
-        endpoint = cloud_inputs.get("endpoint", cloud_inputs.get("endpoint_cloud"))
-        self.node_data.setdefault(key, {}).setdefault("endpoint", endpoint)
-
-    def _node_data_get_context_section(self, properties):
+    def _node_data_get_context_section(self, context):
         """
         Create the context section in node definition
         """
-        self.node_data.setdefault("contextualisation", {}).setdefault(
-            "type", "cloudinit"
-        )
-        context = properties.get("context", {})
+        context_data = {
+            "type": "cloudinit",
+            "context_template": {}
+        }
         base_cloud_init = context.get("path") or self.cloudinit_path
         cloud_config = context.get("cloud_config")
-        if not context:
+        if not context or not cloud_config:
             logger.debug("The adaptor will use a default cloud-config")
-            self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(None, base_cloud_init)
-            )
-        elif not cloud_config:
-            logger.debug("No cloud-config provided... using default cloud-config")
-            self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(None, base_cloud_init)
-            )
-        elif context.get("insert"):
-            logger.debug("Insert the TOSCA cloud-config in the default config")
-            self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(cloud_config, base_cloud_init, "insert")
-            )
-        elif context.get("append"):
-            logger.debug("Append the TOSCA cloud-config to the default config")
-            self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(cloud_config, base_cloud_init, "append")
-            )
+            context_data["context_template"] = self._get_cloud_init(None, base_cloud_init)
         else:
-            logger.debug("Overwrite the default cloud-config")
-            self.node_data["contextualisation"].setdefault(
-                "context_template", self._get_cloud_init(cloud_config, base_cloud_init, "overwrite")
-            )
+            mode = get_insert_mode(context)
+            logger.debug(f"{mode.title()} the TOSCA cloud-config")
+            context_data["context_template"] = self._get_cloud_init(cloud_config, base_cloud_init, mode)
 
-    def _node_data_get_cloudsigma_host_properties(self, node, key):
-        """
-        Get CloudSigma properties and create node definition
-        """
-        properties = self._get_host_properties(node)
-        nics = dict()
-        self.node_data.setdefault(key, {}).setdefault("type", "cloudsigma")
-        self.node_data.setdefault(key, {})\
-            .setdefault("libdrive_id", properties["libdrive_id"])
-        self.node_data.setdefault(key, {})\
-            .setdefault("description", {})\
-            .setdefault("cpu", properties["num_cpus"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("description", {}) \
-            .setdefault("mem", properties["mem_size"])
-        self.node_data.setdefault(key, {})\
-            .setdefault("description", {})\
-            .setdefault("vnc_password", properties["vnc_password"])
-        if properties.get("public_key_id") is not None:
-            pubkeys = list()
-            pubkeys.append(properties["public_key_id"])
-            self.node_data[key]["description"]["pubkeys"] = pubkeys
-        if properties.get("hv_relaxed") is not None:
-            self.node_data.setdefault(key, {})\
-            .setdefault("description", {})\
-            .setdefault("hv_relaxed", properties["hv_relaxed"])
-        if properties.get("hv_tsc") is not None:
-            self.node_data.setdefault(key, {})\
-            .setdefault("description", {})\
-            .setdefault("hv_tsc", properties["hv_tsc"])
-        nics=properties.get("nics")
-        self.node_data[key]["description"]["nics"] = nics
-        self._node_data_get_context_section(properties)
-        self.node_data.setdefault("health_check", {}) \
-            .setdefault("ping",False)
+        return context_data
 
-    def _node_data_get_ec2_host_properties(self, node, key):
-        """
-        Get EC2 properties and create node definition
-        """
-        properties = self._get_host_properties(node)
-
-        self.node_data.setdefault(key, {}).setdefault("type", "ec2")
-        self.node_data.setdefault(key, {}) \
-            .setdefault("regionname", properties["region_name"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("image_id", properties["image_id"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("instance_type", properties["instance_type"])
-        self._node_data_get_context_section(properties)
-        if properties.get("key_name") is not None:
-            self.node_data.setdefault(key, {}) \
-              .setdefault("key_name", properties["key_name"])
-        if properties.get("subnet_id") is not None:
-            self.node_data.setdefault(key, {}) \
-              .setdefault("subnet_id", properties["subnet_id"])
-        if properties.get("security_group_ids") is not None:
-            security_groups = list()
-            security_groups = properties["security_group_ids"]
-            self.node_data[key]["security_group_ids"] = security_groups
-        if properties.get("tags") is not None:
-            tags = properties["tags"]
-            self.node_data[key]["tags"] = tags
-        self.node_data.setdefault("health_check", {}) \
-            .setdefault("ping",False)
-
-    def _node_data_get_cloudbroker_host_properties(self, node, key):
-        """
-        Get CloudBroker properties and create node definition
-        """
-        properties = self._get_host_properties(node)
-
-        self.node_data.setdefault(key, {}).setdefault("type", "cloudbroker")
-        self.node_data.setdefault(key, {}) \
-            .setdefault("description", {}) \
-            .setdefault("deployment_id", properties["deployment_id"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("description", {}) \
-            .setdefault("instance_type_id", properties["instance_type_id"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("description", {}) \
-            .setdefault("key_pair_id", properties["key_pair_id"])
-        if properties.get("opened_port") is not None:
-            self.node_data.setdefault(key, {}) \
-              .setdefault("description", {}) \
-              .setdefault("opened_port", properties["opened_port"])
-        if properties.get("infrastructure_component_id") is not None:
-            self.node_data.setdefault(key,{}) \
-              .setdefault("description", {}) \
-              .setdefault("infrastructure_component_id", properties["infrastructure_component_id"])
-        if properties.get("firewall_rule_set_id") is not None:
-            self.node_data.setdefault(key, {}) \
-              .setdefault("description", {}) \
-              .setdefault("firewall_rule_set_id", properties["firewall_rule_set_id"])
-        # Currently the IDs form only supports a single ID
-        if properties.get("dynamic_domain_name_ids") is not None:
-            self.node_data.setdefault(key,{}) \
-              .setdefault("description", {}) \
-              .setdefault("dynamic_domain_name_ids", {}) \
-              .setdefault("dynamic_domain_name_id", properties["dynamic_domain_name_ids"][0])
-
-        # This form expects a string
-        if properties.get("dynamic_domain_name") is not None:
-            self.node_data.setdefault(key,{}) \
-              .setdefault("description", {}) \
-              .setdefault("dynamic_domain_names", {}) \
-              .setdefault("dynamic_domain_name", properties["dynamic_domain_name"])
-
-        self._node_data_get_context_section(properties)
-        self.node_data.setdefault("health_check", {}) \
-            .setdefault("ping",False)
-
-    def _node_data_get_nova_host_properties(self, node, key):
-        """
-        Get NOVA properties and create node definition
-        """
-        properties = self._get_host_properties(node)
-        
-        self.node_data.setdefault(key, {}).setdefault("type", "nova")
-        self.node_data.setdefault(key, {}) \
-            .setdefault("project_id", properties["project_id"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("image_id", properties["image_id"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("network_id", properties["network_id"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("flavor_name", properties["flavor_name"])
-        if properties.get("server_name") is not None:
-            self.node_data.setdefault(key, {}) \
-              .setdefault("server_name", properties["server_name"])
-        if properties.get("key_name") is not None:
-            self.node_data.setdefault(key, {}) \
-              .setdefault("key_name", properties["key_name"])
-        if properties.get("security_groups") is not None:
-            self.node_data[key]["security_groups"] = properties["security_groups"]
-        self._node_data_get_context_section(properties)
-        self.node_data.setdefault("health_check", {}) \
-            .setdefault("ping",False)
 
     def _get_cloud_init(self,tosca_cloud_config, base_cloud_init, insert_mode=None):
         """
@@ -503,9 +343,7 @@ class OccopusAdaptor(abco.Adaptor):
             elif self.validate is False:
                 utils.dump_order_yaml(infra_def, self.infra_def_path_output)
 
-    def _get_host_properties(self, node):
-        """ Get host properties """
-        return {x: y.value for x, y in node.get_properties().items()}
+
 
     def _get_policies(self, node):
         """ Get the TOSCA policies """
@@ -609,3 +447,81 @@ class OccopusAdaptor(abco.Adaptor):
             logger.debug("File deleted: {}".format(self.infra_def_path_output_tmp))
         except OSError:
             pass
+
+
+def fix_endpoint_in_interface(node_data):
+    """
+    Adjust endpoint key in interface (legacy support for endpoint at root)
+
+    This method will mutate interfaces to remove `endpoint` from top-level
+    """
+    # NOTE endpoint_cloud is deprecated
+    # TODO deprecate endpoint at root and allow only under resource?
+    endpoint = node_data.pop("endpoint", "")
+    if not node_data.setdefault("resource", {}).setdefault("endpoint", endpoint):
+        logger.error("Missing endpoint")
+        raise AdaptorCritical("Missing endpoint")
+
+def get_host_properties(node):
+    """ Get host properties """
+    return {x: y.value for x, y in node.get_properties().items()}
+
+def get_ec2_host_properties(properties):
+    """
+    Get EC2 properties and create node definition
+    """
+    ec2 = properties
+    ec2["type"] = "ec2"
+    ec2["regionname"] = ec2.pop("region_name")
+    return ec2
+
+def get_nova_host_properties(properties):
+    """
+    Get Nova properties and create node definition
+    """
+    nova = properties
+    nova["type"] = "nova"
+    return nova
+
+def get_cloudsigma_host_properties(properties):
+    """
+    Get CloudSigma properties and create node definition
+    """
+    cloudsigma = {}
+    cloudsigma["type"] = "cloudsigma"
+
+    cloudsigma["libdrive_id"] = properties.pop("libdrive_id")
+    properties["cpu"] = properties.pop("num_cpus")
+    properties["mem"] = properties.pop("mem_size")
+
+    if (value := properties.pop("public_key_id", None)):
+        properties["pubkeys"] = [value] # reformat as list
+
+    cloudsigma["description"] = properties
+    return cloudsigma
+
+def get_cloudbroker_host_properties(properties):
+    """
+    Get CloudBroker properties and create node definition
+    """
+    cloudbroker = {}
+    cloudbroker["type"] = "cloudbroker"
+
+    domain_name_keys = (
+        "dynamic_domain_name_id",
+        "dynamic_domain_name",
+    )
+    for name in domain_name_keys:
+        if not (value := properties.pop(name, None)):
+            continue
+        properties.setdefault(f"{name}s", {}).setdefault(name, value)
+
+    cloudbroker["description"] = properties
+    return cloudbroker
+
+def get_insert_mode(context):
+    modes = ("insert", "append", "overwrite")
+    for mode in modes:
+        if context.get(mode):
+            return mode
+    return "append"
