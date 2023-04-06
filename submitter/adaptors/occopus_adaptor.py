@@ -75,6 +75,11 @@ class OccopusAdaptor(abco.Adaptor):
 
         for node in self.template.nodetemplates:
 
+            node = copy.deepcopy(node)
+            occo_interface = utils.get_lifecycle(node, "Occopus")
+            if not occo_interface:
+                continue
+
             self.node_name = node.name
             self.node_data = {
                 "resource": {},
@@ -83,14 +88,11 @@ class OccopusAdaptor(abco.Adaptor):
                   "ping": False
                 },
             }
-            
-            node = copy.deepcopy(node)
-            occo_interface = self._node_data_get_interface(node)
-            if not occo_interface:
-                continue
 
+            # Start with whatever is in interfaces
             self.node_data.update(occo_interface.get("create", {}))
             fix_endpoint_in_interface(self.node_data)
+
             cloud_type = utils.get_cloud_type(node, CLOUD_TYPES.keys())
             properties = get_host_properties(node)
 
@@ -100,13 +102,15 @@ class OccopusAdaptor(abco.Adaptor):
 
             logger.info(f"Resource detected: {cloud_type}")
             try:
-                CLOUD_TYPES[cloud_type](properties)
+                CLOUD_TYPES[cloud_type](properties) # Call the right get function
             except:
                 raise AdaptorCritical(f"Cloud type not supported: {cloud_type}")
             
             context = properties.pop("context", {})
-            self.node_data["contextualisation"] = self._node_data_get_context_section(context)
             self.node_data["resource"].update(properties)
+
+            self.node_data["contextualisation"] = self._node_data_get_context_section(context)
+            
             self._get_policies(node)
             self._get_infra_def(tmp)
 
@@ -263,15 +267,6 @@ class OccopusAdaptor(abco.Adaptor):
             self.status = 'updated (nothing to update)'
             logger.info("there are no changes in the Occopus files")
             self._remove_tmp_files()
-
-    def _node_data_get_interface(self, node):
-        """
-        Get interface for node from tosca
-        """
-        interfaces = utils.get_lifecycle(node, "Occopus")
-        if not interfaces:
-            logger.debug("No interface for Occopus in {}".format(node.name))
-        return interfaces
 
 
     def _node_data_get_context_section(self, context):
