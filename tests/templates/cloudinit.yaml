@@ -1,0 +1,4 @@
+runcmd:
+-   touch, /home/ubuntu/testfile.txt
+-   echo micado runcmd placeholder
+-   banner test message

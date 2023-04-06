@@ -7,7 +7,7 @@ from submitter.adaptors import occopus_adaptor as occo
 
 
 class TestOccopusAdaptor(unittest.TestCase):
-    """UnitTests for Resource class"""
+    """UnitTests for Occo translate"""
 
     def setUp(self) -> None:
         tpl = set_template("tests/templates/tosca.yaml")
@@ -16,6 +16,7 @@ class TestOccopusAdaptor(unittest.TestCase):
         )
         translation = occoadaptor.translate(to_dict=True)
         self.worker = translation["node_def:worker-node"][0]
+        self.cq = translation["node_def:cq-server"][0]
 
     def test_resource_keys(self):
         self.assertEqual(
@@ -40,7 +41,21 @@ class TestOccopusAdaptor(unittest.TestCase):
 
     def test_cloud_context(self):
         self.assertIn("context_template", self.worker["contextualisation"])
-        
+
+    def test_context_insert(self):
+        runcmd = self.worker["contextualisation"]["context_template"]["runcmd"]
+        self.assertTrue(runcmd[0].startswith("touch"))
+        self.assertTrue(runcmd[1].startswith("wget"))
+        self.assertTrue(runcmd[-1].startswith("banner"))
+
+    def test_context_append(self):
+        runcmd = self.cq["contextualisation"]["context_template"]["runcmd"]
+        self.assertTrue(runcmd[0].startswith("touch"))
+        self.assertTrue(runcmd[-1].startswith("wget"))
+
+
+class TestOccoAdaptorFunctions(unittest.TestCase):
+    """Unittests for Occo functions"""
     def test_endpoint_from_interface(self):
         endpoint = "https://ec2.eu-west-1.amazonaws.com"
         test = {"endpoint": endpoint}
@@ -82,3 +97,12 @@ class TestOccopusAdaptor(unittest.TestCase):
         test = {"flavor_name": "t2.small"}
         node = occo.get_nova_host_properties(test)
         self.assertEqual(node, test)
+
+    def test_context_mode_getter(self):
+        test = {"append": True, "cloud_config": {"runcmd": ["echo 'hi'"]}}
+        mode = occo.get_insert_mode(test)
+        self.assertEqual(mode, "append")
+
+        test = {}
+        mode = occo.get_insert_mode(test)
+        self.assertEqual(mode, "overwrite")
