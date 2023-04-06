@@ -5,7 +5,6 @@ import filecmp
 import copy
 import base64
 import json
-import pykube
 import kubernetes_validate
 from kubernetes_validate.utils import (
     SchemaNotFoundError,
@@ -302,8 +301,8 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             logger.error(f"kubectl: {e.stderr}")
             raise AdaptorCritical(f"kubectl: {e.stderr}")
 
-        logger.info("Kube objects deployed, trying to get outputs...")
-        self._get_outputs()
+        #logger.info("Kube objects deployed, trying to get outputs...")
+        #self._get_outputs()
         logger.info("Execution complete")
         self.status = "Executed"
 
@@ -396,18 +395,6 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
 
         self.status = "Clean!"
 
-    def query(self, query):
-        """ Query """
-        logger.info(f"Query ID {self.ID}")
-        kube_config = pykube.KubeConfig.from_file("~/.kube/config")
-        api = pykube.HTTPClient(kube_config)
-
-        if query == "nodes":
-            nodes = pykube.Node.objects(api)
-            return [x.name for x in nodes.iterator()]
-        elif query == "services":
-            pods = pykube.Pod.objects(api)
-            return [x.name for x in pods.iterator()]
 
     def _get_outputs(self):
         """Get outputs and their resultant attributes"""
@@ -421,9 +408,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
                 logger.debug(f"Inspect node: {node.name}")
                 query = output.value.attribute_name
                 if query == "port":
-                    self.output.setdefault(node.name, {})[query] = query_port(
-                        node.name
-                    )
+                    pass # TODO: find ports using K8s-py
             else:
                 logger.warning(f"{node.name} is not a Docker container!")
 
@@ -459,21 +444,3 @@ def _name_check_node(node):
         raise AdaptorCritical(
             f"Underscores in properties of {node.name} not allowed for {errors}"
         )
-
-
-def query_port(service_name):
-    """Queries a specific service for its port listing
-
-    Args:
-        service_name (string): Name of service to query
-
-    Returns:
-        dict: port listing
-    """
-    kube_config = pykube.KubeConfig.from_file("~/.kube/config")
-    api = pykube.HTTPClient(kube_config)
-    try:
-        service = pykube.Service.objects(api).get_by_name(service_name)
-    except Exception:
-        return f"Service {service_name} not found"
-    return service.obj.get("spec", {}).get("ports", {})
