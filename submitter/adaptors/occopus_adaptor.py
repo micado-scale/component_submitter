@@ -15,12 +15,6 @@ from submitter import utils
 
 logger = logging.getLogger("adaptor."+__name__)
 
-SUPPORTED_CLOUDS = (
-    "ec2",
-    "nova",
-    "cloudsigma",
-    "cloudbroker"
-)
 RUNCMD_PLACEHOLDER = "echo micado runcmd placeholder"
 
 class OccopusAdaptor(abco.Adaptor):
@@ -69,6 +63,12 @@ class OccopusAdaptor(abco.Adaptor):
         Translate the self.tpl subset to Occopus node definition and infrastructure format
         The adaptor create a mapping between TOSCA and Occopus template descriptor.
         """
+        CLOUD_TYPES = {
+            "ec2": get_ec2_host_properties,
+            "nova": get_nova_host_properties,
+            "cloudsigma": get_cloudsigma_host_properties,
+            "cloudbroker": get_cloudbroker_host_properties,
+        }
         self.node_def = {}
         logger.info("Starting OccoTranslation")
         self.status = "translating"
@@ -90,7 +90,7 @@ class OccopusAdaptor(abco.Adaptor):
 
             self.node_data.update(occo_interface.get("create", {}))
             fix_endpoint_in_interface(self.node_data)
-            cloud_type = utils.get_cloud_type(node, SUPPORTED_CLOUDS)
+            cloud_type = utils.get_cloud_type(node, CLOUD_TYPES.keys())
             properties = get_host_properties(node)
             description = self.node_data["resource"].get("description", {})
 
