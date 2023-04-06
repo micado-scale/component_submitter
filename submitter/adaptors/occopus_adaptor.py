@@ -103,7 +103,8 @@ class OccopusAdaptor(abco.Adaptor):
                 properties = get_ec2_host_properties(properties)
             elif cloud_type == "cloudbroker":
                 logger.info("CloudBroker resource detected")
-                self._node_data_get_cloudbroker_host_properties(properties, "resource")
+                properties = description.update(properties)
+                properties = get_cloudbroker_host_properties(properties)
             elif cloud_type == "nova":
                 logger.info("Nova resource detected")
                 properties = get_nova_host_properties(properties)
@@ -312,50 +313,6 @@ class OccopusAdaptor(abco.Adaptor):
                 "context_template", self._get_cloud_init(cloud_config, base_cloud_init, "overwrite")
             )
 
-
-    def _node_data_get_cloudbroker_host_properties(self, node, key):
-        """
-        Get CloudBroker properties and create node definition
-        """
-        properties = get_host_properties(node)
-
-        self.node_data.setdefault(key, {}).setdefault("type", "cloudbroker")
-        self.node_data.setdefault(key, {}) \
-            .setdefault("description", {}) \
-            .setdefault("deployment_id", properties["deployment_id"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("description", {}) \
-            .setdefault("instance_type_id", properties["instance_type_id"])
-        self.node_data.setdefault(key, {}) \
-            .setdefault("description", {}) \
-            .setdefault("key_pair_id", properties["key_pair_id"])
-        if properties.get("opened_port") is not None:
-            self.node_data.setdefault(key, {}) \
-              .setdefault("description", {}) \
-              .setdefault("opened_port", properties["opened_port"])
-        if properties.get("infrastructure_component_id") is not None:
-            self.node_data.setdefault(key,{}) \
-              .setdefault("description", {}) \
-              .setdefault("infrastructure_component_id", properties["infrastructure_component_id"])
-        if properties.get("firewall_rule_set_id") is not None:
-            self.node_data.setdefault(key, {}) \
-              .setdefault("description", {}) \
-              .setdefault("firewall_rule_set_id", properties["firewall_rule_set_id"])
-        # Currently the IDs form only supports a single ID
-        if properties.get("dynamic_domain_name_ids") is not None:
-            self.node_data.setdefault(key,{}) \
-              .setdefault("description", {}) \
-              .setdefault("dynamic_domain_name_ids", {}) \
-              .setdefault("dynamic_domain_name_id", properties["dynamic_domain_name_ids"][0])
-
-        # This form expects a string
-        if properties.get("dynamic_domain_name") is not None:
-            self.node_data.setdefault(key,{}) \
-              .setdefault("description", {}) \
-              .setdefault("dynamic_domain_names", {}) \
-              .setdefault("dynamic_domain_name", properties["dynamic_domain_name"])
-
-        self._node_data_get_context_section(properties)
 
     def _get_cloud_init(self,tosca_cloud_config, base_cloud_init, insert_mode=None):
         """
@@ -566,3 +523,22 @@ def get_cloudsigma_host_properties(properties):
 
     cloudsigma["description"] = properties
     return cloudsigma
+
+def get_cloudbroker_host_properties(properties):
+    """
+    Get CloudBroker properties and create node definition
+    """
+    cloudbroker = {}
+    cloudbroker["type"] = "cloudbroker"
+
+    domain_name_keys = (
+        "dynamic_domain_name_id",
+        "dynamic_domain_name",
+    )
+    for name in domain_name_keys:
+        if not (value := properties.pop(name, None)):
+            continue
+        properties.setdefault(f"{name}s", {}).setdefault(name, value)
+
+    cloudbroker["description"] = properties
+    return cloudbroker
