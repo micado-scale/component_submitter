@@ -87,8 +87,9 @@ class OccopusAdaptor(abco.Adaptor):
             occo_interface = self._node_data_get_interface(node)
             if not occo_interface:
                 continue
-            
-            self.node_data["resource"]["endpoint"] = get_endpoint_from_interface(occo_interface)
+
+            self.node_data.update(occo_interface.get("create", {}))
+            fix_endpoint_in_interface(self.node_data)
             cloud_type = utils.get_cloud_type(node, SUPPORTED_CLOUDS)
 
             if cloud_type == "cloudsigma":
@@ -598,14 +599,18 @@ class OccopusAdaptor(abco.Adaptor):
             pass
 
 
-def get_endpoint_from_interface(interfaces):
+def fix_endpoint_in_interface(node_data):
     """
-    Get cloud relevant information from tosca
-    """
-    cloud_inputs = interfaces.get("create")
+    Adjust endpoint key in interface (legacy support for endpoint at root)
 
-    # TODO DEPRECATE 'endpoint_cloud' in favour of 'endpoint'
-    return cloud_inputs.get("endpoint", cloud_inputs.get("endpoint_cloud"))
+    This method will mutate interfaces to remove `endpoint` from top-level
+    """
+    # NOTE endpoint_cloud is deprecated
+    # TODO deprecate endpoint at root and allow only under resource?
+    endpoint = node_data.pop("endpoint", "")
+    if not node_data.setdefault("resource", {}).setdefault("endpoint", endpoint):
+        logger.error("Missing endpoint")
+        raise AdaptorCritical("Missing endpoint")
 
 def get_host_properties(node):
     """ Get host properties """
