@@ -91,19 +91,20 @@ class OccopusAdaptor(abco.Adaptor):
             self.node_data.update(occo_interface.get("create", {}))
             fix_endpoint_in_interface(self.node_data)
             cloud_type = utils.get_cloud_type(node, SUPPORTED_CLOUDS)
+            properties = get_host_properties(node)
 
             if cloud_type == "cloudsigma":
                 logger.info("CloudSigma resource detected")
-                self._node_data_get_cloudsigma_host_properties(node, "resource")
+                self._node_data_get_cloudsigma_host_properties(properties, "resource")
             elif cloud_type == "ec2":
                 logger.info("EC2 resource detected")
-                self._node_data_get_ec2_host_properties(node, "resource")
+                self._node_data_get_ec2_host_properties(properties, "resource")
             elif cloud_type == "cloudbroker":
                 logger.info("CloudBroker resource detected")
-                self._node_data_get_cloudbroker_host_properties(node, "resource")
+                self._node_data_get_cloudbroker_host_properties(properties, "resource")
             elif cloud_type == "nova":
                 logger.info("Nova resource detected")
-                self._node_data_get_nova_host_properties(node, "resource")
+                self._node_data_get_nova_host_properties(properties, "resource")
 
             self._get_policies(node)
             self._get_infra_def(tmp)
