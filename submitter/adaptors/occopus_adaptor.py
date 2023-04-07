@@ -103,7 +103,7 @@ class OccopusAdaptor(abco.Adaptor):
 
             logger.info(f"Resource detected: {cloud_type}")
             try:
-                CLOUD_TYPES[cloud_type](properties) # Call the right get function
+                properties = CLOUD_TYPES[cloud_type](properties) # Call the right get function
             except KeyError:
                 raise AdaptorCritical(f"Cloud type not supported: {cloud_type}")
             
