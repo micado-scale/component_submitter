@@ -54,7 +54,7 @@ def get_pod_of_namespaced_deployment(deployment_name, namespace):
 
 
 def exec_command_in_deployment(
-    command, deployment_name, success=None, namespace="micado-system"
+    deployment_name, command, success=None, namespace="micado-system"
 ):
     """Exec a shell command in the first pod of a deployment, check success"""
     pod_name = get_pod_of_namespaced_deployment(deployment_name, namespace)
