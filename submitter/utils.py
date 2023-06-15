@@ -73,10 +73,10 @@ def exec_command_in_deployment(
         )
         if success and success not in resp:
             logger.error(f"{pod_name} exec error: {resp}")
-            raise AdaptorCritical(f"{pod_name} exec error!")
+            raise AdaptorCritical(f"Error: {resp}")
     except ApiException as e:
         logger.error(f"K8s API error: {e}")
-        raise AdaptorCritical(f"K8s API error!")
+        raise AdaptorCritical(f"Error: {e}")
 
 
 def get_namespaced_secret(secret_name, namespace="micado-system"):
