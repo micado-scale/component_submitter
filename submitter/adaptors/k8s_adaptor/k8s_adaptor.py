@@ -108,7 +108,7 @@ class KubernetesAdaptor(base_adaptor.Adaptor):
             try:
                 kubernetes_validate.validate(manifest, k8s_version, strict=True)
             except ValidationError as err:
-                message = f"Invalid K8s Manifest: {err.message}"
+                message = f"Invalid K8s Manifest: {err.message}\n\n{manifest}"
                 logger.error(message)
                 raise AdaptorCritical(message) from None
             except (InvalidSchemaError, SchemaNotFoundError):
