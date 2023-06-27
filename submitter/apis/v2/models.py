@@ -28,7 +28,7 @@ class ReqArgs:
     form = {
         "url": fields.Str(),
         "params": fields.Str(),
-        "dryrun": fields.Bool(),
+        "dryrun": fields.Str(),
     }
     file = {"adt": fields.Field()}
     force = {"force": fields.Bool()}
