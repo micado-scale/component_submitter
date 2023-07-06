@@ -23,6 +23,9 @@ class Application(MethodView):
         """
         Create a new application with a given ID
         """
+        dryrun = False if not dryrun or (
+            isinstance(dryrun, str) and dryrun.lower().startswith("false")
+        ) else True
         if not app_id:
             app_id = id_generator()
         return Applications(app_id).create(adt, url, params, dryrun)
