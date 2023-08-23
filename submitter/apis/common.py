@@ -183,8 +183,10 @@ def _literal_params(params):
     """
     if isinstance(params, dict):
         return params
-
-    params = literal_eval(params) if params else {}
+    try:
+        params = literal_eval(params) if params else {}
+    except ValueError as e:
+        abort(400, f"{e}\nParams are of type {type(params)}, should be map (dict)\nDETAIL:{params}")
     if not isinstance(params, dict):
         abort(400, "Parsed params are not a valid map (dict)")
     return params
