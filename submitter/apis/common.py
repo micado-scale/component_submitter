@@ -1,4 +1,4 @@
-from ast import literal_eval
+import json
 import os.path
 
 from flask import abort
@@ -184,9 +184,9 @@ def _literal_params(params):
     if isinstance(params, dict):
         return params
     try:
-        params = literal_eval(params) if params else {}
-    except ValueError as e:
-        abort(400, f"{e}\nParams are of type {type(params)}, should be map (dict)\nDETAIL:{params}")
+        params = json.loads(params) if params else {}
+    except Exception as e:
+        abort(400, f"{e}\Error loading JSON params, of type {type(params)}")
     if not isinstance(params, dict):
         abort(400, "Parsed params are not a valid map (dict)")
     return params
