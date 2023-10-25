@@ -1,0 +1,59 @@
+#cloud-config
+manage_etc_hosts: false
+package_upgrade: false
+
+write_files:
+
+- path: /tmp/wait-updates.sh
+  permissions: '755'
+  content: |
+    #!/bin/bash
+
+    while [[ `ps aufx | grep -v "grep" | grep "apt.systemd.daily" | wc -l` -gt 0 ]]; do
+      sleep 1
+    done
+
+- path: /etc/rancher/k3s/config.yaml
+  permissons: '644'
+  content: |
+    server: https://{{ ansible_default_ipv4.address }}:6443
+    node-label:
+    - micado.eu/node_type={{ '{{ worker_name }}' }}
+    token: {{ join_token.content | b64decode | trim }}
+
+{% if reg_creds.stat.exists %}
+- path: /etc/rancher/k3s/registries.yaml
+  permissons: '644'
+  content: |
+{{ registries['content'] | b64decode | indent(4, true) }}
+{% endif %}
+
+packages:
+- apt-transport-https
+- ca-certificates
+- curl
+- software-properties-common
+
+final_message: "MiCADO Worker configured after $UPTIME seconds"
+
+runcmd:
+{% if disable_worker_updates %}
+  - sed -i 's/APT::Periodic::Unattended-Upgrade "1";/APT::Periodic::Unattended-Upgrade "0";/g' /etc/apt/apt.conf.d/20auto-upgrades
+{% endif %}
+  - export DEBIAN_FRONTEND=noninteractive
+  - /tmp/wait-updates.sh
+  - while [ -z $IP ]; do IP=`ip -oneline -4 addr show scope global | tr -s ' ' | tr '/' ' ' | grep -v dock | grep -v br- | cut -f 4 -d ' ' | sed 's/\./-/g'`; done
+  - hostname={{ '{{ worker_name }}' }}-$IP
+  - oldhostname=$(hostname -s)
+  - sed -i "s/$oldhostname//g" /etc/hosts
+  - sed -i "s/\b127.0.0.1 localhost/127.0.0.1 localhost\\t$hostname/g" /etc/hosts
+  - hostnamectl set-hostname $hostname
+  - dpkg-reconfigure openssh-server
+  - echo nameserver 8.8.8.8 >> /etc/resolvconf/resolv.conf.d/head
+  - resolvconf -u
+  
+  # Connect to cluster
+  - curl --retry 6 -sfL https://get.k3s.io | INSTALL_K3S_EXEC="agent" sh -s -
+
+  # Placeholder for ADT insert
+  - echo micado runcmd placeholder

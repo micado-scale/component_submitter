@@ -1,0 +1,17 @@
+all:
+  hosts:
+    micado:
+      ansible_host: 127.0.0.1
+      ansible_connection: local
+  children:
+    edgenodes:
+      hosts:
+{% for node, properties in edges.items() %}
+        {{ node }}:
+          ansible_host: {{ properties.public_ip }}
+          ansible_connection: ssh
+          ansible_user: {{ properties.ssh_username }}
+          {%- if properties.ssh_private_key is defined %}
+          ansible_ssh_private_key_file: ./{{ node }}.pem
+          {% endif -%}
+{% endfor %}
