@@ -13,6 +13,10 @@ CONFIG_FILE = "{}/system/key_config.yml".format(basepath)
 
 logger = logging.getLogger("submitter." + __name__)
 
+DEFAULTS = {
+    "out_path": "/var/lib/submitter/files/output_configs/"
+}
+
 def _reading_config(path):
     """reading the config file and creating a dictionary related to it"""
     logger.debug("reading config file")
