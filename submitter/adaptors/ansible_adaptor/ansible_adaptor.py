@@ -51,7 +51,7 @@ class AnsibleAdaptor(base_adaptor.Adaptor):
 
     def execute(self):
         
-        for path, file in self.playbook_paths:
+        for path, file in self.playbook_paths_files:
             ansible_runner.interface.run(
                 ident=self.id,
                 playbook=file,
