@@ -7,7 +7,7 @@ WORKDIR /install
 
 COPY requirements.txt /requirements.txt
 
-RUN apk add musl-dev gcc \
+RUN apk add musl-dev gcc libc-dev libffi-dev \
     && pip3 install --prefix=/install --no-warn-script-location -r /requirements.txt
 
 FROM base
