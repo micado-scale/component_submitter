@@ -13,7 +13,7 @@ jinja_env = jinja2.Environment(loader=jinja_loader)
 
 def handle_edge_playbook(nodes, out_path, config):
     """Handle edge playbook configuration"""
-    VERSION = "v0.12.0"
+    VERSION = "v0.12.3"
 
     edge_info = get_edge_node_info(nodes)
     if not edge_info:
