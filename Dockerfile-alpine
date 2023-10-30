@@ -14,6 +14,8 @@ FROM base
 
 COPY --from=builder /install /usr/local
 
+RUN apk add openssh
+
 WORKDIR /var/lib/micado/submitter
 
 COPY submitter .
