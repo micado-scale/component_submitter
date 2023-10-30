@@ -43,8 +43,11 @@ def write_private_key(edges, out_path):
         if not props.get("ssh_private_key"):
             continue
         
-        with open(os.path.join(out_path, f"{edge}.pem"), 'w') as f:
+        key_path = os.path.join(out_path, f"{edge}.pem")
+        with open(key_path, 'w') as f:
             f.write(props["ssh_private_key"])
+        
+        os.chmod(key_path, 0o600)
 
 def prepare_edge_playbook(version, out_path):
     """Copy edge playbook to output directory"""
