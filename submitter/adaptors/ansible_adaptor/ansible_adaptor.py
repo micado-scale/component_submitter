@@ -41,7 +41,11 @@ class AnsibleAdaptor(base_adaptor.Adaptor):
         for handler, handle_fn in HANDLERS.items():
             logger.debug(f"Running {handler} handler.")
             self.playbook_paths_files.append(
-                handle_fn(self.tpl.nodetemplates, self.output_path)
+                handle_fn(
+                    self.tpl.nodetemplates,
+                    self.output_path,
+                    self.config
+                )
             )
             
         if to_list:

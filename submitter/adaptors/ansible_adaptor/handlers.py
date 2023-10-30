@@ -12,7 +12,7 @@ jinja_env = jinja2.Environment(loader=jinja_loader)
 ## one handler, we should probably create separate modules
 ## for each handler and trash this file.
 
-def handle_edge_playbook(nodes, out_path):
+def handle_edge_playbook(nodes, out_path, config):
     """Handle edge playbook configuration"""
     VERSION = "v0.12.0"
 
@@ -22,19 +22,7 @@ def handle_edge_playbook(nodes, out_path):
 
     if not edge_info:
         return
-
-    shutil.copytree(
-        os.path.join(templates.__path__[0], f"micado-edge/{VERSION}/playbook"),
-        edge_path,
-        dirs_exist_ok=True
-    )
-
-    for edge, props in edge_info["edges"].items():
-        if not props.get("ssh_private_key"):
-            continue
-        
-        with open(os.path.join(edge_path, f"{edge}.pem"), 'w') as f:
-            f.write(props["ssh_private_key"])
+    edge_info["micado_host"] = config.get("micado_host", "localhost")
 
     template = jinja_env.get_template(f"micado-edge/{VERSION}/hosts.yml.j2")
     template = template.render(**edge_info)

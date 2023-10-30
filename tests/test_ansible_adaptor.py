@@ -10,8 +10,9 @@ class TestAnsibleAdaptor(unittest.TestCase):
 
     def setUp(self) -> None:
         tpl = set_template("tests/templates/edge.yaml")
+        conf = {"volume": "tests/output/", "micado_host": "12.12.12.12"}
         ansiadaptor = AnsibleAdaptor(
-            "edge_test", {"volume": "tests/output/"}, True, template=tpl
+            "edge_test", conf, True, template=tpl
         )
         self.nodes = ansiadaptor.translate(to_list=True)
 
