@@ -23,6 +23,9 @@
         --kube-config /root/.kube/config
         --kubeedge-version={{ packages.kube_edge }}
         --advertise-address={{ ansible_host }}
+        --set cloudCore.tolerations[0].key="node-role.kubernetes.io/control-plane"
+        --set cloudCore.tolerations[0].operator="Exists"
+        --set cloudCore.tolerations[0].effect="NoSchedule"
   register: keadm
   async: 60
   when: not etc_cloud.stat.exists
