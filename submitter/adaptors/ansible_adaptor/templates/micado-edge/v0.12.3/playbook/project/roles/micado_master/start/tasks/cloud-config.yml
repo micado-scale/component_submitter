@@ -1,0 +1,25 @@
+---
+- name: '(Occopus) Copy config templates'
+  template:
+    src: worker_node/temp_infrastructure_descriptor.yaml.j2
+    dest: /var/lib/micado/toscasubmitter/system/infrastructure_descriptor.yaml
+    mode: '0644'
+  when: enable_occopus
+
+- name: '(Terraform) Copy required files'
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: '0644'
+  loop:
+    - { src: 'egi/configure_tf', dest: '/var/lib/micado/toscasubmitter/system/configure_tf'}
+    - { src: 'egi/pyGetScopedToken.py', dest: '/var/lib/micado/terraform/preprocess/egi/pyGetScopedToken.py'}
+    - { src: 'terraform/prechecks.py', dest: '/var/lib/micado/terraform/preprocess/prechecks.py'}
+    - { src: 'terraform/utils.py', dest: '/var/lib/micado/terraform/preprocess/utils.py'}
+    - { src: 'terraform/egi_preprocess.py', dest: '/var/lib/micado/terraform/preprocess/egi_preprocess.py'}
+  when: enable_terraform
+
+- name: '(Workers) Copy cloud init template'
+  template:
+    src: worker_node/cloud_init_worker.yaml.j2
+    dest: /var/lib/micado/toscasubmitter/system/cloud_init_worker.yaml

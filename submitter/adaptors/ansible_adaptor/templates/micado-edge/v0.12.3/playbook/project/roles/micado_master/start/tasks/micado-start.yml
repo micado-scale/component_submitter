@@ -1,0 +1,64 @@
+---
+- name: Check if local SSH key exists
+  stat:
+    path: "/var/lib/micado/toscasubmitter/system/id_rsa_localhost"
+  register: local_key_check
+
+- name: Generate a new SSH key for localhost connections
+  command:
+    cmd: "ssh-keygen -t rsa -b 4096 -f /var/lib/micado/toscasubmitter/system/id_rsa_localhost -N ''"
+  when: not local_key_check.stat.exists
+
+- name: Set private key permissions to 0600
+  file:
+    path: "/var/lib/micado/toscasubmitter/system/id_rsa_localhost"
+    mode: '0600'
+  when: not local_key_check.stat.exists
+
+- name: Read the generated public key
+  slurp:
+    src: "/var/lib/micado/toscasubmitter/system/id_rsa_localhost.pub"
+  register: public_key_content
+
+- name: Add the new public key to authorized_keys
+  authorized_key:
+    user: "{{ ansible_user }}"
+    state: present
+    key: "from=\"{{ ansible_host }}\" {{ public_key_content['content'] | b64decode }}"
+
+- name: (MiCADO Core) Get API endpoint
+  k8s:
+    kind: Service
+    name: toscasubmitter
+    namespace: micado-system
+  register: submitter
+  until: submitter is succeeded
+  retries: 
+  delay: 10
+
+- name: (MiCADO Core) Set API environment
+  lineinfile:
+    path: /etc/environment
+    line: "{{ item.line }}"
+    mode: '0644'
+  with_items:
+  - line: >-
+      MICADO_API_ENDPOINT=http://{{ submitter.result.spec.clusterIP
+      }}:{{ submitter.result.spec.ports[0].port }}
+  - { line: "MICADO_API_VERSION=v2.0" }
+
+- name: (MiCADO Core) Wait for components
+  k8s:
+    kind: Deployment
+    name: zorp
+    namespace: micado-system
+    wait: yes
+    wait_timeout: 90
+    wait_condition:
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+  register: components
+  until: components is succeeded
+  retries: 3
+  delay: 5
