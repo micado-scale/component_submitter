@@ -46,7 +46,7 @@ def write_private_key(edges, out_path):
         
         key_path = os.path.join(out_path, f"{edge}.pem")
         with open(key_path, 'w') as f:
-            f.write(props["ssh_private_key"])
+            f.write(props["ssh_private_key"].strip() + '\n')
         
         os.chmod(key_path, 0o600)
 
