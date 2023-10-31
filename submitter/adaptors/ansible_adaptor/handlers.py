@@ -21,8 +21,9 @@ def handle_edge_playbook(nodes, out_path, config):
     edge_info["micado_host"] = config.get("micado_host", "localhost")
 
     edge_path = os.path.join(out_path, "micado-edge")
-    prepare_edge_playbook(VERSION, edge_path)
+    edge_info["edge_path"] = edge_path
 
+    prepare_edge_playbook(VERSION, edge_path)
     write_private_key(edge_info["edges"], edge_path)
 
     template = jinja_env.get_template(f"micado-edge/{VERSION}/hosts.yml.j2")

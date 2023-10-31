@@ -14,6 +14,6 @@ all:
           ansible_connection: ssh
           ansible_user: {{ properties.ssh_username }}
           {%- if properties.ssh_private_key is defined %}
-          ansible_ssh_private_key_file: ./{{ node }}.pem
+          ansible_ssh_private_key_file: {{ edge_path ~ '/' ~ node }}.pem
           {% endif -%}
 {% endfor %}
