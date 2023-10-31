@@ -99,6 +99,7 @@ install_micado_edge() {
       $sh_c "curl -fsSL -o cni-plugins.sha256 https://github.com/containernetworking/plugins/releases/download/v$cni_plugins_version/cni-plugins-linux-$package_arch-v$cni_plugins_version.tgz.sha256"
       echo "$(cat cni-plugins.sha256)" | sha256sum --check --status || (echo "Error: checksum verification failed for CNI plugins" >&2; exit 1)
       $sh_c "mkdir -p /opt/cni/bin && tar Cxzf /opt/cni/bin cni-plugins-linux-$package_arch-v$cni_plugins_version.tgz"
+      $sh_c "rm -f cni-plugins-linux-$package_arch-v$cni_plugins_version.tgz cni-plugins.sha256"
       $sh_c "mkdir -p /etc/cni/net.d"
       $sh_c 'cat << EOF > /etc/cni/net.d/10-containerd-net.conflist
 {
