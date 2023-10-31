@@ -141,11 +141,11 @@ def _get_related_mounts(node):
 def _get_related_hosts(node):
     return {
         Affinity.COMPUTE_MATCH: [
-            host.name
+            host.name.lower()
             for host in list(_get_related_nodes(node, NodeType.MICADO_COMPUTE))
         ],
         Affinity.EDGE_MATCH: [
-            host.name
+            host.name.lower()
             for host in list(_get_related_nodes(node, NodeType.MICADO_EDGE))
         ],
     }
