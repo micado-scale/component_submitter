@@ -155,6 +155,11 @@ EOF'
 
   echo "join cluster"
   $sh_c "keadm reset --force || echo 'Attempted Reset'"
+  if command -v systemctl >/dev/null 2>&1; then
+      $sh_c 'systemctl stop edgecore || echo "Edgecore not running"'
+  elif command -v service >/dev/null 2>&1; then
+      $sh_c 'service edgecore stop || echo "Edgecore not running"'
+  fi
   $sh_c "keadm join --cloudcore-ipport=$server:10000 --edgenode-name=$nodename --kubeedge-version=$kubeedge_version --token=$token"
 
   echo "configuring kubeedge..."
