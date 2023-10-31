@@ -80,4 +80,4 @@ def get_output_dir(app_id, config) -> Path:
     output_path = Path(config.get("volume", DEFAULTS["out_path"]))
     output_path = output_path / f"{app_id}_Playbooks"
     output_path.mkdir(parents=True, exist_ok=True)
-    return output_path
+    return output_path.absolute()
