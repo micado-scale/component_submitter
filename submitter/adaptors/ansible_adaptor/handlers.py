@@ -18,7 +18,8 @@ def handle_edge_playbook(nodes, out_path, config):
     edge_info = get_edge_node_info(nodes)
     if not edge_info:
         return
-    edge_info["micado_host"] = config.get("micado_host", "localhost")
+    edge_info["micado_host"] = config.get("micado_host", "127.0.0.1")
+    edge_info["micado_user"] = config.get("micado_user", "ubuntu")
 
     edge_path = os.path.join(out_path, "micado-edge")
     edge_info["edge_path"] = edge_path
