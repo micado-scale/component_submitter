@@ -1,3 +1,5 @@
+from ruamel.yaml.scalarstring import DoubleQuotedScalarString as quoted_str
+
 WORKLOADS = ("Deployment", "DaemonSet", "StatefulSet", "Job", "Pod")
 
 class Resource:
@@ -169,3 +171,21 @@ class Custom(Resource):
         self.spec = self.manifest.get("spec", {}).get("template", {}).get(
             "spec", None
         ) or self.manifest.get("spec", {})
+        if "containers" in self.spec:
+            traverse_and_modify(self.spec["containers"])
+
+def stringify_env_values(env_list):
+    for env_var in env_list:
+        if "value" in env_var:
+            env_var['value'] = quoted_str(env_var['value'])
+
+def traverse_and_modify(obj):
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            if key == 'env' and isinstance(value, list):
+                stringify_env_values(value)
+            else:
+                traverse_and_modify(value)
+    elif isinstance(obj, list):
+        for item in obj:
+            traverse_and_modify(item)
