@@ -1,6 +1,8 @@
 # config file for global MiCADO settings
 # =======================================================
 
+# Registry credentials path
+registry_cred_path: credentials/credentials-registries.yml
 
 # =======================================================
 # end of user options. do not edit under this line
