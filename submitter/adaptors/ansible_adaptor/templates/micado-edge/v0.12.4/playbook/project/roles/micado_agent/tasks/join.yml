@@ -6,21 +6,15 @@
     --token "{{ hostvars['micado']['k3s_token']['content'] | b64decode | trim }}"
     --node-external-ip "{{ ansible_host }}"
 
-- name: (registries) Checking the existence of registry credentials
-  stat: path={{ registry_cred_path }}
-  become: false
-  delegate_to: localhost
-  register: reg_creds
-
 - name: (registries) Ensure /etc/rancher/k3s directory
   file:
     path: /etc/rancher/k3s
     state: directory
     mode: '0755'
-  when: reg_creds.stat.exists
+  when: registries_file.stat.exists
 
 - name: (registries) Copy registries.yaml
   copy:
-    src: "{{ registry_cred_path }}"
+    content: "{{ registries_content['content'] | b64decode }}"
     dest: /etc/rancher/k3s/registries.yaml
-  when: reg_creds.stat.exists
+  when: registries_file.stat.exists
