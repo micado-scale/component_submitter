@@ -1,3 +1,0 @@
-# ansible-role-start-micado
-
-Run this with _ansible-playbook -i hosts.yml micado.yml --tags start_ to initialise and start a Ubuntu 18.04 LTS or Ubuntu 20.04 LTS image which already includes the necessary libraries and dependencies for a MiCADO Master deployment (this requires *ansible-role-build-micado* to be run first). Make sure the *micado* entry in the _hosts_ file is populated with the correct *ansible_host* (IP) and *ansible_user* (SSH username).

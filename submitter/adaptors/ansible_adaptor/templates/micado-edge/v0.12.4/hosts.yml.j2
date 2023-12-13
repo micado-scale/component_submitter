@@ -1,0 +1,19 @@
+all:
+  hosts:
+    micado:
+      ansible_host: {{ micado_host }}
+      ansible_connection: ssh
+      ansible_user: {{ micado_user }}
+      ansible_ssh_private_key_file: /var/lib/micado/submitter/system/id_rsa_localhost
+  children:
+    agents:
+      hosts:
+{% for node, properties in edges.items() %}
+        {{ node }}:
+          ansible_host: {{ properties.public_ip }}
+          ansible_connection: ssh
+          ansible_user: {{ properties.ssh_username }}
+          {%- if properties.ssh_private_key is defined %}
+          ansible_ssh_private_key_file: {{ edge_path ~ '/' ~ node }}.pem
+          {% endif -%}
+{% endfor %}

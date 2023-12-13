@@ -1,0 +1,2 @@
+---
+- include_tasks: edge_join.yml
