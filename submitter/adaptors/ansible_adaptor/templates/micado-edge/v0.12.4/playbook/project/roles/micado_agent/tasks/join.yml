@@ -19,6 +19,6 @@
 - name: Join k3s cluster
   shell: curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="agent" sh -s - 
     --server "https://{{ hostvars['micado']['ansible_host'] }}:6443"
-    --node-name "{{ inventory_hostname | lower }}"
+    --node-label "kubernetes.io/hostname={{ inventory_hostname | lower }}"
     --token "{{ hostvars['micado']['k3s_token']['content'] | b64decode | trim }}"
     --node-external-ip "{{ ansible_host }}"
