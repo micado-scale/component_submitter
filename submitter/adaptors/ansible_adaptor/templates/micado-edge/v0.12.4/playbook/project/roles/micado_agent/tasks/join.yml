@@ -11,10 +11,10 @@
     path: /etc/rancher/k3s
     state: directory
     mode: '0755'
-  when: registries_file.stat.exists
+  when: hostvars['micado']['registries_file'].stat.exists
 
 - name: (registries) Copy registries.yaml
   copy:
-    content: "{{ registries_content['content'] | b64decode }}"
+    content: "{{ hostvars['micado']['registries_content']['content'] | b64decode }}"
     dest: /etc/rancher/k3s/registries.yaml
-  when: registries_file.stat.exists
+  when: hostvars['micado']['registries_file'].stat.exists
