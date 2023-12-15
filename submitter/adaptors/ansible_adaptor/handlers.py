@@ -1,6 +1,10 @@
 import jinja2
 import os
-import shutil
+import re
+import tarfile
+from tempfile import NamedTemporaryFile
+
+import requests
 
 import submitter.adaptors.ansible_adaptor.templates as templates
 
@@ -13,7 +17,7 @@ jinja_env = jinja2.Environment(loader=jinja_loader)
 
 def handle_edge_playbook(nodes, out_path, config):
     """Handle edge playbook configuration"""
-    VERSION = "v0.12.4"
+    VERSION = "main"
 
     edge_info = get_edge_node_info(nodes)
     if not edge_info:
@@ -52,13 +56,33 @@ def write_private_key(edges, out_path):
         os.chmod(key_path, 0o600)
 
 def prepare_edge_playbook(version, out_path):
-    """Copy edge playbook to output directory"""
-    shutil.copytree(
-        os.path.join(templates.__path__[0], f"micado-edge/{version}/playbook"),
-        out_path,
-        dirs_exist_ok=True
-    )
+    """Download edge playbook"""
 
+    def just_playbook(tf, dir_name="playbook"):
+        dir_pattern = re.compile(rf'^.*/{re.escape(dir_name)}/?(.*)')
+        for member in tf.getmembers():
+            match = dir_pattern.match(member.path)
+            if match:
+                member.path = match.group(1)
+                yield member
+
+    url = f"https://github.com/micado-scale/ansible-micado/tarball/{version}"
+
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+
+        with NamedTemporaryFile(suffix=".tar.gz") as f:
+
+            for chunk in r.iter_content(chunk_size=8192): 
+                f.write(chunk)
+            f.seek(0)
+
+            if not tarfile.is_tarfile(f.name):
+                raise TypeError(f"Download failed - check MiCADO {version} exists.")
+
+            with tarfile.open(fileobj=f) as tar:
+                tar.extractall(path=out_path, members=just_playbook(tar, "playbook"))
+    
 def get_edge_node_info(nodes):
     """Get edge node information"""
     NODE_TYPES = ["tosca.nodes.MiCADO.Edge"]
