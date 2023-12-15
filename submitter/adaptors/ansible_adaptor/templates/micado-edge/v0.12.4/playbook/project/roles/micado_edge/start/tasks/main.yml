@@ -1,6 +1,0 @@
----
-- include_tasks: edge_iptables.yml
-
-- include_tasks: cloud_core_start.yml
-
-- include_tasks: edge_monitoring.yml
