@@ -61,7 +61,6 @@ class AnsibleAdaptor(base_adaptor.Adaptor):
                 playbook=file,
                 private_data_dir=path,
                 rotate_artifacts=ROTATION,
-                quiet=QUIET,
             )
 
 
