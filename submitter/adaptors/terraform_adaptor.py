@@ -124,7 +124,7 @@ class TerraformAdaptor(abco.Adaptor):
         self.account_file = "{}accounts.json".format(self.volume)
         self.oci_auth_key = "{}oci_api_key.pem".format(self.volume)
 
-        self.cloud_init_template = "./system/cloud_init_worker_tf.yaml"
+        self.cloud_init_template = "./system/cloud_init_worker.yaml"
         self.configure_template = "./system/configure_tf"
         self.configure_file = "/var/lib/micado/submitter/preprocess/egi/configure.py"
         self.auth_data_file = "/var/lib/micado/submitter/auth/auth_data.yaml"
