@@ -28,6 +28,7 @@ class AnsibleAdaptor(base_adaptor.Adaptor):
         self.id = adaptor_id
         self.config = config
 
+        self.status = "Initialising..."
         self.output_path = get_output_dir(adaptor_id, config)
         self.dryrun = dryrun
         self.tpl = template
@@ -37,6 +38,7 @@ class AnsibleAdaptor(base_adaptor.Adaptor):
     def translate(self, to_list=False):
         """Create configs"""
 
+        self.status = "Translating..."
 
         for handler, handle_fn in HANDLERS.items():
             logger.debug(f"Running {handler} handler.")
@@ -48,6 +50,7 @@ class AnsibleAdaptor(base_adaptor.Adaptor):
                 )
             )
             
+        self.status = "Translated"
         if to_list:
             return self.playbook_paths_files
         
@@ -55,6 +58,7 @@ class AnsibleAdaptor(base_adaptor.Adaptor):
 
     def execute(self):
         
+        self.status = "Executing..."
         for path, file in self.playbook_paths_files:
             ansible_runner.interface.run(
                 ident=self.id,
@@ -62,6 +66,7 @@ class AnsibleAdaptor(base_adaptor.Adaptor):
                 private_data_dir=path,
                 rotate_artifacts=ROTATION,
             )
+        self.status = "Executed"
 
 
     def update(self):
