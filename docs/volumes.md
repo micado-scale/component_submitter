@@ -196,7 +196,7 @@ app-container:
     image: hadoop
   requirements:
   - volume:
-      name: hdfs-config
+      node: hdfs-config
       relationship:
         type: tosca.relationships.AttachesTo
         properties:
@@ -227,5 +227,25 @@ nginx-config:
               }
 ```
 > When this ConfigMap gets mounted, the file `nginx.conf` will be created at the mount point, populated with the given value
+
+**NOTE** that the above will overwrite any existing directory at `location`. To avoid this, specify the full path to the file using `location` and indicate the specific configMap key using `subPath`.
+
+```yaml
+app-container:
+  type: tosca.nodes.MiCADO.Container.Application.Docker
+  properties:
+    image: hadoop
+  requirements:
+  - volume:
+      node: nginx-config
+      relationship:
+        type: tosca.relationships.AttachesTo
+        properties:
+          location: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+  interfaces:
+    Kubernetes:
+      create:
+```
 
 ## Next up: [Multi-Container Pods (Sidecars)](sidecars.md)
