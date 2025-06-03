@@ -506,6 +506,14 @@ class TerraformAdaptor(abco.Adaptor):
     def _add_terraform_nova(self, properties):
         """ Write Terraform template files for openstack in JSON"""
 
+        auth_url = (
+            properties.get("auth_url")
+            or properties.get("endpoint")
+            or properties.get("endpoint_cloud")
+        )
+        is_sztaki = "sztaki" in auth_url.lower()
+        tenant_id = properties.get("project_id")
+
         def get_provider():
             return {
                 "version": "~> 1.32.0",
@@ -531,6 +539,18 @@ class TerraformAdaptor(abco.Adaptor):
                 vm[instance_name]["flavor_id"] = flavor_id
             if flavor_name:
                 vm[instance_name]["flavor_name"] = flavor_name
+            
+            if is_sztaki:
+                vm[instance_name]["block_device"] = [
+                    {
+                        "uuid": image_id,
+                        "source_type": properties.get("source_type", "image"),
+                        "destination_type": properties.get("destination_type", "volume"),
+                        "volume_size": properties.get("volume_size", 10),
+                        "boot_index": properties.get("boot_index", 0),
+                        "delete_on_termination": properties.get("delete_on_termination", True)
+                    }
+            ]
             return vm
 
         def get_keypair():
@@ -562,12 +582,7 @@ class TerraformAdaptor(abco.Adaptor):
         self.tf_json.add_instance_variable(instance_name, self.min_instances)
 
         credential = self._get_credential_info("nova")
-        auth_url = (
-            properties.get("auth_url")
-            or properties.get("endpoint")
-            or properties.get("endpoint_cloud")
-        )
-        tenant_id = properties.get("project_id")
+        
 
         provider = get_provider()
         app_cred_id = credential.get("application_credential_id")
