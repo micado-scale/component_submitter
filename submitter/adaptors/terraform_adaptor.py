@@ -525,7 +525,6 @@ class TerraformAdaptor(abco.Adaptor):
             vm = {
                 instance_name: {
                     "name": "%s${each.key}" % instance_name,
-                    "image_id": image_id,
                     "key_pair": key_pair,
                     "security_groups": security_groups,
                     "user_data": '${file("${path.module}/%s")}' % cloud_init_file_name,
@@ -551,6 +550,9 @@ class TerraformAdaptor(abco.Adaptor):
                         "delete_on_termination": properties.get("delete_on_termination", True)
                     }
             ]
+            else:
+                # Boot from image (no block_device here)
+                vm[instance_name]["image_id"] = image_id  
             return vm
 
         def get_keypair():
