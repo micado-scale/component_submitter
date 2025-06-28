@@ -8,5 +8,5 @@ kubernetes==26.1.0
 kubernetes-validate==1.25.2
 webargs==6.1.0
 marshmallow==3.7.1
-gunicorn==20.0.4
+gunicorn==22.0.0
 micado-parser~=0.12.0
